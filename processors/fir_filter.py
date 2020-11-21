@@ -1,20 +1,23 @@
 import jax.numpy as jnp
 
-def init_params(shape):
-    size = shape[1]
-    init = jnp.zeros(shape)
-    if size >= 1:
-        init = init.at[:,0].set(1.0)
-    return init
+def create_params_target():
+    return {
+        'B': jnp.array([0.1, 0.7, 0.5, 0.6])
+    }
+
+def init_params():
+    return {
+        'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(3)])
+    }
 
 def init_state_from_params(params):
-    B, = params
+    B = params['B']
     inputs = jnp.zeros(B.size)
     return (inputs,)
 
 def tick(x, params, state):
+    B = params['B']
     inputs, = state
-    B, = params
     inputs = jnp.concatenate([jnp.array([x]), inputs[0:-1]])
     y = B @ inputs
     return y, (inputs,)

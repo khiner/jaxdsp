@@ -1,11 +1,19 @@
 import jax.numpy as jnp
 
-def init_params(shape):
-    return jnp.asarray([[-1.0, 1.0]])
+def create_params_target():
+    return {
+        'min': -0.9,
+        'max': 0.9,
+    }
+
+def init_params():
+    return {
+        'min': -1.0,
+        'max': 1.0,
+    }
 
 def init_state_from_params(params):
     return ()
 
 def tick(x, params, state):
-    min_max, = params
-    return jnp.clip(x, min_max[0], min_max[1]), ()
+    return jnp.clip(x, params['min'], params['max']), ()

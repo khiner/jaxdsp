@@ -1,21 +1,30 @@
 import jax.numpy as jnp
+from scipy import signal
 
-def init_params(shape):
-    size = shape[1]
-    init = jnp.zeros(shape)
-    if size >= 1:
-        init = init.at[:,0].set(1.0)
-    return init
+def create_params_target():
+    B, A = signal.butter(4, 0.5, 'low')
+    return {
+        'B': B,
+        'A': A,
+    }
+
+def init_params():
+    return {
+        'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]),
+        'A' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]),
+    }
 
 def init_state_from_params(params):
-    B, A = params
+    B = params['B']
+    A = params['A']
     inputs = jnp.zeros(B.size)
     outputs = jnp.zeros(A.size - 1)
     return (inputs, outputs)
 
 def tick(x, params, state):
+    B = params['B']
+    A = params['A']
     inputs, outputs = state
-    B, A = params
     inputs = jnp.concatenate([jnp.array([x]), inputs[0:-1]])
     y = B @ inputs
     if outputs.size > 0:
