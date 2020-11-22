@@ -1,7 +1,8 @@
 import numpy as np
 import jax.numpy as jnp
-from jax import grad, value_and_grad
+from jax import grad, value_and_grad, jit
 from jax.experimental import optimizers
+from functools import partial
 
 import sys
 sys.path.append('./')
@@ -16,11 +17,12 @@ def train(processor_class, X, step_size=0.1, num_batches=10):
     loss_history = np.zeros(num_batches)
     Y = jnp.zeros(X.size)
     Y_target = process(params_target, processor_class, X, Y)
+    processor_class_loss = partial(processor_loss, processor_class=processor_class, X=X, Y=Y, Y_target=Y_target)
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
     opt_state = opt_init(processor_class.init_params())
     for batch_i in range(num_batches):
-        loss, gradient = value_and_grad(processor_loss)(get_params(opt_state), process, processor_class, X, Y, Y_target)
+        loss, gradient = value_and_grad(processor_class_loss)(get_params(opt_state))
         opt_state = opt_update(batch_i, gradient, opt_state)
         loss_history[batch_i] = loss
         new_params = get_params(opt_state)
@@ -32,18 +34,19 @@ def train(processor_class, X, step_size=0.1, num_batches=10):
     return params_estimated, params_target, Y_estimated, Y_target, params_history, loss_history
 
 
-def train_serial(processors, X, step_size=0.1, num_batches=10):
+def train_serial(processor_classes, X, step_size=0.1, num_batches=10):
     processor_class = SerialProcessors
-    params_target = processor_class.create_params_target(processors)
-    params_history = {processor_key: {key: [param] for (key, param) in inner_init_params.items()} for (processor_key, inner_init_params) in processor_class.init_params(processors).items()}
+    params_target = processor_class.create_params_target(processor_classes)
+    params_history = {processor_key: {key: [param] for (key, param) in inner_init_params.items()} for (processor_key, inner_init_params) in processor_class.init_params(processor_classes).items()}
     loss_history = np.zeros(num_batches)
     Y = jnp.zeros(X.size)
-    Y_target = process_serial(params_target, processor_class, processors, X, Y)
+    Y_target = process_serial(params_target, processor_class, processor_classes, X, Y)
+    processor_class_loss_serial = partial(processor_loss_serial, processor_classes=processor_classes, processor_class=processor_class, X=X, Y=Y, Y_target=Y_target)
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
-    opt_state = opt_init(processor_class.init_params(processors))
+    opt_state = opt_init(processor_class.init_params(processor_classes))
     for batch_i in range(num_batches):
-        loss, gradient = value_and_grad(processor_loss_serial)(get_params(opt_state), process_serial, processor_class, processors, X, Y, Y_target)
+        loss, gradient = value_and_grad(processor_class_loss_serial)(get_params(opt_state))
         opt_state = opt_update(batch_i, gradient, opt_state)
         loss_history[batch_i] = loss
         new_params = get_params(opt_state)
@@ -52,5 +55,5 @@ def train_serial(processors, X, step_size=0.1, num_batches=10):
                 params_history[processor_key][param_key].append(param)
 
     params_estimated = get_params(opt_state)
-    Y_estimated = process_serial(params_estimated, processor_class, processors, X, Y)
+    Y_estimated = process_serial(params_estimated, processor_class, processor_classes, X, Y)
     return params_estimated, params_target, Y_estimated, Y_target, params_history, loss_history
