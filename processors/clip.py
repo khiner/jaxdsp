@@ -1,21 +1,19 @@
 import jax.numpy as jnp
 
-NAME = 'clip'
+class Clip():
+    NAME = 'clip'
 
-def create_params_target():
-    return {
-        'min': -0.8,
-        'max': 0.8,
-    }
+    def __init__(self):
+        self.init_params = {
+            'min': -1.0,
+            'max': 1.0,
+        }
 
-def init_params():
-    return {
-        'min': -1.0,
-        'max': 1.0,
-    }
+    def create_params_target(self):
+        return {
+            'min': -0.8,
+            'max': 0.8,
+        }
 
-def init_state_from_params(params):
-    return ()
-
-def tick(x, params, state):
-    return jnp.clip(x, params['min'], params['max']), ()
+    def tick(self, x, params):
+        return jnp.clip(x, params['min'], params['max'])

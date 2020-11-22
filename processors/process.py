@@ -1,13 +1,13 @@
-def process(params, processor, X, Y):
-    state = processor.init_state_from_params(params)
+def process(params, processor_class, X, Y):
+    processor = processor_class()
     for i, x in enumerate(X):
-        y, state = processor.tick(x, params, state)
+        y = processor.tick(x, params)
         Y = Y.at[i].set(y) # Y[i] = y
     return Y
 
-def process_serial(params, processor, processors, X, Y):
-    state = processor.init_state_from_params(processors, params)
+def process_serial(params, processor_class, processors, X, Y):
+    processor = processor_class(processors)
     for i, x in enumerate(X):
-        y, state = processor.tick(processors, x, params, state)
+        y = processor.tick(x, params)
         Y = Y.at[i].set(y) # Y[i] = y
     return Y
