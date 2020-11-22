@@ -1,6 +1,8 @@
 import jax.numpy as jnp
 from scipy import signal
 
+NAME = 'iir_filter'
+
 def create_params_target():
     B, A = signal.butter(4, 0.5, 'low')
     return {

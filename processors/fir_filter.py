@@ -1,5 +1,7 @@
 import jax.numpy as jnp
 
+NAME = 'fir_filter'
+
 def create_params_target():
     return {
         'B': jnp.array([0.1, 0.7, 0.5, 0.6])
