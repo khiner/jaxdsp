@@ -11,15 +11,14 @@ from process import process, process_serial
 from loss_fns import processor_loss, processor_loss_serial
 
 def train(processor_class, X, step_size=0.1, num_batches=10):
-    processor = processor_class()
-    params_target = processor.create_params_target()
-    params_history = {key: [param] for (key, param) in processor.init_params.items()}
+    params_target = processor_class.create_params_target()
+    params_history = {key: [param] for (key, param) in processor_class.init_params().items()}
     loss_history = np.zeros(num_batches)
     Y = jnp.zeros(X.size)
     Y_target = process(params_target, processor_class, X, Y)
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
-    opt_state = opt_init(processor.init_params)
+    opt_state = opt_init(processor_class.init_params())
     for batch_i in range(num_batches):
         loss, gradient = value_and_grad(processor_loss)(get_params(opt_state), process, processor_class, X, Y, Y_target)
         opt_state = opt_update(batch_i, gradient, opt_state)
@@ -35,15 +34,14 @@ def train(processor_class, X, step_size=0.1, num_batches=10):
 
 def train_serial(processors, X, step_size=0.1, num_batches=10):
     processor_class = SerialProcessors
-    processor = processor_class(processors)
-    params_target = processor.create_params_target()
-    params_history = {processor_key: {key: [param] for (key, param) in inner_init_params.items()} for (processor_key, inner_init_params) in processor.init_params.items()}
+    params_target = processor_class.create_params_target(processors)
+    params_history = {processor_key: {key: [param] for (key, param) in inner_init_params.items()} for (processor_key, inner_init_params) in processor_class.init_params(processors).items()}
     loss_history = np.zeros(num_batches)
     Y = jnp.zeros(X.size)
     Y_target = process_serial(params_target, processor_class, processors, X, Y)
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
-    opt_state = opt_init(processor.init_params)
+    opt_state = opt_init(processor_class.init_params(processors))
     for batch_i in range(num_batches):
         loss, gradient = value_and_grad(processor_loss_serial)(get_params(opt_state), process_serial, processor_class, processors, X, Y, Y_target)
         opt_state = opt_update(batch_i, gradient, opt_state)

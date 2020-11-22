@@ -3,16 +3,19 @@ import jax.numpy as jnp
 class FirFilter():
     NAME = 'fir_filter'
 
-    def __init__(self):
-        self.init_params = {
-            'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(3)])
+    def init_params(length=4):
+        return {
+            'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)])
         }
-        self.inputs = jnp.zeros(self.init_params['B'].size)
 
-    def create_params_target(self):
+    def create_params_target(length=4):
         return {
             'B': jnp.array([0.1, 0.7, 0.5, 0.6])
         }
+
+
+    def __init__(self, length=4):
+        self.inputs = jnp.zeros(length)
 
     def tick(self, x, params):
         B = params['B']

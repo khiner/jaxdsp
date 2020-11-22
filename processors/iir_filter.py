@@ -4,20 +4,23 @@ from scipy import signal
 class IirFilter():
     NAME = 'iir_filter'
 
-    def __init__(self):
-        self.init_params = {
-            'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]),
-            'A' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]),
+    def init_params(length=5):
+        return {
+            'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)]),
+            'A' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)]),
         }
-        self.inputs = jnp.zeros(self.init_params['B'].size)
-        self.outputs = jnp.zeros(self.init_params['A'].size - 1)
 
-    def create_params_target(self):
-        B, A = signal.butter(4, 0.5, 'low')
+    def create_params_target(length=5):
+        B, A = signal.butter(length - 1, 0.5, 'low')
         return {
             'B': B,
             'A': A,
         }
+
+
+    def __init__(self, length=5):
+        self.inputs = jnp.zeros(length)
+        self.outputs = jnp.zeros(length - 1)
 
     def tick(self, x, params):
         B = params['B']
