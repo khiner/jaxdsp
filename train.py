@@ -21,8 +21,9 @@ def train(processor_class, X, step_size=0.1, num_batches=10):
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
     opt_state = opt_init(processor_class.init_params())
+    grad_fn = jit(value_and_grad(processor_class_loss))
     for batch_i in range(num_batches):
-        loss, gradient = value_and_grad(processor_class_loss)(get_params(opt_state))
+        loss, gradient = grad_fn(get_params(opt_state))
         opt_state = opt_update(batch_i, gradient, opt_state)
         loss_history[batch_i] = loss
         new_params = get_params(opt_state)
@@ -42,11 +43,12 @@ def train_serial(processor_classes, X, step_size=0.1, num_batches=10):
     Y = jnp.zeros(X.size)
     Y_target = process_serial(params_target, processor_class, processor_classes, X, Y)
     processor_class_loss_serial = partial(processor_loss_serial, processor_classes=processor_classes, processor_class=processor_class, X=X, Y=Y, Y_target=Y_target)
+    grad_fn = jit(value_and_grad(processor_class_loss_serial))
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
     opt_state = opt_init(processor_class.init_params(processor_classes))
     for batch_i in range(num_batches):
-        loss, gradient = value_and_grad(processor_class_loss_serial)(get_params(opt_state))
+        loss, gradient = grad_fn(get_params(opt_state))
         opt_state = opt_update(batch_i, gradient, opt_state)
         loss_history[batch_i] = loss
         new_params = get_params(opt_state)
