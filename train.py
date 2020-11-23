@@ -11,7 +11,7 @@ from serial_processors import SerialProcessors
 from process import process, process_serial
 from loss_fns import processor_loss, processor_loss_serial
 
-def train(processor_class, X, step_size=0.1, num_batches=10):
+def train(processor_class, X, step_size=0.1, num_batches=100):
     params_target = processor_class.create_params_target()
     params_history = {key: [param] for (key, param) in processor_class.init_params().items()}
     loss_history = np.zeros(num_batches)
@@ -35,7 +35,7 @@ def train(processor_class, X, step_size=0.1, num_batches=10):
     return params_estimated, params_target, Y_estimated, Y_target, params_history, loss_history
 
 
-def train_serial(processor_classes, X, step_size=0.1, num_batches=10):
+def train_serial(processor_classes, X, step_size=0.1, num_batches=100):
     processor_class = SerialProcessors
     params_target = processor_class.create_params_target(processor_classes)
     params_history = {processor_key: {key: [param] for (key, param) in inner_init_params.items()} for (processor_key, inner_init_params) in processor_class.init_params(processor_classes).items()}

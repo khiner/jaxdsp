@@ -46,12 +46,12 @@ def plot_params(params_target, params_history):
         for param_i, (key, label, param) in enumerate(param_group):
             plot = axes[param_i][param_group_i]
             plot.set_title(label)
-            plot.set_xlabel('Batch')
             plot.axhline(y=param, c='g', linestyle='--', label='Actual params')
             param_history = params_history[key]
             if isinstance(param_history[0], Iterable): param_history = np.asarray(param_history)[:,param_i]
             plot.plot(param_history, c='b', label='Estimated params')
             if param_group_i == 0: plot.set_ylabel('Value')
             if param_i == 0: plot.legend()
+            if param_i == len(param_group) - 1: plot.set_xlabel('Batch')
             plot.autoscale(tight=True)
     plt.tight_layout()
