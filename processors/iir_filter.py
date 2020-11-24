@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+from jax import jit
 from scipy import signal
 
 class IirFilter():

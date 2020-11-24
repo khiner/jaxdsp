@@ -1,13 +1,11 @@
-def process(params, processor_class, X, Y):
-    processor = processor_class()
-    for i, x in enumerate(X):
-        y = processor.tick(x, params)
-        Y = Y.at[i].set(y) # Y[i] = y
-    return Y
+from jax import lax
+import jax.numpy as jnp
 
-def process_serial(params, processor_class, processors, X, Y):
+def process(params, processor_class, X):
+    processor = processor_class()
+    # lax.fori_loop(0, 10, lambda i,x: x+array[i], 0)
+    return jnp.array([processor.tick(x, params) for x in X])
+
+def process_serial(params, processor_class, processors, X):
     processor = processor_class(processors)
-    for i, x in enumerate(X):
-        y = processor.tick(x, params)
-        Y = Y.at[i].set(y) # Y[i] = y
-    return Y
+    return jnp.array([processor.tick(x, params) for x in X])
