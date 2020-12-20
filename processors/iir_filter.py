@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-from jax import jit
+from jax import jit, lax
 from scipy import signal
 
 class IirFilter():
@@ -23,6 +23,9 @@ class IirFilter():
         self.inputs = jnp.zeros(length)
         self.outputs = jnp.zeros(length - 1)
 
+    def tick_buffer(self, X, params):
+        return IirFilter.tick_buffer_scan(X, params, self.inputs, self.outputs)[1]
+
     def tick(self, x, params):
         B = params['B']
         A = params['A']
@@ -33,3 +36,23 @@ class IirFilter():
             y /= A[0]
             self.outputs = jnp.concatenate([jnp.array([y]), self.outputs[0:-1]])
         return y
+
+    @jit
+    def tick_buffer_scan(X, params, inputs, outputs):
+        init = {'B': params['B'], 'A': params['A'], 'inputs': inputs, 'outputs': outputs}
+        return lax.scan(IirFilter.tick_scan, init, X)
+
+    @jit
+    def tick_scan(carry, x):
+        B = carry['B']
+        A = carry['A']
+        inputs = jnp.concatenate([jnp.array([x]), carry['inputs'][0:-1]])
+        outputs = carry['outputs']
+        y = B @ inputs
+        if outputs.size > 0:
+            y -= A[1:] @ carry['outputs']
+            y /= A[0]
+            outputs = jnp.concatenate([jnp.array([y]), outputs[0:-1]])
+        carry['inputs'] = inputs
+        carry['outputs'] = outputs
+        return carry, y

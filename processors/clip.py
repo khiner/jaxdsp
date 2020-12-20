@@ -15,6 +15,8 @@ class Clip():
             'max': 0.8,
         }
 
+    def tick_buffer(self, X, params):
+        return jnp.clip(X, params['min'], params['max'])
 
     def tick(self, x, params):
         return jnp.clip(x, params['min'], params['max'])

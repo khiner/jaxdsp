@@ -8,17 +8,18 @@ import sys
 sys.path.append('./')
 sys.path.append('./processors')
 from serial_processors import SerialProcessors
-from process import process, process_serial
+from process import process, process_buffer, process_serial
 from loss_fns import mse
 
-def train(processor_class, X, step_size=0.1, num_batches=100):
+def train(processor_class, X, step_size=0.1, num_batches=100, buffered=False):
+    process_fn = process_buffer if buffered else process
     params_target = processor_class.create_params_target()
     params_history = {key: [param] for (key, param) in processor_class.init_params().items()}
     loss_history = np.zeros(num_batches)
-    Y_target = process(params_target, processor_class, X)
+    Y_target = process_fn(params_target, processor_class, X)
 
     def processor_loss(params):
-        Y = process(params, processor_class, X)
+        Y = process_fn(params, processor_class, X)
         return mse(Y, Y_target)
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
@@ -33,7 +34,7 @@ def train(processor_class, X, step_size=0.1, num_batches=100):
             params_history[param_key].append(new_params[param_key])
 
     params_estimated = get_params(opt_state)
-    Y_estimated = process(params_estimated, processor_class, X)
+    Y_estimated = process_fn(params_estimated, processor_class, X)
     return params_estimated, params_target, Y_estimated, Y_target, params_history, loss_history
 
 

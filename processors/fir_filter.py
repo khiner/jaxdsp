@@ -17,6 +17,11 @@ class FirFilter():
     def __init__(self, length=4):
         self.inputs = jnp.zeros(length)
 
+
+    def tick_buffer(self, X, params):
+        B = params['B']
+        return jnp.convolve(X, B)[:-(B.size - 1)]
+
     def tick(self, x, params):
         B = params['B']
         self.inputs = jnp.concatenate([jnp.array([x]), self.inputs[0:-1]])
