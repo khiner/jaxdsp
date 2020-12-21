@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+from jax import jit
 
 NAME = 'fir_filter'
 
@@ -17,6 +18,7 @@ def create_params_target(length=4):
         'B': jnp.array([0.1, 0.7, 0.5, 0.6])
     }
 
+@jit
 def tick_buffer(carry, X):
     params = carry['params']
     B = params['B']

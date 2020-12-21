@@ -30,7 +30,7 @@ def plot_loss(loss_history):
     plot.set_title('Loss over time', size=16)
     plot.autoscale(tight=True)
 
-def plot_params(params_target, params_history):
+def plot_params_single(params_target, params_history):
     param_groups = [] # list of lists of (key, label, scalar_param_value)
     # All non-list params go into the first (and potentially only) param group (column).
     single_params = [(key, key, param) for (key, param) in params_target.items() if not isinstance(param, Iterable)]
@@ -55,3 +55,7 @@ def plot_params(params_target, params_history):
             if param_i == len(param_group) - 1: plot.set_xlabel('Batch')
             plot.autoscale(tight=True)
     plt.tight_layout()
+
+def plot_params(params_target, params_history):
+    for processor_name in params_target.keys():
+        plot_params_single(params_target[processor_name], params_history[processor_name])
