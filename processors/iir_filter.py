@@ -34,7 +34,9 @@ def tick(carry, x):
     y = B @ inputs
     if outputs.size > 0:
         y -= A[1:] @ state['outputs']
-        y /= A[0]
+        # Don't optimize the output gain, since it's not commonly used and constraining it to 1 helps training
+        # Note that this makes the implementation technically incorrect. We can always uncomment if we want it back.
+        # y /= A[0]
         outputs = jnp.concatenate([jnp.array([y]), outputs[0:-1]])
     state['inputs'] = inputs
     state['outputs'] = outputs
