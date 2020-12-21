@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax import jit, lax
 
-NAME = 'fir_filter'
+NAME = 'FIR Filter'
 
 def init_state(length=4):
     return {

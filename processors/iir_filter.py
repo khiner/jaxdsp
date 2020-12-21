@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from jax import jit, lax
 from scipy import signal
 
-NAME = 'iir_filter'
+NAME = 'IIR Filter'
 
 def init_state(length=5):
     return {

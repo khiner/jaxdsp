@@ -30,7 +30,7 @@ def plot_loss(loss_history):
     plot.set_title('Loss over time', size=16)
     plot.autoscale(tight=True)
 
-def plot_params_single(params_target, params_history):
+def plot_params_single(processor_name, params_target, params_history):
     param_groups = [] # list of lists of (key, label, scalar_param_value)
     # All non-list params go into the first (and potentially only) param group (column).
     single_params = [(key, key, param) for (key, param) in params_target.items() if not isinstance(param, Iterable)]
@@ -41,7 +41,7 @@ def plot_params_single(params_target, params_history):
     num_rows, num_cols = max([len(param_group) for param_group in param_groups]), len(param_groups)
     _, axes = plt.subplots(num_rows, num_cols, figsize=(14, num_rows * 2))
     if len(axes.shape) == 1: axes = np.expand_dims(axes, axis=1)
-    plt.suptitle('Estimated params over time', size=16)
+    plt.suptitle('Estimated parameters for {}'.format(processor_name), size=16)
     for param_group_i, param_group in enumerate(param_groups):
         for param_i, (key, label, param) in enumerate(param_group):
             plot = axes[param_i][param_group_i]
@@ -58,4 +58,4 @@ def plot_params_single(params_target, params_history):
 
 def plot_params(params_target, params_history):
     for processor_name in params_target.keys():
-        plot_params_single(params_target[processor_name], params_history[processor_name])
+        plot_params_single(processor_name, params_target[processor_name], params_history[processor_name])

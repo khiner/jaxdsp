@@ -21,7 +21,7 @@ def process(processor, params, X, *init_state_args):
 def evaluate(params_estimated, params_target, processor, X, *init_state_args):
     Y_estimated = process(processor, params_estimated, X, *init_state_args)
     Y_target = process(processor, params_target, X, *init_state_args)
-    return X, Y_estimated, Y_target
+    return Y_estimated, Y_target
 
 def train(processors, Xs, step_size=0.05, num_batches=200, batch_size=32):
     processor = serial_processors

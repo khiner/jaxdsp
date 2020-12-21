@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from scipy import signal
 
-NAME = 'serial_processors'
+NAME = 'Serial Processors'
 
 def init_state(processors):
     return {processor.NAME: { 'state': processor.init_state(), 'tick_buffer': processor.tick_buffer } for processor in processors}

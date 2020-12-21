@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax import jit
 
-NAME = 'clip'
+NAME = 'Clip'
 
 def init_state():
     return {}
