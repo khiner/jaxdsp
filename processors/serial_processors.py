@@ -3,19 +3,20 @@ from scipy import signal
 
 NAME = 'serial_processors'
 
-class SerialProcessors():
-    def init_params(processor_classes):
-        return {processor_class.NAME: processor_class.init_params() for processor_class in processor_classes}
+def init_state(processors):
+    return {processor.NAME: { 'state': processor.init_state(), 'tick_buffer': processor.tick_buffer } for processor in processors}
 
-    def create_params_target(processor_classes):
-        return {processor_class.NAME: processor_class.create_params_target() for processor_class in processor_classes}
+def init_params(processors):
+    return {processor.NAME: processor.init_params() for processor in processors}
 
+def create_params_target(processors):
+    return {processor.NAME: processor.create_params_target() for processor in processors}
 
-    def __init__(self, processor_classes):
-        self.processors = [processor_class() for processor_class in processor_classes]
-
-    def tick(self, x, params):
-        y = x
-        for processor in self.processors:
-            y = processor.tick(y, params[processor.__class__.NAME])
-        return y
+def tick_buffer(carry, X):
+    state = carry['state']
+    params = carry['params']
+    Y = X
+    for processor_name in state.keys():
+        processor_carry = {'state': state[processor_name]['state'], 'params': params[processor_name]}
+        Y = state[processor_name]['tick_buffer'](processor_carry, Y)
+    return Y

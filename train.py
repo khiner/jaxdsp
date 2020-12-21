@@ -7,23 +7,24 @@ from functools import partial
 import sys
 sys.path.append('./')
 sys.path.append('./processors')
-from serial_processors import SerialProcessors
-from process import process, process_buffer, process_serial
+import serial_processors
 from loss_fns import mse
 
-def train(processor_class, X, step_size=0.1, num_batches=100, buffered=False):
-    process_fn = process_buffer if buffered else process
-    params_target = processor_class.create_params_target()
-    params_history = {key: [param] for (key, param) in processor_class.init_params().items()}
+def process(processor, params, X, *init_state_args):
+    return processor.tick_buffer({'params': params, 'state': processor.init_state(*init_state_args)}, X)
+
+def train(processor, X, step_size=0.1, num_batches=100):
+    params_target = processor.create_params_target()
+    params_history = {key: [param] for (key, param) in processor.init_params().items()}
     loss_history = np.zeros(num_batches)
-    Y_target = process_fn(params_target, processor_class, X)
+    Y_target = process(processor, params_target, X)
 
     def processor_loss(params):
-        Y = process_fn(params, processor_class, X)
+        Y = process(processor, params, X)
         return mse(Y, Y_target)
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
-    opt_state = opt_init(processor_class.init_params())
+    opt_state = opt_init(processor.init_params())
     grad_fn = jit(value_and_grad(processor_loss))
     for batch_i in range(num_batches):
         loss, gradient = grad_fn(get_params(opt_state))
@@ -34,25 +35,25 @@ def train(processor_class, X, step_size=0.1, num_batches=100, buffered=False):
             params_history[param_key].append(new_params[param_key])
 
     params_estimated = get_params(opt_state)
-    Y_estimated = process_fn(params_estimated, processor_class, X)
+    Y_estimated = process(processor, params_estimated, X)
     return params_estimated, params_target, Y_estimated, Y_target, params_history, loss_history
 
 
-def train_serial(processor_classes, X, step_size=0.1, num_batches=100):
-    processor_class = SerialProcessors
-    params_target = processor_class.create_params_target(processor_classes)
-    params_history = {processor_key: {key: [param] for (key, param) in inner_init_params.items()} for (processor_key, inner_init_params) in processor_class.init_params(processor_classes).items()}
+def train_serial(processors, X, step_size=0.1, num_batches=100):
+    processor = serial_processors
+    params_target = processor.create_params_target(processors)
+    params_history = {processor_key: {key: [param] for (key, param) in inner_init_params.items()} for (processor_key, inner_init_params) in processor.init_params(processors).items()}
     loss_history = np.zeros(num_batches)
-    Y_target = process_serial(params_target, processor_class, processor_classes, X)
+    Y_target = process(processor, params_target, X, processors)
 
-    def processor_loss_serial(params):
-        Y = process_serial(params, processor_class, processor_classes, X)
+    def processor_loss(params):
+        Y = process(processor, params, X, processors)
         return mse(Y, Y_target)
 
-    grad_fn = jit(value_and_grad(processor_loss_serial))
+    grad_fn = jit(value_and_grad(processor_loss))
 
     opt_init, opt_update, get_params = optimizers.adam(step_size)
-    opt_state = opt_init(processor_class.init_params(processor_classes))
+    opt_state = opt_init(processor.init_params(processors))
     for batch_i in range(num_batches):
         loss, gradient = grad_fn(get_params(opt_state))
         opt_state = opt_update(batch_i, gradient, opt_state)
@@ -63,5 +64,5 @@ def train_serial(processor_classes, X, step_size=0.1, num_batches=100):
                 params_history[processor_key][param_key].append(param)
 
     params_estimated = get_params(opt_state)
-    Y_estimated = process_serial(params_estimated, processor_class, processor_classes, X)
+    Y_estimated = process(processor, params_estimated, X, processors)
     return params_estimated, params_target, Y_estimated, Y_target, params_history, loss_history
