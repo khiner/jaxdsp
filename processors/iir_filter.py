@@ -23,7 +23,6 @@ def create_params_target(length=5):
         'A': A,
     }
 
-
 @jit
 def tick(carry, x):
     params = carry['params']

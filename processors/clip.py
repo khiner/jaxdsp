@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+from jax import jit
 
 NAME = 'clip'
 
@@ -17,10 +18,11 @@ def create_params_target():
         'max': 0.8,
     }
 
-def tick_buffer(carry, X):
-    params = carry['params']
-    return jnp.clip(X, params['min'], params['max'])
-
+@jit
 def tick(carry, x):
     params = carry['params']
     return jnp.clip(x, params['min'], params['max'])
+
+@jit
+def tick_buffer(carry, X):
+    return tick(carry, X)

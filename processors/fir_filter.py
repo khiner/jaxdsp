@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-from jax import jit
+from jax import jit, lax
 
 NAME = 'fir_filter'
 
@@ -19,11 +19,6 @@ def create_params_target(length=4):
     }
 
 @jit
-def tick_buffer(carry, X):
-    params = carry['params']
-    B = params['B']
-    return jnp.convolve(X, B)[:-(B.size - 1)]
-
 def tick(carry, x):
     state = carry['state']
     params = carry['params']
@@ -31,3 +26,11 @@ def tick(carry, x):
     state['inputs'] = jnp.concatenate([jnp.array([x]), state['inputs'][0:-1]])
     y = B @ state['inputs']
     return carry, y
+
+@jit
+def tick_buffer(carry, X):
+    params = carry['params']
+    B = params['B']
+    return jnp.convolve(X, B)[:-(B.size - 1)]
+    # Impossibly, the following seems to perform about the exact same or even faster for large N?! O_O
+    # return lax.scan(tick, carry, X)[1]
