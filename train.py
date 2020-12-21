@@ -9,12 +9,11 @@ sys.path.append('./')
 sys.path.append('./processors')
 import serial_processors
 from loss_fns import mse
+from jax.tree_util import tree_map
 
-def map_nested_dicts(ob, func):
-    if isinstance(ob, collections.abc.Mapping):
-        return {k: map_nested_dicts(v, func) for k, v in ob.items()}
-    else:
-        return func(ob)
+@jit
+def reduce_loss_and_grads(loss, grads):
+    return np.mean(loss), tree_map(lambda grad: np.mean(grad, axis=0), grads)
 
 def process(processor, params, X, *init_state_args):
     return processor.tick_buffer({'params': params, 'state': processor.init_state(*init_state_args)}, X)
@@ -40,9 +39,8 @@ def train(processors, Xs, step_size=0.05, num_batches=200, batch_size=32):
     opt_state = opt_init(processor.init_params(processors))
     for batch_i in range(num_batches):
         Xs_batch = Xs[np.random.choice(Xs.shape[0], size=batch_size)]
-        loss, grads = grad_fn(get_params(opt_state), Xs_batch)
-        grads = map_nested_dicts(grads, lambda grad: np.mean(grad, axis=0))
-        loss = np.mean(loss)
+        loss, grads = reduce_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
+        # grads = optimizers.clip_grads(grads, 1.0)
         opt_state = opt_update(batch_i, grads, opt_state)
         loss_history[batch_i] = loss
         new_params = get_params(opt_state)
