@@ -2,6 +2,12 @@
 # This is not surprising, as there are multiple parameters interplaying
 # with potentially hundreds or thousands of timesteps before getting any feedback
 # from a gradient nudge.
+#
+# It does really well when the init and target delay length are within one sample
+# of each other, and MAX_DELAY_LENGTH_SAMPLES is small. But the ability of the optimizer
+# to find the correct gradient abruptly ends at the +/- 1 sample boundary.
+# This is the case with/without param normalization to [0,1] for the delay_length param.
+#
 # Another potential approach to a differentiable delay is as a FIR filter
 # with the first coefficient acting as the dry param, and the only other non-zero
 # coefficient being the delay tap. This translates to three params:
@@ -22,26 +28,26 @@ from jax.ops import index, index_update
 
 NAME = 'Delay Line'
 
-MAX_DELAY_LENGTH_SAMPLES = 500 # 44_100
+MAX_DELAY_LENGTH_SAMPLES = 9 # 44_100
 
 def init_params():
     return {
-        'wet_amount': 0.0,
-        'delay_length_normalized': 200.0 / MAX_DELAY_LENGTH_SAMPLES,
+        'wet_amount': 1.0,
+        'delay_length_normalized': 5.0 / MAX_DELAY_LENGTH_SAMPLES,
     }
 
 def init_state():
     return {
         'delay_line': jnp.zeros(MAX_DELAY_LENGTH_SAMPLES),
         'read_sample': 0.0,
-        'write_sample': 0,
+        'write_sample': 0.0,
     }
 
 
 def create_params_target():
     return {
         'wet_amount': 1.0,
-        'delay_length_normalized': 100.0 / MAX_DELAY_LENGTH_SAMPLES,
+        'delay_length_normalized': 4.01 / MAX_DELAY_LENGTH_SAMPLES,
     }
 
 @jit
@@ -55,18 +61,18 @@ def tick(carry, x):
     read_sample = state['read_sample']
 
     # delay_line[write_sample] = x
-    state['delay_line'] = index_update(state['delay_line'], index[write_sample], x)
+    state['delay_line'] = index_update(state['delay_line'], index[write_sample].astype('int32'), x)
     delay_line = state['delay_line']
 
-    read_sample_floor = read_sample.astype(int) # int(read_sample)
+    read_sample_floor = read_sample.astype('int32') # int(read_sample)
     interp = read_sample - read_sample_floor
-    y = interp * delay_line[read_sample_floor]
-    y += (1 - interp) * delay_line[(read_sample_floor + 1) % delay_line.size]
+    y = (1 - interp) * delay_line[read_sample_floor]
+    y += (interp) * delay_line[(read_sample_floor + 1) % MAX_DELAY_LENGTH_SAMPLES]
 
     state['write_sample'] += 1
-    state['write_sample'] %= delay_line.size
+    state['write_sample'] %= MAX_DELAY_LENGTH_SAMPLES
     state['read_sample'] += 1
-    state['read_sample'] %= delay_line.size
+    state['read_sample'] %= MAX_DELAY_LENGTH_SAMPLES
 
     out = x * (1 - wet_amount) + y * wet_amount
     return carry, out
@@ -75,5 +81,5 @@ def tick(carry, x):
 def tick_buffer(carry, X):
     state = carry['state']
     params = carry['params']
-    state['read_sample'] = (state['write_sample'] - jnp.clip(params['delay_length_normalized'], 0, 1) * MAX_DELAY_LENGTH_SAMPLES) % state['delay_line'].size
+    state['read_sample'] = (state['write_sample'] - jnp.clip(params['delay_length_normalized'], 0, 1) * MAX_DELAY_LENGTH_SAMPLES) % MAX_DELAY_LENGTH_SAMPLES
     return lax.scan(tick, carry, X)[1]
