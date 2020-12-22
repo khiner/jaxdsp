@@ -53,7 +53,7 @@ def plot_params_single(processor_name, params_target, params_history):
             if param_group_i == 0: plot.set_ylabel('Value')
             if param_i == 0: plot.legend()
             if param_i == len(param_group) - 1: plot.set_xlabel('Batch')
-            plot.autoscale(tight=True)
+            plot.autoscale()
     plt.tight_layout()
 
 def plot_params(params_target, params_history):

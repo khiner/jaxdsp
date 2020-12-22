@@ -12,7 +12,7 @@ from loss_fns import mse
 from jax.tree_util import tree_map, tree_multimap
 
 @jit
-def reduce_loss_and_grads(loss, grads):
+def mean_loss_and_grads(loss, grads):
     return np.mean(loss), tree_map(lambda grad: np.mean(grad, axis=0), grads)
 
 def process(processor, params, X, *init_state_args):
@@ -23,7 +23,7 @@ def evaluate(params_estimated, params_target, processor, X, *init_state_args):
     Y_target = process(processor, params_target, X, *init_state_args)
     return Y_estimated, Y_target
 
-def train(processors, Xs, step_size=0.05, num_batches=200, batch_size=32):
+def train(processors, Xs, step_size=0.5, num_batches=200, batch_size=32):
     processor = serial_processors
     params_target = processor.create_params_target(processors)
     def loss(params, X):
@@ -39,7 +39,8 @@ def train(processors, Xs, step_size=0.05, num_batches=200, batch_size=32):
     opt_state = opt_init(params_init)
     for batch_i in range(num_batches):
         Xs_batch = Xs[np.random.choice(Xs.shape[0], size=batch_size)]
-        loss, grads = reduce_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
+        loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
+        # TODO clip grads such that all params are in [0, 1]?
         opt_state = opt_update(batch_i, grads, opt_state)
         loss_history[batch_i] = loss
         new_params = get_params(opt_state)
