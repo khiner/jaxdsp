@@ -40,6 +40,7 @@ def plot_params_single(processor_name, params_target, params_history):
         param_groups.append([(key, '${}_{}$'.format(key, i), param) for i, param in enumerate(params)])
     num_rows, num_cols = max([len(param_group) for param_group in param_groups]), len(param_groups)
     _, axes = plt.subplots(num_rows, num_cols, figsize=(14, num_rows * 2))
+    if num_rows == 1 and num_cols == 1: axes = np.expand_dims(axes, axis=0)
     if len(axes.shape) == 1: axes = np.expand_dims(axes, axis=1)
     plt.suptitle('Estimated parameters for {}'.format(processor_name), size=16)
     for param_group_i, param_group in enumerate(param_groups):

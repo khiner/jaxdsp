@@ -8,15 +8,14 @@
 # to find the correct gradient abruptly ends at the +/- 1 sample boundary.
 # This is the case with/without param normalization to [0,1] for the delay_length param.
 #
-# Another potential approach to a differentiable delay is as a FIR filter
+# Another potential approach to a differentiable delay is as an IIR filter
 # with the first coefficient acting as the dry param, and the only other non-zero
 # coefficient being the delay tap. This translates to three params:
-#  1) a value for the first coefficient (the "dry amound")
+#  1) a value for the first coefficient (the "dry amount")
 #  2) a coefficient index for the "delay amount"
 #  3) a coefficient value corresponding to this index (the "wet amount")
-# This is just the existing fir_filter with different (more constrained) parameters.
-# Of course this is incredibly inefficient from a DSP point of view, but maybe
-# not much less performant for gradient descent.
+# This is just the existing iir_filter with different (more constrained) parameters.
+# Of course, this is incredibly inefficient.
 # It's too bad, though. A big part of the value add for this project is supposed to be
 # being able to implement DSP functions almost as you normally would. If I can't get the
 # approach in this file working, hopefully it will stand as an exeption to this rule.

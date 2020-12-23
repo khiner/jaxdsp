@@ -8,7 +8,7 @@ import sys
 sys.path.append('./')
 sys.path.append('./processors')
 import serial_processors
-from loss_fns import mse
+from loss_fns import mse, correlation
 from jax.tree_util import tree_map, tree_multimap
 
 @jit
@@ -23,7 +23,7 @@ def evaluate(params_estimated, params_target, processor, X, *init_state_args):
     Y_target = process(processor, params_target, X, *init_state_args)
     return Y_estimated, Y_target
 
-def train(processors, Xs, step_size=0.1, num_batches=200, batch_size=32):
+def train(processors, Xs, step_size=1.0, num_batches=200, batch_size=32):
     processor = serial_processors
     params_target = processor.create_params_target(processors)
     def loss(params, X):
@@ -35,7 +35,7 @@ def train(processors, Xs, step_size=0.1, num_batches=200, batch_size=32):
     params_history = tree_map(lambda param: [param], params_init)
     loss_history = np.zeros(num_batches)
     grad_fn = jit(vmap(value_and_grad(loss), in_axes=(None, 0), out_axes=0))
-    opt_init, opt_update, get_params = optimizers.adam(step_size)
+    opt_init, opt_update, get_params = optimizers.sgd(step_size)
     opt_state = opt_init(params_init)
     for batch_i in range(num_batches):
         Xs_batch = Xs[np.random.choice(Xs.shape[0], size=batch_size)]
