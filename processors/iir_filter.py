@@ -29,17 +29,14 @@ def tick(carry, x):
     state = carry['state']
     B = params['B']
     A = params['A']
-    inputs = jnp.concatenate([jnp.array([x]), state['inputs'][0:-1]])
-    outputs = state['outputs']
-    y = B @ inputs
-    if outputs.size > 0:
+    state['inputs'] = jnp.concatenate([jnp.array([x]), state['inputs'][0:-1]])
+    y = B @ state['inputs']
+    if state['outputs'].size > 0:
         y -= A[1:] @ state['outputs']
         # Don't optimize the output gain, since it's not commonly used and constraining it to 1 helps training
         # Note that this makes the implementation technically incorrect. We can always uncomment if we want it back.
         # y /= A[0]
-        outputs = jnp.concatenate([jnp.array([y]), outputs[0:-1]])
-    state['inputs'] = inputs
-    state['outputs'] = outputs
+        state['outputs'] = jnp.concatenate([jnp.array([y]), state['outputs'][0:-1]])
     return carry, y
 
 @jit

@@ -32,7 +32,7 @@ MAX_DELAY_LENGTH_SAMPLES = 9 # 44_100
 def init_params():
     return {
         'wet_amount': 1.0,
-        'delay_length_normalized': 5.0 / MAX_DELAY_LENGTH_SAMPLES,
+        'delay_length_samples': 4.2,
     }
 
 def init_state():
@@ -46,7 +46,7 @@ def init_state():
 def create_params_target():
     return {
         'wet_amount': 1.0,
-        'delay_length_normalized': 4.01 / MAX_DELAY_LENGTH_SAMPLES,
+        'delay_length_samples': 5.0,
     }
 
 @jit
@@ -80,5 +80,5 @@ def tick(carry, x):
 def tick_buffer(carry, X):
     state = carry['state']
     params = carry['params']
-    state['read_sample'] = (state['write_sample'] - jnp.clip(params['delay_length_normalized'], 0, 1) * MAX_DELAY_LENGTH_SAMPLES) % MAX_DELAY_LENGTH_SAMPLES
+    state['read_sample'] = (state['write_sample'] - jnp.clip(params['delay_length_samples'], 0, MAX_DELAY_LENGTH_SAMPLES)) % MAX_DELAY_LENGTH_SAMPLES
     return lax.scan(tick, carry, X)[1]
