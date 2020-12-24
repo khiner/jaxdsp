@@ -27,12 +27,12 @@ from jax.ops import index, index_update
 
 NAME = 'Delay Line'
 
-MAX_DELAY_LENGTH_SAMPLES = 9 # 44_100
+MAX_DELAY_LENGTH_SAMPLES = 100 # 44_100
 
 def init_params():
     return {
         'wet_amount': 1.0,
-        'delay_length_samples': 4.2,
+        'delay_samples': 9.2,
     }
 
 def init_state():
@@ -45,8 +45,8 @@ def init_state():
 
 def create_params_target():
     return {
-        'wet_amount': 1.0,
-        'delay_length_samples': 5.0,
+        'wet_amount': 0.5,
+        'delay_samples': 10.0,
     }
 
 @jit
@@ -54,31 +54,27 @@ def tick(carry, x):
     params = carry['params']
     state = carry['state']
 
-    wet_amount = params['wet_amount']
-
     write_sample = state['write_sample']
     read_sample = state['read_sample']
 
-    # delay_line[write_sample] = x
     state['delay_line'] = index_update(state['delay_line'], index[write_sample].astype('int32'), x)
-    delay_line = state['delay_line']
 
-    read_sample_floor = read_sample.astype('int32') # int(read_sample)
+    read_sample_floor = read_sample.astype('int32')
     interp = read_sample - read_sample_floor
-    y = (1 - interp) * delay_line[read_sample_floor]
-    y += (interp) * delay_line[(read_sample_floor + 1) % MAX_DELAY_LENGTH_SAMPLES]
+    y = (1 - interp) * state['delay_line'][read_sample_floor]
+    y += (interp) * state['delay_line'][(read_sample_floor + 1) % MAX_DELAY_LENGTH_SAMPLES]
 
     state['write_sample'] += 1
     state['write_sample'] %= MAX_DELAY_LENGTH_SAMPLES
     state['read_sample'] += 1
     state['read_sample'] %= MAX_DELAY_LENGTH_SAMPLES
 
-    out = x * (1 - wet_amount) + y * wet_amount
+    out = x * (1 - params['wet_amount']) + y * params['wet_amount']
     return carry, out
 
 @jit
 def tick_buffer(carry, X):
     state = carry['state']
     params = carry['params']
-    state['read_sample'] = (state['write_sample'] - jnp.clip(params['delay_length_samples'], 0, MAX_DELAY_LENGTH_SAMPLES)) % MAX_DELAY_LENGTH_SAMPLES
+    state['read_sample'] = (state['write_sample'] - jnp.clip(params['delay_samples'], 0, MAX_DELAY_LENGTH_SAMPLES)) % MAX_DELAY_LENGTH_SAMPLES
     return lax.scan(tick, carry, X)[1]

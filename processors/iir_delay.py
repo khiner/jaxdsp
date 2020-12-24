@@ -1,4 +1,3 @@
-import numpy as np
 import jax.numpy as jnp
 from jax import jit, lax
 from jax.ops import index, index_update
@@ -19,7 +18,7 @@ def init_state():
 
 def init_params():
     return {
-        'delay_length_samples' : 20.0,
+        'delay_length_samples' : 20.1,
     }
 
 def create_params_target():

@@ -23,13 +23,12 @@ def evaluate(params_estimated, params_target, processor, X, *init_state_args):
     Y_target = process(processor, params_target, X, *init_state_args)
     return Y_estimated, Y_target
 
-def train(processors, Xs, step_size=0.2, num_batches=200, batch_size=32):
+def train(processors, Xs, step_size=0.5, num_batches=200, batch_size=32):
     processor = serial_processors
     params_target = processor.create_params_target(processors)
     def loss(params, X):
-        Y_target = process(processor, params_target, X, processors)
-        Y = process(processor, params, X, processors)
-        return mse(Y, Y_target)
+        Y_estimated, Y_target = evaluate(params, params_target, processor, X, processors)
+        return mse(Y_estimated, Y_target)
 
     params_init = processor.init_params(processors)
     params_history = tree_map(lambda param: [param], params_init)

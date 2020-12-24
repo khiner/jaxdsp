@@ -14,11 +14,13 @@ def plot_filter(X, Y, Y_reference, Y_estimated, title):
         ax.set_ylabel(row_title, size='large')
     for i, ax_column in enumerate(axes.T):
         in_plot = ax_column[0]
-        in_plot.stem(X, basefmt=' ')
+        # in_plot.stem(X, basefmt=' ')
+        in_plot.plot(X)
         in_plot.set_ylim([X.min() - 0.1, X.max() + 0.1])
 
         out_plot = ax_column[1]
-        out_plot.stem(Ys[i], basefmt=' ')
+        # out_plot.stem(Ys[i], basefmt=' ')
+        out_plot.plot(Ys[i])
         out_plot.set_ylim([Ys[i].min() - 0.1, Ys[i].max() + 0.1])
     plt.tight_layout()
 

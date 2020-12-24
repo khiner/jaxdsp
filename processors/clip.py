@@ -8,14 +8,14 @@ def init_state():
 
 def init_params():
     return {
-        'min': -1.0,
-        'max': 1.0,
+        'min': -0.9,
+        'max': 0.9,
     }
 
 def create_params_target():
     return {
-        'min': -0.8,
-        'max': 0.8,
+        'min': -0.5,
+        'max': 0.5,
     }
 
 @jit
