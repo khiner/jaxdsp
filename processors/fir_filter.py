@@ -13,7 +13,7 @@ def init_params(length=4):
         'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)])
     }
 
-def create_params_target(length=4):
+def default_target_params(length=4):
     return {
         'B': jnp.array([0.1, 0.7, 0.5, 0.6])
     }

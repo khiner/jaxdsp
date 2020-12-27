@@ -16,7 +16,7 @@ def init_params(length=5):
         'A' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)]),
     }
 
-def create_params_target(length=5):
+def default_target_params(length=5):
     B, A = signal.butter(length - 1, 0.5, 'low')
     return {
         'B': B,

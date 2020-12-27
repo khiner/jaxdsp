@@ -12,7 +12,7 @@ def init_params():
         'max': 0.9,
     }
 
-def create_params_target():
+def default_target_params():
     return {
         'min': -0.5,
         'max': 0.5,

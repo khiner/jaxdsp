@@ -9,8 +9,8 @@ def init_state(processors):
 def init_params(processors):
     return {processor.NAME: processor.init_params() for processor in processors}
 
-def create_params_target(processors):
-    return {processor.NAME: processor.create_params_target() for processor in processors}
+def default_target_params(processors):
+    return {processor.NAME: processor.default_target_params() for processor in processors}
 
 def tick_buffer(carry, X):
     state = carry['state']

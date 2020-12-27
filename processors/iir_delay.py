@@ -1,3 +1,5 @@
+# Suffers from the same optimization issue as delay_line.
+# See delay_line.py for more details.
 import jax.numpy as jnp
 from jax import jit, lax
 from jax.ops import index, index_update
@@ -21,7 +23,7 @@ def init_params():
         'delay_length_samples' : 20.1,
     }
 
-def create_params_target():
+def default_target_params():
     return {
         'delay_length_samples': 21.0,
     }
@@ -33,8 +35,6 @@ def tick_buffer(carry, X):
     delay_length_samples = jnp.clip(params['delay_length_samples'], 0, MAX_DELAY_LENGTH - 1)
     delay_coefficient = -1.0
 
-    # Linear interpolation doesn't get a gradient signal across the entire indexing range.
-    # (See "Differentiable array indexing" notebook for more details.)
     i0 = jnp.floor(delay_length_samples)
     i1 = i0 + 1
     A = jnp.concatenate([jnp.array([1.0]), jnp.zeros(MAX_DELAY_LENGTH - 1)])

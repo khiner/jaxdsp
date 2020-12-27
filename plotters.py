@@ -62,3 +62,42 @@ def plot_params_single(processor_name, params_target, params_history):
 def plot_params(params_target, params_history):
     for processor_name in params_target.keys():
         plot_params_single(processor_name, params_target[processor_name], params_history[processor_name])
+
+# Used to investigate the shape of the gradient curve for a single target value across
+# a range of different initial values.
+# `params_inits` should be a list of dicts - one for each parameter tree to initialize with
+# `params_target` should be a single target params dict
+def plot_optimization(processor, Xs, params_inits, params_target, steps=50):
+    params_estimated = {key: [] for key in params_target.keys()}
+    initial_losses = []
+    losses = []
+    x = [param_init['delay_samples'] for param_init in params_inits] # TODO only pass in one to vary
+    for params_init in params_inits:
+        params_estimated_i, _, _, loss_history = train([processor], Xs,
+                                                       params_init={processor.NAME: params_init},
+                                                       params_target={processor.NAME: params_target},
+                                                       num_batches=steps, batch_size=4)
+        for key, param_estimated in params_estimated_i[processor.NAME].items():
+            params_estimated[key].append(param_estimated)
+        initial_losses.append(loss_history[0])
+        losses.append(loss_history[-1])
+    _, axes = plt.subplots(len(params_target) + 2, 1, figsize=(14, 12))
+    for param_i, (label, param_target) in enumerate(params_target.items()):
+        estimated_params_plot = axes[param_i]
+        estimated_params_plot.plot(x, params_estimated[label], linewidth=3)
+        estimated_params_plot.set_title('Estimated {}'.format(label), size=18)
+        estimated_params_plot.set_ylabel('Estimated after {} steps'.format(steps), size=11)
+        estimated_params_plot.axhline(param_target, linestyle='--', c='r', label='Target index')
+        estimated_params_plot.legend()
+    initial_loss_plot = axes[-2]
+    initial_loss_plot.plot(x, initial_losses, linewidth=3)
+    initial_loss_plot.set_title('Initial loss', size=18)
+    initial_loss_plot.set_ylabel('Initial MSE loss', size=11)
+    optimized_loss_plot = axes[-1]
+    optimized_loss_plot.plot(x, losses, linewidth=3)
+    optimized_loss_plot.set_title('Optimized loss', size=18)
+    optimized_loss_plot.set_xlabel('Initial guess for {} value'.format(label), size=16)
+    optimized_loss_plot.set_ylabel('MSE loss after {} steps'.format(steps), size=11)
+    for axis in axes:
+        axis.grid(True)
+    plt.tight_layout()

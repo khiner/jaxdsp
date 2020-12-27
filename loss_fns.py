@@ -10,3 +10,6 @@ def mae(X, Y):
 def correlation(X, Y):
     c = jnp.correlate((X - jnp.mean(X)) / (jnp.std(X) * len(X)), (Y - jnp.mean(Y)) / (jnp.std(Y)))[0]
     return 1 - (1 + c) / 2
+
+# TODO error-to-signal ratio (ESR)
+#   MSE normalized by signal energy: "You need to be more accurate when your signal is very quiet"

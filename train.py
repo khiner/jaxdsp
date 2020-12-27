@@ -23,14 +23,15 @@ def evaluate(params_estimated, params_target, processor, X, *init_state_args):
     Y_target = process(processor, params_target, X, *init_state_args)
     return Y_estimated, Y_target
 
-def train(processors, Xs, step_size=0.5, num_batches=200, batch_size=32):
+def train(processors, Xs, step_size=0.5, num_batches=200, batch_size=32,
+          params_init=None, params_target=None):
     processor = serial_processors
-    params_target = processor.create_params_target(processors)
+    params_target = params_target or processor.default_target_params(processors)
     def loss(params, X):
         Y_estimated, Y_target = evaluate(params, params_target, processor, X, processors)
         return mse(Y_estimated, Y_target)
 
-    params_init = processor.init_params(processors)
+    params_init = params_init or processor.init_params(processors)
     params_history = tree_map(lambda param: [param], params_init)
     loss_history = np.zeros(num_batches)
     grad_fn = jit(vmap(value_and_grad(loss), in_axes=(None, 0), out_axes=0))

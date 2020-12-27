@@ -1,3 +1,5 @@
+# Suffers from the same optimization issue as delay_line.
+# See delay_line.py for more details.
 import numpy as np
 import jax.numpy as jnp
 from jax import jit
@@ -15,7 +17,7 @@ def init_params():
 def init_state():
     return {}
 
-def create_params_target():
+def default_target_params():
     return {
         'wet_amount': 0.5,
         'delay_samples': 6.0,
@@ -31,5 +33,5 @@ def tick_buffer(carry, X):
     delay_samples = params['delay_samples']
     remainder = delay_samples - jnp.floor(delay_samples)
     X_linear_interp = (1 - remainder) * X + remainder * jnp.concatenate([jnp.array([0]), X[:X.size - 1]])
-    Y = jnp.where(jnp.arange(X.size) >= delay_samples, jnp.roll(X_linear_interp, delay_samples.astype('int32')), 0)[0:X.size]
+    Y = jnp.where(jnp.arange(X.size) >= delay_samples, jnp.roll(X_linear_interp, delay_samples.astype('int32')), 0)
     return X * (1 - params['wet_amount']) + Y * params['wet_amount']

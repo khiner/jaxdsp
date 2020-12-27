@@ -1,24 +1,12 @@
-# The backprop is simply not working well for this.
-# This is not surprising, as there are multiple parameters interplaying
-# with potentially hundreds or thousands of timesteps before getting any feedback
-# from a gradient nudge.
-#
-# It does really well when the init and target delay length are within one sample
-# of each other, and MAX_DELAY_LENGTH_SAMPLES is small. But the ability of the optimizer
-# to find the correct gradient abruptly ends at the +/- 1 sample boundary.
-# This is the case with/without param normalization to [0,1] for the delay_length param.
-#
-# Another potential approach to a differentiable delay is as an IIR filter
-# with the first coefficient acting as the dry param, and the only other non-zero
-# coefficient being the delay tap. This translates to three params:
-#  1) a value for the first coefficient (the "dry amount")
-#  2) a coefficient index for the "delay amount"
-#  3) a coefficient value corresponding to this index (the "wet amount")
-# This is just the existing iir_filter with different (more constrained) parameters.
-# Of course, this is incredibly inefficient.
-# It's too bad, though. A big part of the value add for this project is supposed to be
-# being able to implement DSP functions almost as you normally would. If I can't get the
-# approach in this file working, hopefully it will stand as an exeption to this rule.
+# Gradient descent cannot properly optimize this function when
+# the initial and target delay length are within one sample of each other.
+# This is ultimately because the `delay_samples` param maps to an index_update operation,
+# which requires converting the parameter to an integer, which is a non-differentiable
+# operation.
+# Linear interpolation helps by allowing successful optimization within the +/- 1 sample
+# range, but I have not found a solution that allows the gradient signal to propagate
+# across the entire indexing range.
+# (See "Differentiable array indexing" notebook for more details.)
 
 import jax.numpy as jnp
 import numpy as np
@@ -43,7 +31,7 @@ def init_state():
     }
 
 
-def create_params_target():
+def default_target_params():
     return {
         'wet_amount': 0.5,
         'delay_samples': 10.0,
