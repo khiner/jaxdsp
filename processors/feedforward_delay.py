@@ -1,5 +1,5 @@
-# Suffers from the same optimization issue as delay_line.
-# See delay_line.py for more details.
+# `delay_samples` param is not reliably optimizable. See `delay_line.py` for more details.
+
 import numpy as np
 import jax.numpy as jnp
 from jax import jit

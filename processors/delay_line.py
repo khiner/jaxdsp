@@ -1,12 +1,14 @@
-# Gradient descent cannot properly optimize this function when
-# the initial and target delay length are within one sample of each other.
-# This is ultimately because the `delay_samples` param maps to an index_update operation,
-# which requires converting the parameter to an integer, which is a non-differentiable
-# operation.
+# Fractional delay line using linear interpolation
+
+# The `delay_samples` param cannot be optimized outside of the +/- 1 sample range between
+# init and target.
+# This is because the param maps directly to an `index_update` operation,
+# which requires converting the parameter to an integer, which is a non-differentiable operation.
 # Linear interpolation helps by allowing successful optimization within the +/- 1 sample
 # range, but I have not found a solution that allows the gradient signal to propagate
 # across the entire indexing range.
 # (See "Differentiable array indexing" notebook for more details.)
+
 
 import jax.numpy as jnp
 import numpy as np
