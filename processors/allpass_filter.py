@@ -2,12 +2,11 @@ import jax.numpy as jnp
 from jax import jit, lax
 from jax.ops import index_update
 
-NAME = 'Lowpass Feedback Comb Filter'
+NAME = 'Allpass Filter'
 
 def init_params():
     return {
         'feedback': 0.0,
-        'damp': 0.0,
     }
 
 def init_state(buffer_size=20):
@@ -20,7 +19,6 @@ def init_state(buffer_size=20):
 def default_target_params():
     return {
         'feedback': 0.5,
-        'damp': 0.5,
     }
 
 @jit
@@ -28,12 +26,11 @@ def tick(carry, x):
     params = carry['params']
     state = carry['state']
 
-    out = state['buffer'][state['buffer_index']]
-    state['filter_store'] = out * (1 - params['damp']) + state['filter_store'] * params['damp']
-
-    state['buffer'] = index_update(state['buffer'], state['buffer_index'], x + state['filter_store'] * params['feedback'])
+    buffer_out = state['buffer'][state['buffer_index']]
+    state['buffer'] = index_update(state['buffer'], state['buffer_index'], x + buffer_out * params['feedback'])
     state['buffer_index'] += 1
     state['buffer_index'] %= state['buffer'].size
+    out = -x + buffer_out
     return carry, out
 
 @jit
