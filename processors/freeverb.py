@@ -1,4 +1,4 @@
-import numpy as np
+import jax.numpy as jnp
 from jax import jit, lax
 
 import lowpass_feedback_comb_filter as comb
@@ -59,19 +59,20 @@ def default_target_params():
     }
 
 @jit
-def tick(carry, x_l):
-    x_r = x_l # TODO hanlde stereo in
+def tick(carry, x):
+    x_r, x_l = jnp.broadcast_to(x, (2,)) # handle stereo or mono in
+    x_combined = (x_l + x_r) * fixed_gain
+
     state = carry['state']
     params = carry['params']
 
-    out_l = 0
-    out_r = 0
-    in_combined = (x_l + x_r) * fixed_gain
+    out_l = 0.0
+    out_r = 0.0
 
     # comb filters in parallel
     for i in range(len(comb_tunings_l)):
-        state['combs_l'][i], out_comb_l = comb.tick(state['combs_l'][i], in_combined)
-        state['combs_r'][i], out_comb_r = comb.tick(state['combs_r'][i], in_combined)
+        state['combs_l'][i], out_comb_l = comb.tick(state['combs_l'][i], x_combined)
+        state['combs_r'][i], out_comb_r = comb.tick(state['combs_r'][i], x_combined)
         out_l += out_comb_l
         out_r += out_comb_r
     # allpasses in series
@@ -86,7 +87,7 @@ def tick(carry, x_l):
 
     output_l = out_l * wet_1 + out_r * wet_2 + x_l * dry
     output_r = out_r * wet_1 + out_l * wet_2 + x_r * dry
-    return carry, (output_l + output_r) / 2.0 # TODO handle stereo out
+    return carry, jnp.array([output_l, output_r])
 
 @jit
 def tick_buffer(carry, X):
