@@ -1,6 +1,3 @@
-import jax.numpy as jnp
-from scipy import signal
-
 NAME = 'Serial Processors'
 
 def init_state(processors):

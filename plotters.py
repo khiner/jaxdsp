@@ -33,6 +33,7 @@ def plot_loss(loss_history):
     plot.set_xlabel('Batch')
     plot.set_ylabel('Loss')
     plot.set_title('Loss over time', size=16)
+    plot.set_yscale('log', base=10)
     plot.autoscale(tight=True)
 
 def plot_params_single(processor_name, params_target, params_history):

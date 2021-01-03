@@ -19,10 +19,10 @@ NAME = 'Delay Line'
 
 MAX_DELAY_LENGTH_SAMPLES = 100 # 44_100
 
-def init_params():
+def init_params(wet_amount=1.0, delay_samples=9.2):
     return {
-        'wet_amount': 1.0,
-        'delay_samples': 9.2,
+        'wet_amount': wet_amount,
+        'delay_samples': delay_samples,
     }
 
 def init_state():
@@ -33,10 +33,7 @@ def init_state():
     }
 
 def default_target_params():
-    return {
-        'wet_amount': 0.5,
-        'delay_samples': 10.0,
-    }
+    return init_params(0.5, 10.0)
 
 @jit
 def tick(carry, x):

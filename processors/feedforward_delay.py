@@ -8,20 +8,17 @@ NAME = 'Feedforward Delay'
 
 MAX_DELAY_SIZE_SAMPLES = 44_100
 
-def init_params():
+def init_params(wet_amount=1.0, delay_samples=6.5):
     return {
-        'wet_amount': 1.0,
-        'delay_samples': 6.5,
+        'wet_amount': wet_amount,
+        'delay_samples': delay_samples,
     }
 
 def init_state():
     return {}
 
 def default_target_params():
-    return {
-        'wet_amount': 0.5,
-        'delay_samples': 6.0,
-    }
+    return init_params(0.5, 6.0)
 
 def tick(carry, x):
     raise 'single-sample tick method not implemented for feedforward delay'

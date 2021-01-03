@@ -4,9 +4,9 @@ from jax.ops import index_update
 
 NAME = 'Allpass Filter'
 
-def init_params():
+def init_params(feedback=0.0):
     return {
-        'feedback': 0.0,
+        'feedback': feedback,
     }
 
 def init_state(buffer_size=20):
@@ -17,9 +17,7 @@ def init_state(buffer_size=20):
     }
 
 def default_target_params():
-    return {
-        'feedback': 0.5,
-    }
+    return init_params(0.5)
 
 @jit
 def tick(carry, x):

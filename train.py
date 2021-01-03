@@ -22,7 +22,7 @@ def evaluate(params_estimated, params_target, processor, X, *init_state_args):
     Y_target = process(processor, params_target, X, *init_state_args)
     return Y_estimated, Y_target
 
-def train(processors, Xs, step_size=0.5, num_batches=200, batch_size=32,
+def train(processors, Xs, step_size=0.2, num_batches=200, batch_size=32,
           params_init=None, params_target=None):
     processor = serial_processors
     params_target = params_target or processor.default_target_params(processors)
