@@ -2,6 +2,9 @@ from collections.abc import Iterable
 from matplotlib import pyplot as plt
 import numpy as np
 
+from train import train
+
+
 def plot_filter(X, Y, Y_reference, Y_estimated, title):
     column_titles = ['Target', 'Reference Implementation', 'Estimated'] if Y_reference is not None else ['Target', 'Estimated']
     row_titles = ['Input', 'Output']

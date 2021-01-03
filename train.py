@@ -5,7 +5,6 @@ from jax.experimental import optimizers
 import collections.abc
 
 import sys
-sys.path.append('./')
 sys.path.append('./processors')
 import serial_processors
 from loss_fns import mse, correlation

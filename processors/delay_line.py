@@ -32,7 +32,6 @@ def init_state():
         'write_sample': 0.0,
     }
 
-
 def default_target_params():
     return {
         'wet_amount': 0.5,
