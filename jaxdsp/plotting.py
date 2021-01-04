@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from matplotlib import pyplot as plt
 import numpy as np
 
-from train import train
+from jaxdsp.training import train
 
 
 def plot_filter(X, Y, Y_reference, Y_estimated, title):

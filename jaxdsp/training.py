@@ -4,10 +4,8 @@ from jax import grad, value_and_grad, jit, vmap
 from jax.experimental import optimizers
 import collections.abc
 
-import sys
-sys.path.append('./processors')
-import serial_processors
-from loss import mse, correlation
+from jaxdsp.processors import serial_processors
+from jaxdsp.loss import mse, correlation
 from jax.tree_util import tree_map, tree_multimap
 
 @jit

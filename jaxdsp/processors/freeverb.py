@@ -1,8 +1,8 @@
 import jax.numpy as jnp
 from jax import jit, lax
 
-import lowpass_feedback_comb_filter as comb
-import allpass_filter as allpass
+from jaxdsp.processors import lowpass_feedback_comb_filter as comb
+from jaxdsp.processors import allpass_filter as allpass
 
 NAME = 'Freeverb'
 

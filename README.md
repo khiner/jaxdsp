@@ -1,3 +1,4 @@
-# JAX Audio Processors
+# JAX DSP
 
-Fast differentiable audio processors on the CPU or GPU. Build with [JAX](https://github.com/google/jax).
+Fast, differentiable audio processors on the CPU or GPU.
+Built with [JAX](https://github.com/google/jax).
