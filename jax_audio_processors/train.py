@@ -7,7 +7,7 @@ import collections.abc
 import sys
 sys.path.append('./processors')
 import serial_processors
-from loss_fns import mse, correlation
+from loss import mse, correlation
 from jax.tree_util import tree_map, tree_multimap
 
 @jit
