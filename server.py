@@ -10,13 +10,26 @@ import cv2
 from aiohttp import web
 import aiohttp_cors
 from av import AudioFrame
-
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
+
+import numpy as np
+import jax.numpy as jnp
+from scipy import signal
+from scipy.io.wavfile import read as readwav
+import time
+
+from jaxdsp.processors import fir_filter, iir_filter, clip, delay_line, lowpass_feedback_comb_filter as lbcf, allpass_filter, freeverb, serial_processors
+from jaxdsp.training import train, evaluate, process
+
 
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
+
+sample_rate, test_X = readwav('./audio/speech-male.wav')
+processor_state = None
+empty_carry = {'state': None, 'params': None}
 
 def get_frame_ndarray(frame):
     ints = np.frombuffer(frame.planes[0], dtype=np.int16)
@@ -27,7 +40,24 @@ def set_frame_ndarray(frame, floats):
     ints = (floats * np.iinfo(np.int16).max).astype(np.int16)
     frame.planes[0].update(ints)
 
+def get_processor_and_params(processor_name):
+    if processor_name == "freeverb":
+        return (freeverb, {
+                    'wet': 0.3,
+                    'dry': 0.6,
+                    'width': 0.5,
+                    'damp': 0.3,
+                    'room_size': 1.055,
+                })
+    elif processor_name == "clip":
+        return (clip, {'min': -0.01, 'max': 0.01})
+    elif processor_name == "delay_line":
+        return (delay_line, {'wet_amount': 0.5, 'delay_samples': 99})
+    else:
+        return (None, None)
+
 class AudioTransformTrack(MediaStreamTrack):
+    global processor_state
     kind = "audio"
 
     def __init__(self, track, transform):
@@ -36,15 +66,18 @@ class AudioTransformTrack(MediaStreamTrack):
         self.transform = transform
 
     async def recv(self):
+        global processor_state
         frame = await self.track.recv()
+        X = get_frame_ndarray(frame)
+        processor, params = get_processor_and_params(self.transform)
 
-        if self.transform == "freeverb":
-            return AudioFrame.from_ndarray(frame.to_ndarray(format="s16"))
-        else:
-            ndarray = get_frame_ndarray(frame)
-            ndarray *= 0.5
-            set_frame_ndarray(frame, ndarray)
-            return frame
+        carry, Y = (empty_carry, X) if processor is None else processor.tick_buffer({'params': params, 'state': processor_state or processor.init_state()}, X)
+        processor_state = carry['state']
+        Y = np.asarray(Y)
+        if Y.ndim == 2: Y = np.sum(Y, axis=1)
+        assert(Y.ndim == 1)
+        set_frame_ndarray(frame, Y)
+        return frame
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
