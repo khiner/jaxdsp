@@ -5,26 +5,30 @@ import logging
 import os
 import ssl
 import uuid
-
+import numpy as np
 import cv2
 from aiohttp import web
 import aiohttp_cors
-from av import AudioFrame, VideoFrame
+from av import AudioFrame
 
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaBlackhole, MediaPlayer
 
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
 
-class VideoTransformTrack(MediaStreamTrack):
-    """
-    A video stream track that transforms frames from an another track.
-    """
+def get_frame_ndarray(frame):
+    ints = np.frombuffer(frame.planes[0], dtype=np.int16)
+    floats = ints.astype(np.float32) / np.iinfo(np.int16).max
+    return floats
 
-    kind = "video"
+def set_frame_ndarray(frame, floats):
+    ints = (floats * np.iinfo(np.int16).max).astype(np.int16)
+    frame.planes[0].update(ints)
+
+class AudioTransformTrack(MediaStreamTrack):
+    kind = "audio"
 
     def __init__(self, track, transform):
         super().__init__()  # don't forget this!
@@ -34,60 +38,13 @@ class VideoTransformTrack(MediaStreamTrack):
     async def recv(self):
         frame = await self.track.recv()
 
-        if self.transform == "cartoon":
-            img = frame.to_ndarray(format="bgr24")
-
-            # prepare color
-            img_color = cv2.pyrDown(cv2.pyrDown(img))
-            for _ in range(6):
-                img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
-            img_color = cv2.pyrUp(cv2.pyrUp(img_color))
-
-            # prepare edges
-            img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-            img_edges = cv2.adaptiveThreshold(
-                cv2.medianBlur(img_edges, 7),
-                255,
-                cv2.ADAPTIVE_THRESH_MEAN_C,
-                cv2.THRESH_BINARY,
-                9,
-                2,
-            )
-            img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
-
-            # combine color and edges
-            img = cv2.bitwise_and(img_color, img_edges)
-
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "edges":
-            # perform edge detection
-            img = frame.to_ndarray(format="bgr24")
-            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "rotate":
-            # rotate image
-            img = frame.to_ndarray(format="bgr24")
-            rows, cols, _ = img.shape
-            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-            img = cv2.warpAffine(img, M, (cols, rows))
-
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
+        if self.transform == "freeverb":
+            return AudioFrame.from_ndarray(frame.to_ndarray(format="s16"))
         else:
+            ndarray = get_frame_ndarray(frame)
+            ndarray *= 0.5
+            set_frame_ndarray(frame, ndarray)
             return frame
-
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
@@ -112,9 +69,6 @@ async def offer(request):
 
     log_info("Created for %s", request.remote)
 
-    # prepare local media
-    player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
-
     @pc.on("datachannel")
     def on_datachannel(channel):
         @channel.on("message")
@@ -134,12 +88,10 @@ async def offer(request):
         log_info("Track %s received", track.kind)
 
         if track.kind == "audio":
-            pc.addTrack(player.audio)
-        elif track.kind == "video":
-            local_video = VideoTransformTrack(
-                track, transform=params["video_transform"]
+            local_audio = AudioTransformTrack(
+                track, transform=params["audio_transform"]
             )
-            pc.addTrack(local_video)
+            pc.addTrack(local_audio)
 
         @track.on("ended")
         async def on_ended():
@@ -169,7 +121,7 @@ async def on_shutdown(app):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="WebRTC audio / video / data-channels demo"
+        description="WebRTC audio / data-channels demo"
     )
     parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
     parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
