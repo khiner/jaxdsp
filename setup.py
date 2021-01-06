@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="jaxdsp",
-    version="0.0.1",
+    version="0.0.2",
     author="Karl Hiner",
     author_email="karl.hiner@gmail.com",
     description="Fast, differentiable audio processors on the CPU or GPU",
