@@ -9,7 +9,7 @@ Based on [the aiortc server example](https://github.com/aiortc/aiortc/tree/main/
 Install the required packages:
 
 ```console
-$ pip install aiohttp aiortc opencv-python
+$ pip install aiohttp aiohttp_cors aiortc opencv-python
 ```
 
 Start the server:

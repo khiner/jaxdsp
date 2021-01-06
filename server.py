@@ -8,7 +8,8 @@ import uuid
 
 import cv2
 from aiohttp import web
-from av import VideoFrame
+import aiohttp_cors
+from av import AudioFrame, VideoFrame
 
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
@@ -203,4 +204,13 @@ if __name__ == "__main__":
     app.router.add_get("/", index)
     app.router.add_get("/client.js", javascript)
     app.router.add_post("/offer", offer)
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            expose_headers="*",
+            allow_headers="*",
+        )
+    })
+    # Configure CORS on all routes.
+    for route in list(app.router.routes()):
+        cors.add(route)
     web.run_app(app, access_log=None, port=args.port, ssl_context=ssl_context)
