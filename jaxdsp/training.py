@@ -13,7 +13,8 @@ def mean_loss_and_grads(loss, grads):
     return np.mean(loss), tree_map(lambda grad: np.mean(grad, axis=0), grads)
 
 def process(processor, params, X, *init_state_args):
-    return processor.tick_buffer({'params': params, 'state': processor.init_state(*init_state_args)}, X)
+    carry, Y = processor.tick_buffer({'params': params, 'state': processor.init_state(*init_state_args)}, X)
+    return Y
 
 def evaluate(params_estimated, params_target, processor, X, *init_state_args):
     Y_estimated = process(processor, params_estimated, X, *init_state_args)

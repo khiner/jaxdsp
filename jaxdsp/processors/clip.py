@@ -18,7 +18,7 @@ def default_target_params():
 @jit
 def tick(carry, x):
     params = carry['params']
-    return jnp.clip(x, params['min'], params['max'])
+    return carry, jnp.clip(x, params['min'], params['max'])
 
 @jit
 def tick_buffer(carry, X):

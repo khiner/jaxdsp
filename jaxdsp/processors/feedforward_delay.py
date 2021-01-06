@@ -31,4 +31,4 @@ def tick_buffer(carry, X):
     remainder = delay_samples - jnp.floor(delay_samples)
     X_linear_interp = (1 - remainder) * X + remainder * jnp.concatenate([jnp.array([0]), X[:X.size - 1]])
     Y = jnp.where(jnp.arange(X.size) >= delay_samples, jnp.roll(X_linear_interp, delay_samples.astype('int32')), 0)
-    return X * (1 - params['wet_amount']) + Y * params['wet_amount']
+    return carry, X * (1 - params['wet_amount']) + Y * params['wet_amount']

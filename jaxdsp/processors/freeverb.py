@@ -103,4 +103,4 @@ def tick_buffer(carry, X):
         comb_r['params']['feedback'] = room_size
         comb_r['params']['damp'] = damp
 
-    return lax.scan(tick, carry, X)[1]
+    return lax.scan(tick, carry, X)

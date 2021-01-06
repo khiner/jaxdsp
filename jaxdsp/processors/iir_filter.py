@@ -41,5 +41,5 @@ def tick(carry, x):
 
 @jit
 def tick_buffer(carry, X):
-    return lax.scan(tick, carry, X)[1]
+    return lax.scan(tick, carry, X)
 

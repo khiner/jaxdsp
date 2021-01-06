@@ -31,6 +31,6 @@ def tick(carry, x):
 def tick_buffer(carry, X):
     params = carry['params']
     B = params['B']
-    return jnp.convolve(X, B)[:-(B.size - 1)]
+    return carry, jnp.convolve(X, B)[:-(B.size - 1)]
     # Impossibly, the following seems to perform about the exact same or even faster for large N?! O_O
     # return lax.scan(tick, carry, X)[1]

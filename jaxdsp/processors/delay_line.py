@@ -17,7 +17,7 @@ from jax.ops import index, index_update
 
 NAME = 'Delay Line'
 
-MAX_DELAY_LENGTH_SAMPLES = 100 # 44_100
+MAX_DELAY_LENGTH_SAMPLES = 44_100
 
 def init_params(wet_amount=1.0, delay_samples=9.2):
     return {
@@ -63,4 +63,4 @@ def tick_buffer(carry, X):
     state = carry['state']
     params = carry['params']
     state['read_sample'] = (state['write_sample'] - jnp.clip(params['delay_samples'], 0, MAX_DELAY_LENGTH_SAMPLES)) % MAX_DELAY_LENGTH_SAMPLES
-    return lax.scan(tick, carry, X)[1]
+    return lax.scan(tick, carry, X)
