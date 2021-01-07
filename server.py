@@ -28,7 +28,6 @@ logger = logging.getLogger("pc")
 pcs = set()
 
 sample_rate, test_X = readwav('./audio/speech-male.wav')
-processor_state = None
 empty_carry = {'state': None, 'params': None}
 
 def get_frame_ndarray(frame):
@@ -40,44 +39,67 @@ def set_frame_ndarray(frame, floats):
     ints = (floats * np.iinfo(np.int16).max).astype(np.int16)
     frame.planes[0].update(ints)
 
-def get_processor_and_params(processor_name):
-    if processor_name == "freeverb":
-        return (freeverb, {
-                    'wet': 0.3,
-                    'dry': 0.6,
-                    'width': 0.5,
-                    'damp': 0.3,
-                    'room_size': 1.055,
-                })
-    elif processor_name == "clip":
-        return (clip, {'min': -0.01, 'max': 0.01})
-    elif processor_name == "delay_line":
-        return (delay_line, {'wet_amount': 0.5, 'delay_samples': 99})
-    else:
-        return (None, None)
-
 class AudioTransformTrack(MediaStreamTrack):
-    global processor_state
     kind = "audio"
 
-    def __init__(self, track, transform):
-        super().__init__()  # don't forget this!
+    def get_processor_and_params(processor_name):
+        if processor_name == "freeverb":
+            return (freeverb, {
+                        'wet': 0.3,
+                        'dry': 0.6,
+                        'width': 0.5,
+                        'damp': 0.3,
+                        'room_size': 1.055,
+                    })
+        elif processor_name == "clip":
+            return (clip, {'min': -0.01, 'max': 0.01})
+        elif processor_name == "delay_line":
+            return (delay_line, {'wet_amount': 0.5, 'delay_samples': 99})
+        else:
+            return (None, None)
+
+    def __init__(self, track):
+        super().__init__()
         self.track = track
-        self.transform = transform
+        self.processor_name = 'none'
+        self.processor_state = None
+
+    def set_processor_name(self, processor_name):
+        if self.processor_name != processor_name:
+            self.processor_name = processor_name
+            self.processor_state = None
 
     async def recv(self):
-        global processor_state
         frame = await self.track.recv()
         X = get_frame_ndarray(frame)
-        processor, params = get_processor_and_params(self.transform)
+        processor, params = AudioTransformTrack.get_processor_and_params(self.processor_name)
 
-        carry, Y = (empty_carry, X) if processor is None else processor.tick_buffer({'params': params, 'state': processor_state or processor.init_state()}, X)
-        processor_state = carry['state']
+        carry, Y = (empty_carry, X) if processor is None else processor.tick_buffer({'params': params, 'state': self.processor_state or processor.init_state()}, X)
+        self.processor_state = carry['state']
         Y = np.asarray(Y)
-        if Y.ndim == 2: Y = np.sum(Y, axis=1)
+        if Y.ndim == 2: Y = np.sum(Y, axis=1) # TODO stereo out
         assert(Y.ndim == 1)
         set_frame_ndarray(frame, Y)
         return frame
+
+# Track comes through RTC::track, and config comes through RTC::datachannel.
+# This class just handles properly instantiating things regardless of received order.
+class AudioTrackAndConfig():
+    def __init__(self, track=None, config=None):
+        self.track = track
+        self.config = config
+
+    def set_track(self, track):
+        self.track = track
+        self.update_track()
+
+    def set_config(self, config):
+        self.config = config
+        self.update_track()
+
+    def update_track(self):
+        if self.track and self.config:
+            self.track.set_processor_name(self.config['audioProcessorName'])
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
@@ -90,6 +112,8 @@ async def javascript(request):
 
 
 async def offer(request):
+    audio_track_and_config = AudioTrackAndConfig()
+
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
@@ -106,8 +130,8 @@ async def offer(request):
     def on_datachannel(channel):
         @channel.on("message")
         def on_message(message):
-            if isinstance(message, str) and message.startswith("ping"):
-                channel.send("pong" + message[4:])
+            channel.send("echo {}".format(message))
+            audio_track_and_config.set_config(json.loads(message))
 
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
@@ -121,10 +145,9 @@ async def offer(request):
         log_info("Track %s received", track.kind)
 
         if track.kind == "audio":
-            local_audio = AudioTransformTrack(
-                track, transform=params["audio_transform"]
-            )
-            pc.addTrack(local_audio)
+            audio_track = AudioTransformTrack(track)
+            audio_track_and_config.set_track(audio_track)
+            pc.addTrack(audio_track)
 
         @track.on("ended")
         async def on_ended():
