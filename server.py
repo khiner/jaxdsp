@@ -18,7 +18,7 @@ from scipy import signal
 from scipy.io.wavfile import read as readwav
 import time
 
-from jaxdsp.processors import fir_filter, iir_filter, clip, delay_line, lowpass_feedback_comb_filter as lbcf, allpass_filter, freeverb, serial_processors
+from jaxdsp.processors import fir_filter, iir_filter, clip, delay_line, lowpass_feedback_comb_filter, allpass_filter, freeverb
 from jaxdsp.training import train, evaluate, process
 
 
@@ -39,41 +39,38 @@ def set_frame_ndarray(frame, floats):
     ints = (floats * np.iinfo(np.int16).max).astype(np.int16)
     frame.planes[0].update(ints)
 
+
 class AudioTransformTrack(MediaStreamTrack):
     kind = "audio"
-
-    def get_processor_and_params(processor_name):
-        if processor_name == "freeverb":
-            return (freeverb, {
-                        'wet': 0.3,
-                        'dry': 0.6,
-                        'width': 0.5,
-                        'damp': 0.3,
-                        'room_size': 1.055,
-                    })
-        elif processor_name == "clip":
-            return (clip, {'min': -0.01, 'max': 0.01})
-        elif processor_name == "delay_line":
-            return (delay_line, {'wet_amount': 0.5, 'delay_samples': 99})
-        else:
-            return (None, None)
+    ALL_PROCESSORS = [clip, delay_line, lowpass_feedback_comb_filter, allpass_filter, freeverb]
 
     def __init__(self, track):
         super().__init__()
         self.track = track
         self.processor_name = 'none'
         self.processor_state = None
+        self.processor_params = None
 
     def set_processor_name(self, processor_name):
         if self.processor_name != processor_name:
             self.processor_name = processor_name
             self.processor_state = None
+            self.processor_params = None
+
+    def set_processor_params(self, processor_params):
+        self.processor_params = processor_params
+
+    def get_processor(self):
+        for processor in self.ALL_PROCESSORS:
+            if processor.NAME == self.processor_name:
+                return processor
+        return None
 
     async def recv(self):
         frame = await self.track.recv()
         X = get_frame_ndarray(frame)
-        processor, params = AudioTransformTrack.get_processor_and_params(self.processor_name)
-
+        processor = self.get_processor()
+        params = self.processor_params or (processor.init_params() if processor else None)
         carry, Y = (empty_carry, X) if processor is None else processor.tick_buffer({'params': params, 'state': self.processor_state or processor.init_state()}, X)
         self.processor_state = carry['state']
         Y = np.asarray(Y)
@@ -85,21 +82,28 @@ class AudioTransformTrack(MediaStreamTrack):
 # Track comes through RTC::track, and config comes through RTC::datachannel.
 # This class just handles properly instantiating things regardless of received order.
 class AudioTrackAndConfig():
-    def __init__(self, track=None, config=None):
-        self.track = track
-        self.config = config
+    def __init__(self):
+        self.track = None
+        self.audio_processor_name = None
+        self.param_values = {processor.NAME: processor.init_params() for processor in AudioTransformTrack.ALL_PROCESSORS}
 
     def set_track(self, track):
         self.track = track
         self.update_track()
 
-    def set_config(self, config):
-        self.config = config
+    def set_audio_processor_name(self, audio_processor_name):
+        self.audio_processor_name = audio_processor_name
+        self.update_track()
+
+    def set_param_values(self, param_values):
+        self.param_values = param_values
         self.update_track()
 
     def update_track(self):
-        if self.track and self.config:
-            self.track.set_processor_name(self.config['audioProcessorName'])
+        if self.track and self.audio_processor_name and self.param_values:
+            self.track.set_processor_name(self.audio_processor_name)
+            if self.audio_processor_name in self.param_values:
+                self.track.set_processor_params(self.param_values[self.audio_processor_name])
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
@@ -130,8 +134,22 @@ async def offer(request):
     def on_datachannel(channel):
         @channel.on("message")
         def on_message(message):
-            channel.send("echo {}".format(message))
-            audio_track_and_config.set_config(json.loads(message))
+            if message == 'get_config':
+                channel.send(json.dumps({
+                    'processors': {
+                        processor.NAME: {
+                            'params': [param.__dict__ for param in processor.PARAMS],
+                            'presets': processor.PRESETS,
+                        } for processor in AudioTransformTrack.ALL_PROCESSORS
+                    },
+                    'param_values': audio_track_and_config.param_values,
+                }))
+            else:
+                message_object = json.loads(message)
+                if 'audio_processor_name' in message_object:
+                    audio_track_and_config.set_audio_processor_name(message_object['audio_processor_name'])
+                if 'param_values' in message_object:
+                    audio_track_and_config.set_param_values(message_object['param_values'])
 
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
