@@ -1,19 +1,21 @@
 import jax.numpy as jnp
 from jax import jit
 
+from jaxdsp.processors.base import default_param_values
+from jaxdsp.param import Param
+
 NAME = 'Clip'
+PARAMS = [Param('min', -1.0, -1.0, 1.0), Param('max', 1.0, -1.0, 1.0)]
+PRESETS = {}
 
 def init_state():
     return {}
 
-def init_params(min_value=-0.9, max_value=0.9):
-    return {
-        'min': min_value,
-        'max': max_value,
-    }
+def init_params():
+    return default_param_values(PARAMS)
 
 def default_target_params():
-    return init_params(-0.5, 0.5)
+    return {'min': -0.5, 'max': 0.5}
 
 @jit
 def tick(carry, x):

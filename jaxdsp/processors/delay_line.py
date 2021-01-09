@@ -15,15 +15,14 @@ import numpy as np
 from jax import jit, lax
 from jax.ops import index, index_update
 
-NAME = 'Delay Line'
+from jaxdsp.param import Param
+from jaxdsp.processors.base import default_param_values
 
 MAX_DELAY_LENGTH_SAMPLES = 44_100
 
-def init_params(wet_amount=1.0, delay_samples=9.2):
-    return {
-        'wet_amount': wet_amount,
-        'delay_samples': delay_samples,
-    }
+NAME = 'Delay Line'
+PARAMS = [Param('wet', 1.0), Param('delay_samples', 0.9, 0.0, float(MAX_DELAY_LENGTH_SAMPLES))]
+PRESETS = {}
 
 def init_state():
     return {
@@ -32,8 +31,11 @@ def init_state():
         'write_sample': 0.0,
     }
 
+def init_params():
+    return default_param_values(PARAMS)
+
 def default_target_params():
-    return init_params(0.5, 10.0)
+    return {'wet': 0.5, 'delay_samples': 10.0}
 
 @jit
 def tick(carry, x):
@@ -55,7 +57,7 @@ def tick(carry, x):
     state['read_sample'] += 1
     state['read_sample'] %= MAX_DELAY_LENGTH_SAMPLES
 
-    out = x * (1 - params['wet_amount']) + y * params['wet_amount']
+    out = x * (1 - params['wet']) + y * params['wet']
     return carry, out
 
 @jit

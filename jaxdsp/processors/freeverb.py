@@ -3,8 +3,27 @@ from jax import jit, lax
 
 from jaxdsp.processors import lowpass_feedback_comb_filter as comb
 from jaxdsp.processors import allpass_filter as allpass
+from jaxdsp.param import Param
+from jaxdsp.processors.base import default_param_values
 
 NAME = 'Freeverb'
+PARAMS = [Param('wet', 0.0), Param('dry', 1.0), Param('width', 0.0), Param('damp', 0.0), Param('room_size', 0.0, 0.0, 1.2)]
+PRESETS = {
+    'flat_space': {
+        'wet': 0.3,
+        'dry': 0.6,
+        'width': 0.5,
+        'damp': 0.3,
+        'room_size': 1.055,
+    },
+    'expanding_space': {
+        'wet': 0.33,
+        'dry': 0.0,
+        'width': 0.5,
+        'damp': 0.1,
+        'room_size': 1.078,
+    },
+}
 
 fixed_gain = 0.015
 scale_wet = 3.0
@@ -20,16 +39,16 @@ stereo_spread = 23
 # comb_tunings_l = [1, 2, 3, 4, 5, 6, 7, 9]
 # allpass_tunings_l = [2, 3, 4, 5]
 
-def create_comb_carry(buffer_size, feedback=0.5, damp=0.0):
+def create_comb_carry(buffer_size):
     return {
         'state': comb.init_state(buffer_size=buffer_size),
-        'params': comb.init_params(feedback=feedback, damp=damp),
+        'params': {'feedback': 0.5, 'damp': 0.0}
     }
 
-def create_allpass_carry(buffer_size, feedback=0.5):
+def create_allpass_carry(buffer_size):
     return {
         'state': allpass.init_state(buffer_size=buffer_size),
-        'params': allpass.init_params(feedback=feedback),
+        'params': {'feedback': 0.5}
     }
 
 def init_state():
@@ -41,13 +60,7 @@ def init_state():
     }
 
 def init_params():
-    return {
-        'wet': 0.0,
-        'dry': 1.0,
-        'width': 0.0,
-        'damp': 0.0,
-        'room_size': 0.0,
-    }
+    return default_param_values(PARAMS)
 
 def default_target_params():
     return {

@@ -2,7 +2,13 @@ import jax.numpy as jnp
 from jax import jit, lax
 from scipy import signal
 
+from jaxdsp.param import Param
+from jaxdsp.processors.base import default_param_values
+
 NAME = 'IIR Filter'
+# TODO how to handle array params in UI?
+PARAMS = [Param('B', jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)])), Param('A', jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]))]
+PRESETS = {}
 
 def init_state(length=5):
     return {
@@ -10,11 +16,8 @@ def init_state(length=5):
         'outputs': jnp.zeros(length - 1),
     }
 
-def init_params(length=5):
-    return {
-        'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)]),
-        'A' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)]),
-    }
+def init_params():
+    return default_param_values(PARAMS)
 
 def default_target_params(length=5):
     B, A = signal.butter(length - 1, 0.5, 'low')

@@ -2,12 +2,12 @@ import jax.numpy as jnp
 from jax import jit, lax
 from jax.ops import index_update
 
-NAME = 'Allpass Filter'
+from jaxdsp.param import Param
+from jaxdsp.processors.base import default_param_values
 
-def init_params(feedback=0.0):
-    return {
-        'feedback': feedback,
-    }
+NAME = 'Allpass Filter'
+PARAMS = [Param('feedback', 0.0)]
+PRESETS = {}
 
 def init_state(buffer_size=20):
     return {
@@ -16,8 +16,11 @@ def init_state(buffer_size=20):
         'filter_store': 0.0,
     }
 
+def init_params():
+    return default_param_values(PARAMS)
+
 def default_target_params():
-    return init_params(0.5)
+    return {'feedback': 0.5}
 
 @jit
 def tick(carry, x):

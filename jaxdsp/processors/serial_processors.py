@@ -1,4 +1,6 @@
 NAME = 'Serial Processors'
+PARAMS = []
+PRESETS = {}
 
 def init_state(processors):
     return {processor.NAME: { 'state': processor.init_state(), 'tick_buffer': processor.tick_buffer } for processor in processors}

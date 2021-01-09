@@ -1,17 +1,21 @@
 import jax.numpy as jnp
 from jax import jit, lax
 
+from jaxdsp.param import Param
+from jaxdsp.processors.base import default_param_values
+
 NAME = 'FIR Filter'
+# TODO how to handle array params in UI?
+PARAMS = [Param('B', jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]))]
+PRESETS = {}
 
 def init_state(length=4):
     return {
         'inputs': jnp.zeros(length)
     }
 
-def init_params(length=4):
-    return {
-        'B' : jnp.concatenate([jnp.array([1.0]), jnp.zeros(length - 1)])
-    }
+def init_params():
+    return default_param_values(PARAMS)
 
 def default_target_params(length=4):
     return {
