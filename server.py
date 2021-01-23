@@ -5,29 +5,22 @@ import logging
 import os
 import ssl
 import uuid
+import time
 import numpy as np
-import cv2
+import jax.numpy as jnp
+
 from aiohttp import web
 import aiohttp_cors
 from av import AudioFrame
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 
-import numpy as np
-import jax.numpy as jnp
-from scipy import signal
-from scipy.io.wavfile import read as readwav
-import time
-
 from jaxdsp.processors import fir_filter, iir_filter, clip, delay_line, lowpass_feedback_comb_filter, allpass_filter, freeverb
-from jaxdsp.training import train, evaluate, process
-
 
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
 
-sample_rate, test_X = readwav('./audio/speech-male.wav')
 empty_carry = {'state': None, 'params': None}
 
 def get_frame_ndarray(frame):
@@ -47,18 +40,27 @@ class AudioTransformTrack(MediaStreamTrack):
     def __init__(self, track):
         super().__init__()
         self.track = track
+        self.all_estimated_params = {processor.NAME: processor.init_params() for processor in self.ALL_PROCESSORS}
         self.processor_name = 'none'
         self.processor_state = None
         self.processor_params = None
+        self.processor = None
+        self.processor_estimated_params = None
+        self.channel = None
 
     def set_processor_name(self, processor_name):
         if self.processor_name != processor_name:
             self.processor_name = processor_name
             self.processor_state = None
             self.processor_params = None
+            self.processor = self.get_processor()
+            self.processor_estimated_params = self.all_estimated_params.get(self.processor_name)
 
     def set_processor_params(self, processor_params):
         self.processor_params = processor_params
+
+    def set_channel(self, channel):
+        self.channel = channel
 
     def get_processor(self):
         for processor in self.ALL_PROCESSORS:
@@ -69,23 +71,25 @@ class AudioTransformTrack(MediaStreamTrack):
     async def recv(self):
         frame = await self.track.recv()
         X = get_frame_ndarray(frame)
-        processor = self.get_processor()
-        params = self.processor_params or (processor.init_params() if processor else None)
-        carry, Y = (empty_carry, X) if processor is None else processor.tick_buffer({'params': params, 'state': self.processor_state or processor.init_state()}, X)
+        params = self.processor_params or (self.processor and self.processor.init_params())
+        carry, Y = (empty_carry, X) if self.processor is None else self.processor.tick_buffer({'params': params, 'state': self.processor_state or self.processor.init_state()}, X)
         self.processor_state = carry['state']
         Y = np.asarray(Y)
         if Y.ndim == 2: Y = np.sum(Y, axis=1) # TODO stereo out
         assert(Y.ndim == 1)
         set_frame_ndarray(frame, Y)
+        if self.channel:
+            self.channel.send(json.dumps({'frame': 'Processed'}))
         return frame
 
-# Track comes through RTC::track, and config comes through RTC::datachannel.
+# RTC::track and RTC::datachannel may arrive in any order.
 # This class just handles properly instantiating things regardless of received order.
 class AudioTrackAndConfig():
     def __init__(self):
         self.track = None
         self.audio_processor_name = None
         self.param_values = {processor.NAME: processor.init_params() for processor in AudioTransformTrack.ALL_PROCESSORS}
+        self.channel = None
 
     def set_track(self, track):
         self.track = track
@@ -99,9 +103,15 @@ class AudioTrackAndConfig():
         self.param_values = param_values
         self.update_track()
 
+    # While the channel is set, an 'estimated_param_values' json message is sent periodically
+    def set_channel(self, channel):
+        self.channel = channel
+        self.update_track()
+
     def update_track(self):
         if self.track and self.audio_processor_name and self.param_values:
             self.track.set_processor_name(self.audio_processor_name)
+            self.track.set_channel(self.channel)
             if self.audio_processor_name in self.param_values:
                 self.track.set_processor_params(self.param_values[self.audio_processor_name])
 
@@ -122,9 +132,9 @@ async def offer(request):
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
     pc = RTCPeerConnection()
-    pc_id = "PeerConnection(%s)" % uuid.uuid4()
     pcs.add(pc)
 
+    pc_id = "PeerConnection(%s)" % uuid.uuid4()
     def log_info(msg, *args):
         logger.info(pc_id + " " + msg, *args)
 
@@ -134,6 +144,7 @@ async def offer(request):
     def on_datachannel(channel):
         @channel.on("message")
         def on_message(message):
+            print('Message: ', message)
             if message == 'get_config':
                 channel.send(json.dumps({
                     'processors': {
@@ -144,6 +155,10 @@ async def offer(request):
                     },
                     'param_values': audio_track_and_config.param_values,
                 }))
+            elif message == 'start_estimating_params':
+                audio_track_and_config.set_channel(channel)
+            elif message == 'stop_estimating_params':
+                audio_track_and_config.set_channel(None)
             else:
                 message_object = json.loads(message)
                 if 'audio_processor_name' in message_object:
@@ -194,27 +209,18 @@ async def on_shutdown(app):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="WebRTC audio / data-channels demo"
-    )
+    parser = argparse.ArgumentParser(description="JAXdsp server")
     parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
     parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
-    parser.add_argument(
-        "--port", type=int, default=8080, help="Port for HTTP server (default: 8080)"
-    )
+    parser.add_argument("--port", type=int, default=8080, help="Port for HTTP server (default: 8080)")
     parser.add_argument("--verbose", "-v", action="count")
     args = parser.parse_args()
+    logging.basicConfig(level=(logging.DEBUG if args.verbose else logging.INFO))
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-
+    ssl_context = None
     if args.cert_file:
         ssl_context = ssl.SSLContext()
         ssl_context.load_cert_chain(args.cert_file, args.key_file)
-    else:
-        ssl_context = None
 
     app = web.Application()
     app.on_shutdown.append(on_shutdown)
@@ -228,6 +234,5 @@ if __name__ == "__main__":
         )
     })
     # Configure CORS on all routes.
-    for route in list(app.router.routes()):
-        cors.add(route)
+    for route in list(app.router.routes()): cors.add(route)
     web.run_app(app, access_log=None, port=args.port, ssl_context=ssl_context)
