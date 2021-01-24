@@ -15,6 +15,7 @@ from av import AudioFrame
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 
 from jaxdsp.processors import fir_filter, iir_filter, clip, delay_line, lowpass_feedback_comb_filter, allpass_filter, freeverb
+from jaxdsp.training import train_init, train_step, params_from_train_state
 
 ROOT = os.path.dirname(__file__)
 
@@ -32,7 +33,6 @@ def set_frame_ndarray(frame, floats):
     ints = (floats * np.iinfo(np.int16).max).astype(np.int16)
     frame.planes[0].update(ints)
 
-
 class AudioTransformTrack(MediaStreamTrack):
     kind = "audio"
     ALL_PROCESSORS = [clip, delay_line, lowpass_feedback_comb_filter, allpass_filter, freeverb]
@@ -45,7 +45,6 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor_state = None
         self.processor_params = None
         self.processor = None
-        self.processor_estimated_params = None
         self.channel = None
 
     def set_processor_name(self, processor_name):
@@ -54,7 +53,7 @@ class AudioTransformTrack(MediaStreamTrack):
             self.processor_state = None
             self.processor_params = None
             self.processor = self.get_processor()
-            self.processor_estimated_params = self.all_estimated_params.get(self.processor_name)
+            self.train_state = train_init(self.processor, self.processor.init_params())
 
     def set_processor_params(self, processor_params):
         self.processor_params = processor_params
@@ -79,7 +78,10 @@ class AudioTransformTrack(MediaStreamTrack):
         assert(Y.ndim == 1)
         set_frame_ndarray(frame, Y)
         if self.channel:
-            self.channel.send(json.dumps({'frame': 'Processed'}))
+            # TODO training probably needs to happen on another thread
+            self.train_state = train_step(X, Y, *self.train_state)
+            self.all_estimated_params[self.processor_name] = params_from_train_state(*self.train_state)
+            self.channel.send(json.dumps({'estimated_param_values': self.all_estimated_params[self.processor_name]}))
         return frame
 
 # RTC::track and RTC::datachannel may arrive in any order.
