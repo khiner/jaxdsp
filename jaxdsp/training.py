@@ -41,7 +41,8 @@ def train_step(X, Y_target, step, processor_state, grad_fn, get_params, opt_upda
     return step + 1, processor_state, grad_fn, get_params, opt_update, opt_state
 
 def params_from_train_state(step, processor_state, grad_fn, get_params, opt_update, opt_state):
-    return get_params(opt_state)
+    params = get_params(opt_state)
+    return {key: float(value) for key, value in params.items()}
 
 
 ### Batched ###
