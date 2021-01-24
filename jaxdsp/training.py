@@ -18,10 +18,10 @@ def train_init(processor, params_init, step_size=0.2):
 
     carry_target = {'params': processor.default_target_params(), 'state': processor.init_state()}
     train_state = train_init(processor, processor.default_target_params())
-    for step in range(100):
+    for _ in range(100):
         X = Xs[np.random.randint(Xs.shape[0])]
         carry_target, Y_target = processor.tick_buffer(carry_target, X)
-        train_state = train_step(X, Y_target, step, *train_state)
+        train_state = train_step(X, Y_target, *train_state)
 
     params = params_from_train_state(*train_state)
     '''
@@ -32,14 +32,15 @@ def train_init(processor, params_init, step_size=0.2):
     grad_fn = jit(value_and_grad(loss, has_aux=True))
     opt_init, opt_update, get_params = optimizers.sgd(step_size)
     opt_state = opt_init(params_init)
-    return processor.init_state(), grad_fn, get_params, opt_update, opt_state
+    step = 0
+    return step, processor.init_state(), grad_fn, get_params, opt_update, opt_state
 
-def train_step(X, Y_target, step, state, grad_fn, get_params, opt_update, opt_state):
-    (loss, state), grads = grad_fn(get_params(opt_state), state, X, Y_target)
+def train_step(X, Y_target, step, processor_state, grad_fn, get_params, opt_update, opt_state):
+    (loss, processor_state), grads = grad_fn(get_params(opt_state), processor_state, X, Y_target)
     opt_state = opt_update(step, grads, opt_state)
-    return state, grad_fn, get_params, opt_update, opt_state
+    return step + 1, processor_state, grad_fn, get_params, opt_update, opt_state
 
-def params_from_train_state(state, grad_fn, get_params, opt_update, opt_state):
+def params_from_train_state(step, processor_state, grad_fn, get_params, opt_update, opt_state):
     return get_params(opt_state)
 
 
