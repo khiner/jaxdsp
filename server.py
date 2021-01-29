@@ -13,7 +13,6 @@ from aiohttp import web
 import aiohttp_cors
 from av import AudioFrame
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaPlayer
 
 from jaxdsp.processors import fir_filter, iir_filter, clip, delay_line, lowpass_feedback_comb_filter, allpass_filter, freeverb
 from jaxdsp.training import train_init, train_step, params_from_train_state
@@ -47,11 +46,6 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor_params = None
         self.processor = None
         self.channel = None
-
-    def set_track(self, track):
-        # TODO need to stop current track and start new track?
-        # I think just calling track.recv() on the new track will make that switch
-        self.track = track
 
     def set_processor_name(self, processor_name):
         if self.processor_name != processor_name:
@@ -167,12 +161,6 @@ async def offer(request):
                 audio_track_and_config.set_channel(channel)
             elif message == 'stop_estimating_params':
                 audio_track_and_config.set_channel(None)
-            elif message == 'use_test_signal':
-                # signal.chirp(np.linspace(0, 10, n_train * n_samples), f0=300, f1=1, t1=10)
-                player = MediaPlayer(os.path.join(ROOT, 'audio/speech-male.wav'))
-                if audio_track_and_config.track:
-                    audio_track_and_config.track.set_track(player.audio)
-
             else:
                 message_object = json.loads(message)
                 if 'audio_processor_name' in message_object:
