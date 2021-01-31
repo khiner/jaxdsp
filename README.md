@@ -6,7 +6,9 @@ Built with [JAX](https://github.com/google/jax).
 ## TODO
 
 - Move [`jaxdsp_server`](https://github.com/khiner/jaxdsp_server) into this repo
+  - [How to migrate multiple repositories into a mono-repo while maintaining commit history?](https://stackoverflow.com/a/50038324/780425)
 - Move `jaxdsp_server` client from [blog](https://github.com/khiner/blog/blob/jaxdsp/src/content/jaxdsp/JaxDsp.js) into this repo, and publish as an npm package
+  - Do this now, and use `npm link` or whatever to alias package to local directory while iterating
 - In `jaxdsp_server`, provide control control over all training parameters (batch-size, step-size, optimizer, loss function, etc.) via data-channel messages from the client
 - Send forward-pass/train step timing data-channel messages to client from `jaxdsp-server`
 - Add `parallel_processors` processor to `jaxdsp`. Support nesting of `parallel_processors` and `serial_processors` as a structurally constrained audio graph. Thus, `jaxdsp` allows optimization over a single `processor`, but that processor can be an arbitrary nesting of serial/parallel/plain-old processors
@@ -14,8 +16,12 @@ Built with [JAX](https://github.com/google/jax).
 - Use [react-flow](https://reactflow.dev/) library to implement `jaxdsp_client.monitor` and `jaxdsp_client.graph_editor`
   - `monitor` shows a real-time flow-diagram visualization of the full client/server process, including peerConnection details, data-channel messages, and live charts tracking all estimated parameter values & loss histories (using [nivo](https://nivo.rocks/line/) charting library)
   - `graph_editor` provides an editable graph, with parameter controls inside each node, with the ability to connect nodes in parallel and in serial (vertical & horizontal processor groups, respectively)
+- Create docker env for `jaxdsp_server`
+- Deploy `jaxdsp_server` docker to a2hosting instance
 - Expand `jaxdsp` jupyter-notebook in `/docs` into more comprehensive tutorials
 - GPU?!
+  - run home server
+  - add switch to `jaxdsp_client.monitor` to switch between cpu/gpu
 - Add a perceptual loss function instead of mse (steal DDSP's multi-scale spectral loss fn)
 - Write blog post
   - parameter initialization: starting from no effect initially
