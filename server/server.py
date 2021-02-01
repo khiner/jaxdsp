@@ -134,13 +134,7 @@ class AudioTrackAndConfig():
 
 
 async def index(request):
-    content = open(os.path.join(ROOT, "index.html"), "r").read()
-    return web.Response(content_type="text/html", text=content)
-
-
-async def javascript(request):
-    content = open(os.path.join(ROOT, "client.js"), "r").read()
-    return web.Response(content_type="application/javascript", text=content)
+    return web.Response(content_type="text/plain", text="Use the `/offer` endpoint to negotiate a WebRTC peer connection.")
 
 
 async def offer(request):
@@ -248,7 +242,6 @@ if __name__ == "__main__":
     app = web.Application()
     app.on_shutdown.append(on_shutdown)
     app.router.add_get("/", index)
-    app.router.add_get("/client.js", javascript)
     app.router.add_post("/offer", offer)
     cors = aiohttp_cors.setup(app, defaults={
         "*": aiohttp_cors.ResourceOptions(

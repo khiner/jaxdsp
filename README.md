@@ -1,14 +1,25 @@
-# JAX DSP
+# JAXdsp
 
 Fast, differentiable audio processors on the CPU or GPU.
 Built with [JAX](https://github.com/google/jax).
 
+## Server
+
+```shell
+$ cd server
+$ python server.py
+```
+
+## Client
+
+```shell
+$ cd client
+$ npm ci
+$ npm start
+```
+
 ## TODO
 
-- Move [`jaxdsp_server`](https://github.com/khiner/jaxdsp_server) into this repo
-  - [How to migrate multiple repositories into a mono-repo while maintaining commit history?](https://stackoverflow.com/a/50038324/780425)
-- Move `jaxdsp_server` client from [blog](https://github.com/khiner/blog/blob/jaxdsp/src/content/jaxdsp/JaxDsp.js) into this repo, and publish as an npm package
-  - Do this now, and use `npm link` or whatever to alias package to local directory while iterating
 - In `jaxdsp_server`, provide control control over all training parameters (batch-size, step-size, optimizer, loss function, etc.) via data-channel messages from the client
 - Send forward-pass/train step timing data-channel messages to client from `jaxdsp-server`
 - Add `parallel_processors` processor to `jaxdsp`. Support nesting of `parallel_processors` and `serial_processors` as a structurally constrained audio graph. Thus, `jaxdsp` allows optimization over a single `processor`, but that processor can be an arbitrary nesting of serial/parallel/plain-old processors
