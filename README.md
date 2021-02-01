@@ -15,6 +15,14 @@ $ python server.py
 ```shell
 $ cd client
 $ npm ci
+$ npm run build:dev
+```
+
+## App
+
+```shell
+$ cd app
+$ npm ci
 $ npm start
 ```
 

@@ -1,32 +1,36 @@
 {
   "name": "jaxdsp-client",
   "version": "0.1.0",
-  "private": true,
+  "description": "Monitor and graph editor for JAXdsp",
+  "main": "dist/jaxdsp-client.js",
+  "scripts": {
+    "build:dev": "rm -rf dist && webpack --mode development --watch",
+    "build:prod": "rm -rf dist && webpack --mode production",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/khiner/jaxdsp/tree/main/client"
+  },
+  "keywords": [
+    "jax",
+    "dsp",
+    "differentiable",
+    "audio"
+  ],
+  "author": "Karl Hiner",
+  "license": "MIT",
   "dependencies": {
     "react": "^17.0.1",
-    "react-dom": "^17.0.1",
-    "react-scripts": "4.0.1",
     "webrtc-adapter": "^7.7.0"
   },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "devDependencies": {
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@babel/preset-react": "^7.12.10",
+    "babel-loader": "^8.2.2",
+    "webpack": "^5.19.0",
+    "webpack-cli": "^4.4.0"
   }
 }
