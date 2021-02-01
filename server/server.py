@@ -24,23 +24,28 @@ pcs = set()
 
 empty_carry = {'state': None, 'params': None}
 
+
 def get_frame_ndarray(frame):
     ints = np.frombuffer(frame.planes[0], dtype=np.int16)
     floats = ints.astype(np.float32) / np.iinfo(np.int16).max
     return floats
 
+
 def set_frame_ndarray(frame, floats):
     ints = (floats * np.iinfo(np.int16).max).astype(np.int16)
     frame.planes[0].update(ints)
 
+
 class AudioTransformTrack(MediaStreamTrack):
     kind = "audio"
-    ALL_PROCESSORS = [clip, delay_line, lowpass_feedback_comb_filter, allpass_filter, freeverb]
+    ALL_PROCESSORS = [clip, delay_line,
+                      lowpass_feedback_comb_filter, allpass_filter, freeverb]
 
     def __init__(self, track):
         super().__init__()
         self.track = track
-        self.all_estimated_params = {processor.NAME: processor.init_params() for processor in self.ALL_PROCESSORS}
+        self.all_estimated_params = {
+            processor.NAME: processor.init_params() for processor in self.ALL_PROCESSORS}
         self.processor_name = 'none'
         self.processor_state = None
         self.processor_params = None
@@ -53,7 +58,8 @@ class AudioTransformTrack(MediaStreamTrack):
             self.processor_state = None
             self.processor_params = None
             self.processor = self.get_processor()
-            self.train_state = train_init(self.processor, self.processor.init_params())
+            self.train_state = train_init(
+                self.processor, self.processor.init_params())
 
     def set_processor_params(self, processor_params):
         self.processor_params = processor_params
@@ -70,27 +76,35 @@ class AudioTransformTrack(MediaStreamTrack):
     async def recv(self):
         frame = await self.track.recv()
         X = get_frame_ndarray(frame)
-        params = self.processor_params or (self.processor and self.processor.init_params())
-        carry, Y = (empty_carry, X) if self.processor is None else self.processor.tick_buffer({'params': params, 'state': self.processor_state or self.processor.init_state()}, X)
+        params = self.processor_params or (
+            self.processor and self.processor.init_params())
+        carry, Y = (empty_carry, X) if self.processor is None else self.processor.tick_buffer(
+            {'params': params, 'state': self.processor_state or self.processor.init_state()}, X)
         self.processor_state = carry['state']
         Y = np.asarray(Y)
-        if Y.ndim == 2: Y = np.sum(Y, axis=1) # TODO stereo out
+        if Y.ndim == 2:
+            Y = np.sum(Y, axis=1)  # TODO stereo out
         assert(Y.ndim == 1)
         set_frame_ndarray(frame, Y)
         if self.channel:
             # TODO training probably needs to happen on another thread
             self.train_state = train_step(X, Y, *self.train_state)
-            self.all_estimated_params[self.processor_name] = params_from_train_state(*self.train_state)
-            self.channel.send(json.dumps({'estimated_param_values': self.all_estimated_params[self.processor_name]}))
+            self.all_estimated_params[self.processor_name] = params_from_train_state(
+                *self.train_state)
+            self.channel.send(json.dumps(
+                {'estimated_param_values': self.all_estimated_params[self.processor_name]}))
         return frame
 
 # RTC::track and RTC::datachannel may arrive in any order.
 # This class just handles properly instantiating things regardless of received order.
+
+
 class AudioTrackAndConfig():
     def __init__(self):
         self.track = None
         self.audio_processor_name = None
-        self.param_values = {processor.NAME: processor.init_params() for processor in AudioTransformTrack.ALL_PROCESSORS}
+        self.param_values = {processor.NAME: processor.init_params(
+        ) for processor in AudioTransformTrack.ALL_PROCESSORS}
         self.channel = None
 
     def set_track(self, track):
@@ -115,7 +129,9 @@ class AudioTrackAndConfig():
             self.track.set_processor_name(self.audio_processor_name)
             self.track.set_channel(self.channel)
             if self.audio_processor_name in self.param_values:
-                self.track.set_processor_params(self.param_values[self.audio_processor_name])
+                self.track.set_processor_params(
+                    self.param_values[self.audio_processor_name])
+
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
@@ -137,6 +153,7 @@ async def offer(request):
     pcs.add(pc)
 
     pc_id = "PeerConnection(%s)" % uuid.uuid4()
+
     def log_info(msg, *args):
         logger.info(pc_id + " " + msg, *args)
 
@@ -164,9 +181,11 @@ async def offer(request):
             else:
                 message_object = json.loads(message)
                 if 'audio_processor_name' in message_object:
-                    audio_track_and_config.set_audio_processor_name(message_object['audio_processor_name'])
+                    audio_track_and_config.set_audio_processor_name(
+                        message_object['audio_processor_name'])
                 if 'param_values' in message_object:
-                    audio_track_and_config.set_param_values(message_object['param_values'])
+                    audio_track_and_config.set_param_values(
+                        message_object['param_values'])
 
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
@@ -214,10 +233,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="JAXdsp server")
     parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
     parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
-    parser.add_argument("--port", type=int, default=8080, help="Port for HTTP server (default: 8080)")
+    parser.add_argument("--port", type=int, default=8080,
+                        help="Port for HTTP server (default: 8080)")
     parser.add_argument("--verbose", "-v", action="count")
     args = parser.parse_args()
-    logging.basicConfig(level=(logging.DEBUG if args.verbose else logging.INFO))
+    logging.basicConfig(
+        level=(logging.DEBUG if args.verbose else logging.INFO))
 
     ssl_context = None
     if args.cert_file:
@@ -236,5 +257,6 @@ if __name__ == "__main__":
         )
     })
     # Configure CORS on all routes.
-    for route in list(app.router.routes()): cors.add(route)
+    for route in list(app.router.routes()):
+        cors.add(route)
     web.run_app(app, access_log=None, port=args.port, ssl_context=ssl_context)
