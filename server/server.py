@@ -95,11 +95,13 @@ class AudioTransformTrack(MediaStreamTrack):
                 {'estimated_param_values': self.all_estimated_params[self.processor_name]}))
         return frame
 
-# RTC::track and RTC::datachannel may arrive in any order.
-# This class just handles properly instantiating things regardless of received order.
-
 
 class AudioTrackAndConfig():
+    """
+    RTC::track and RTC::datachannel may arrive in any order.
+    This class just handles properly instantiating things regardless of received order.
+    """
+
     def __init__(self):
         self.track = None
         self.audio_processor_name = None
