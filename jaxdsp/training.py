@@ -3,6 +3,7 @@ import jax.numpy as jnp
 from jax import grad, value_and_grad, jit, vmap
 from jax.experimental import optimizers
 import collections.abc
+from operator import itemgetter
 
 from jaxdsp.processors import serial_processors
 from jaxdsp.loss import mse, correlation
@@ -11,44 +12,55 @@ from jax.tree_util import tree_map, tree_multimap
 ### Non-batched ###
 
 
-def train_init(processor, params_init, step_size=0.2):
-    '''
-    from jaxdsp.training import train_init, train_step, params_from_train_state
+class IterativeTrainer():
+    def __init__(self, processor, params_init=None, step_size=0.2):
+        '''
+        from jaxdsp.training import IterativeTrainer
 
-    carry_target = {'params': processor.default_target_params(), 'state': processor.init_state()}
-    train_state = train_init(processor, processor.default_target_params())
-    for _ in range(100):
-        X = Xs[np.random.randint(Xs.shape[0])]
-        carry_target, Y_target = processor.tick_buffer(carry_target, X)
-        train_state = train_step(X, Y_target, *train_state)
+        processor = lbcf
+        Xs = Xs_chirp
+        carry_target = {'params': processor.default_target_params(), 'state': processor.init_state()}
+        trainer = IterativeTrainer(processor, processor.init_params())
+        for _ in range(10):
+            X = Xs[np.random.randint(Xs.shape[0])]
+            carry_target, Y_target = processor.tick_buffer(carry_target, X)
+            trainer.step(X, Y_target)
 
-    params = params_from_train_state(*train_state)
-    '''
-    def loss(params, state, X, Y_target):
-        carry, Y_estimated = processor.tick_buffer(
-            {'params': params, 'state': state}, X)
-        return mse(Y_estimated, Y_target), carry['state']
+        params_and_loss = trainer.params_and_loss()
+        '''
 
-    grad_fn = jit(value_and_grad(loss, has_aux=True))
-    opt_init, opt_update, get_params = optimizers.sgd(step_size)
-    opt_state = opt_init(params_init)
-    step = 0
-    return step, processor.init_state(), grad_fn, get_params, opt_update, opt_state
+        def loss(params, state, X, Y_target):
+            carry, Y_estimated = processor.tick_buffer(
+                {'params': params, 'state': state}, X)
+            return mse(Y_estimated, Y_target), carry['state']
 
+        self.step_num = 0
+        self.loss = 0.0
+        self.grad_fn = jit(value_and_grad(loss, has_aux=True))
+        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
+            step_size)
+        self.opt_state = self.opt_init(params_init or processor.init_params())
+        self.processor_state = processor.init_state()
 
-def train_step(X, Y_target, step, processor_state, grad_fn, get_params, opt_update, opt_state):
-    (loss, processor_state), grads = grad_fn(
-        get_params(opt_state), processor_state, X, Y_target)
-    opt_state = opt_update(step, grads, opt_state)
-    return step + 1, processor_state, grad_fn, get_params, opt_update, opt_state
+    def step(self, X, Y_target):
+        (self.loss, self.processor_state), self.grads = self.grad_fn(
+            self.get_params(self.opt_state), self.processor_state, X, Y_target)
+        self.opt_state = self.opt_update(
+            self.step_num, self.grads, self.opt_state)
+        self.step_num += 1
 
+    def params(self):
+        params = self.get_params(self.opt_state)
+        return {key: float(value) for key, value in params.items()}
 
-def params_from_train_state(step, processor_state, grad_fn, get_params, opt_update, opt_state):
-    params = get_params(opt_state)
-    return {key: float(value) for key, value in params.items()}
-
+    def params_and_loss(self):
+        return {
+            'params': self.params(),
+            'loss': float(self.loss),
+        }
 
 ### Batched ###
+
 
 @jit
 def mean_loss_and_grads(loss, grads):

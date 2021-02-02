@@ -111,7 +111,7 @@ export default function Monitor({ testSample }) {
   const [processorName, setProcessorName] = useState(NONE_PROCESSOR_LABEL)
   const [processors, setProcessors] = useState(null)
   const [paramValues, setParamValues] = useState({})
-  const [estimatedParamValues, setEstimatedParamValues] = useState({})
+  const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
 
   const onAudioStreamError = (displayMessage, error) => {
@@ -161,11 +161,7 @@ export default function Monitor({ testSample }) {
       dataChannel.onopen = () => dataChannel.send('get_config')
       dataChannel.onmessage = event => {
         const message = JSON.parse(event.data)
-        const {
-          processors,
-          param_values: paramValues,
-          estimated_param_values: estimatedParamValues,
-        } = message
+        const { processors, param_values: paramValues, train_state: trainState } = message
 
         if (processors) {
           console.log('Received processor descriptions:')
@@ -177,10 +173,10 @@ export default function Monitor({ testSample }) {
           console.log(paramValues)
           setParamValues(paramValues)
         }
-        if (estimatedParamValues) {
+        if (trainState) {
           console.log('Received estimated parameter values:')
-          console.log(estimatedParamValues)
-          setEstimatedParamValues(estimatedParamValues)
+          console.log(trainState)
+          setTrainState(trainState)
         }
       }
     }
@@ -316,16 +312,16 @@ export default function Monitor({ testSample }) {
                 </div>
               ))}
             </div>
-            {estimatedParamValues && (
+            {trainState && trainState.params && (
               <div>
                 {processorParams.map(
                   ({ name, min_value, max_value }) =>
-                    !isNaN(estimatedParamValues[name]) && (
+                    !isNaN(trainState.params[name]) && (
                       <div key={name}>
                         <input
                           type="range"
                           name={name}
-                          value={estimatedParamValues[name]}
+                          value={trainState.params[name]}
                           min={min_value}
                           max={max_value}
                           step={(max_value - min_value) / 100.0}
