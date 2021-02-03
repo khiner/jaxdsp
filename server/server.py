@@ -1,5 +1,7 @@
 import argparse
 import asyncio
+import websockets
+import uuid
 import json
 import logging
 import os
@@ -24,6 +26,8 @@ pcs = set()
 
 empty_carry = {'state': None, 'params': None}
 
+track_for_client_uid = {}
+
 
 def get_frame_ndarray(frame):
     ints = np.frombuffer(frame.planes[0], dtype=np.int16)
@@ -46,11 +50,12 @@ class AudioTransformTrack(MediaStreamTrack):
         self.track = track
         self.trainer_for_processor = {processor.NAME: IterativeTrainer(
             processor) for processor in self.ALL_PROCESSORS}
+        self.processor = None
         self.processor_name = 'none'
         self.processor_state = None
         self.processor_params = None
-        self.processor = None
-        self.channel = None
+        self.is_estimating_params = False
+        self.websocket = None
 
     def set_processor_name(self, processor_name):
         if self.processor_name != processor_name:
@@ -61,9 +66,6 @@ class AudioTransformTrack(MediaStreamTrack):
 
     def set_processor_params(self, processor_params):
         self.processor_params = processor_params
-
-    def set_channel(self, channel):
-        self.channel = channel
 
     def get_processor(self):
         for processor in self.ALL_PROCESSORS:
@@ -83,16 +85,12 @@ class AudioTransformTrack(MediaStreamTrack):
         if Y.ndim == 2:
             Y = np.sum(Y, axis=1)  # TODO stereo out
         set_frame_ndarray(frame, Y)
-        if self.channel:
+        if self.is_estimating_params and self.websocket:
             # TODO training probably needs to happen on another thread
             trainer = self.trainer_for_processor[self.processor_name]
             trainer.step(X, Y)
             if trainer.step_num % 10 == 0:
-                self.channel.send(json.dumps(
-                    {'train_state': trainer.params_and_loss()}))
-                print('step: ', trainer.step_num)
-                print('buffer shape: ', X.shape)
-                print('buffered amount', self.channel.bufferedAmount)
+                await self.websocket.send(json.dumps({'train_state': trainer.params_and_loss()}))
         return frame
 
 
@@ -105,9 +103,9 @@ class AudioTrackAndConfig():
     def __init__(self):
         self.track = None
         self.audio_processor_name = None
+        self.is_estimating_params = False
         self.param_values = {processor.NAME: processor.init_params(
         ) for processor in AudioTransformTrack.ALL_PROCESSORS}
-        self.channel = None
 
     def set_track(self, track):
         self.track = track
@@ -121,15 +119,18 @@ class AudioTrackAndConfig():
         self.param_values = param_values
         self.update_track()
 
-    # While the channel is set, an 'estimated_param_values' json message is sent periodically
-    def set_channel(self, channel):
-        self.channel = channel
+    def start_estimating_params(self):
+        self.is_estimating_params = True
+        self.update_track()
+
+    def stop_estimating_params(self):
+        self.is_estimating_params = False
         self.update_track()
 
     def update_track(self):
         if self.track and self.audio_processor_name and self.param_values:
             self.track.set_processor_name(self.audio_processor_name)
-            self.track.set_channel(self.channel)
+            self.track.is_estimating_params = self.is_estimating_params
             if self.audio_processor_name in self.param_values:
                 self.track.set_processor_params(
                     self.param_values[self.audio_processor_name])
@@ -140,14 +141,13 @@ async def index(request):
 
 
 async def offer(request):
+    client_uid = str(uuid.uuid4())
     audio_track_and_config = AudioTrackAndConfig()
 
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
     pc = RTCPeerConnection()
-    send_channel = pc.createDataChannel("jaxdsp-server")
-
     pcs.add(pc)
 
     pc_id = "PeerConnection(%s)" % uuid.uuid4()
@@ -161,7 +161,6 @@ async def offer(request):
     def on_datachannel(channel):
         @channel.on("message")
         def on_message(message):
-            print('Message: ', message)
             if message == 'get_config':
                 channel.send(json.dumps({
                     'processors': {
@@ -173,9 +172,9 @@ async def offer(request):
                     'param_values': audio_track_and_config.param_values,
                 }))
             elif message == 'start_estimating_params':
-                audio_track_and_config.set_channel(send_channel)
+                audio_track_and_config.start_estimating_params()
             elif message == 'stop_estimating_params':
-                audio_track_and_config.set_channel(None)
+                audio_track_and_config.stop_estimating_params()
             else:
                 message_object = json.loads(message)
                 if 'audio_processor_name' in message_object:
@@ -194,16 +193,19 @@ async def offer(request):
 
     @pc.on("track")
     def on_track(track):
-        log_info("Track %s received", track.kind)
+        if track.kind != "audio":
+            return
 
-        if track.kind == "audio":
-            audio_track = AudioTransformTrack(track)
-            audio_track_and_config.set_track(audio_track)
-            pc.addTrack(audio_track)
+        log_info("Track %s received", track.kind)
+        audio_track = AudioTransformTrack(track)
+        audio_track_and_config.set_track(audio_track)
+        track_for_client_uid[client_uid] = audio_track
+        pc.addTrack(audio_track)
 
         @track.on("ended")
         async def on_ended():
             log_info("Track %s ended", track.kind)
+            del track_for_client_uid[client_uid]
 
     # handle offer
     await pc.setRemoteDescription(offer)
@@ -215,7 +217,11 @@ async def offer(request):
     return web.Response(
         content_type="application/json",
         text=json.dumps(
-            {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
+            {
+                "sdp": pc.localDescription.sdp,
+                "type": pc.localDescription.type,
+                "client_uid": client_uid
+            }
         ),
     )
 
@@ -226,6 +232,19 @@ async def on_shutdown(app):
     await asyncio.gather(*coros)
     pcs.clear()
 
+
+async def register_websocket(websocket, path):
+    while True:
+        try:
+            message = await websocket.recv()
+            message_object = json.loads(message)
+            if message_object.get('client_uid'):
+                track = track_for_client_uid.get(message_object['client_uid'])
+                if track:
+                    track.websocket = websocket
+        except websockets.ConnectionClosed:
+            print('ws terminated')
+            break
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="JAXdsp server")
@@ -242,6 +261,10 @@ if __name__ == "__main__":
     if args.cert_file:
         ssl_context = ssl.SSLContext()
         ssl_context.load_cert_chain(args.cert_file, args.key_file)
+
+    start_server = websockets.serve(
+        register_websocket, "localhost", 8765, ssl=ssl_context)
+    asyncio.get_event_loop().run_until_complete(start_server)
 
     app = web.Application()
     app.on_shutdown.append(on_shutdown)

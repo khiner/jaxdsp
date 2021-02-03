@@ -91,7 +91,10 @@ async function negotiate() {
     method: 'POST',
   })
   const answer = await response.json()
-  await peerConnection.setRemoteDescription(answer)
+  const { client_uid: clientUid, ...remoteDescription } = answer
+  await peerConnection.setRemoteDescription(remoteDescription)
+
+  return clientUid
 }
 
 const AUDIO_INPUT_SOURCES = {
@@ -105,7 +108,7 @@ const AUDIO_INPUT_SOURCES = {
 const NONE_PROCESSOR_LABEL = 'None'
 
 export default function Monitor({ testSample }) {
-  const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.microphone.label)
+  const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.testSample.label)
   const [isStreamingAudio, setIsStreamingAudio] = useState(false)
   const [isEstimatingParams, setIsEstimatingParams] = useState(false)
   const [processorName, setProcessorName] = useState(NONE_PROCESSOR_LABEL)
@@ -113,6 +116,7 @@ export default function Monitor({ testSample }) {
   const [paramValues, setParamValues] = useState({})
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
+  const [clientUid, setClientUid] = useState(null)
 
   const onAudioStreamError = (displayMessage, error) => {
     setIsStreamingAudio(false)
@@ -140,6 +144,33 @@ export default function Monitor({ testSample }) {
   }, [paramValues])
 
   useEffect(() => {
+    if (clientUid === null) return
+
+    // TODO wss? (SSL)
+    const ws = new WebSocket('ws://127.0.0.1:8765/')
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ client_uid: clientUid }))
+    }
+    ws.onmessage = event => {
+      const message = JSON.parse(event.data)
+      const { train_state: trainState } = message
+      if (trainState) setTrainState(trainState)
+    }
+    ws.onclose = event => {
+      const { wasClean, code } = event
+      if (!wasClean) {
+        setAudioStreamErrorMessage(`WebSocket unexpectedly closed with code ${code}`)
+      }
+    }
+    ws.onerror = () => {
+      setAudioStreamErrorMessage('WebSocket connection error')
+    }
+    return () => {
+      ws.close()
+    }
+  }, [clientUid])
+
+  useEffect(() => {
     const openPeerConnection = () => {
       if (peerConnection) return
 
@@ -157,24 +188,6 @@ export default function Monitor({ testSample }) {
         }
       }
       peerConnection.addEventListener('track', event => (audioRef.current.srcObject = event.streams[0]))
-      peerConnection.addEventListener('datachannel', event => {
-        const receiveChannel = event.channel
-        receiveChannel.onmessage = event => {
-          const message = JSON.parse(event.data)
-          const { train_state: trainState } = message
-          if (trainState) {
-            console.log('trainState: ', trainState)
-            console.log('bufferedAmount: ', receiveChannel.bufferedAmount)
-            setTrainState(trainState)
-          }
-        }
-        receiveChannel.onopen = () => {
-          console.log('receiveChannel opened')
-        }
-        receiveChannel.onclose = () => {
-          console.log('receiveChannel closed')
-        }
-      })
       dataChannel = peerConnection.createDataChannel('jaxdsp-client', { ordered: true })
       dataChannel.onopen = () => dataChannel.send('get_config')
       dataChannel.onmessage = event => {
@@ -207,7 +220,8 @@ export default function Monitor({ testSample }) {
       } else {
         peerConnection.addTrack(track)
         try {
-          await negotiate()
+          const clientUid = await negotiate()
+          setClientUid(clientUid)
         } catch (error) {
           onAudioStreamError('Failed to negotiate RTC peer connection', error)
         }
