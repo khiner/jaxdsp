@@ -82,14 +82,17 @@ class AudioTransformTrack(MediaStreamTrack):
         Y = np.asarray(Y)
         if Y.ndim == 2:
             Y = np.sum(Y, axis=1)  # TODO stereo out
-        assert(Y.ndim == 1)
         set_frame_ndarray(frame, Y)
         if self.channel:
             # TODO training probably needs to happen on another thread
             trainer = self.trainer_for_processor[self.processor_name]
             trainer.step(X, Y)
-            self.channel.send(json.dumps(
-                {'train_state': trainer.params_and_loss()}))
+            if trainer.step_num % 10 == 0:
+                self.channel.send(json.dumps(
+                    {'train_state': trainer.params_and_loss()}))
+                print('step: ', trainer.step_num)
+                print('buffer shape: ', X.shape)
+                print('buffered amount', self.channel.bufferedAmount)
         return frame
 
 
@@ -143,6 +146,8 @@ async def offer(request):
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
     pc = RTCPeerConnection()
+    send_channel = pc.createDataChannel("jaxdsp-server")
+
     pcs.add(pc)
 
     pc_id = "PeerConnection(%s)" % uuid.uuid4()
@@ -168,7 +173,7 @@ async def offer(request):
                     'param_values': audio_track_and_config.param_values,
                 }))
             elif message == 'start_estimating_params':
-                audio_track_and_config.set_channel(channel)
+                audio_track_and_config.set_channel(send_channel)
             elif message == 'stop_estimating_params':
                 audio_track_and_config.set_channel(None)
             else:

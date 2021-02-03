@@ -157,26 +157,35 @@ export default function Monitor({ testSample }) {
         }
       }
       peerConnection.addEventListener('track', event => (audioRef.current.srcObject = event.streams[0]))
-      dataChannel = peerConnection.createDataChannel('chat', { ordered: true })
+      peerConnection.addEventListener('datachannel', event => {
+        const receiveChannel = event.channel
+        receiveChannel.onmessage = event => {
+          const message = JSON.parse(event.data)
+          const { train_state: trainState } = message
+          if (trainState) {
+            console.log('trainState: ', trainState)
+            console.log('bufferedAmount: ', receiveChannel.bufferedAmount)
+            setTrainState(trainState)
+          }
+        }
+        receiveChannel.onopen = () => {
+          console.log('receiveChannel opened')
+        }
+        receiveChannel.onclose = () => {
+          console.log('receiveChannel closed')
+        }
+      })
+      dataChannel = peerConnection.createDataChannel('jaxdsp-client', { ordered: true })
       dataChannel.onopen = () => dataChannel.send('get_config')
       dataChannel.onmessage = event => {
         const message = JSON.parse(event.data)
-        const { processors, param_values: paramValues, train_state: trainState } = message
+        const { processors, param_values: paramValues } = message
 
         if (processors) {
-          console.log('Received processor descriptions:')
-          console.log(processors)
           setProcessors(processors)
         }
         if (paramValues) {
-          console.log('Received parameter values:')
-          console.log(paramValues)
           setParamValues(paramValues)
-        }
-        if (trainState) {
-          console.log('Received estimated parameter values:')
-          console.log(trainState)
-          setTrainState(trainState)
         }
       }
     }
@@ -334,6 +343,7 @@ export default function Monitor({ testSample }) {
                 )}
               </div>
             )}
+            {trainState && trainState.loss !== undefined && <div>{trainState.loss}</div>}
           </div>
         </div>
       )}
