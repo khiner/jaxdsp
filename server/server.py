@@ -10,6 +10,7 @@ import uuid
 import time
 import numpy as np
 import jax.numpy as jnp
+from collections import deque
 
 from aiohttp import web
 import aiohttp_cors
@@ -24,8 +25,11 @@ ROOT = os.path.dirname(__file__)
 logger = logging.getLogger("pc")
 pcs = set()
 
-empty_carry = {'state': None, 'params': None}
+ALL_PROCESSORS = [clip, delay_line,
+                  lowpass_feedback_comb_filter, allpass_filter, freeverb]
+EMPTY_CARRY = {'state': None, 'params': None}
 
+TRAIN_STACK_MAX_SIZE = 100
 track_for_client_uid = {}
 
 
@@ -42,14 +46,11 @@ def set_frame_ndarray(frame, floats):
 
 class AudioTransformTrack(MediaStreamTrack):
     kind = "audio"
-    ALL_PROCESSORS = [clip, delay_line,
-                      lowpass_feedback_comb_filter, allpass_filter, freeverb]
 
-    def __init__(self, track):
+    def __init__(self, track, train_stack):
         super().__init__()
         self.track = track
-        self.trainer_for_processor = {processor.NAME: IterativeTrainer(
-            processor) for processor in self.ALL_PROCESSORS}
+        self.train_stack = train_stack
         self.processor = None
         self.processor_name = 'none'
         self.processor_state = None
@@ -68,7 +69,7 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor_params = processor_params
 
     def get_processor(self):
-        for processor in self.ALL_PROCESSORS:
+        for processor in ALL_PROCESSORS:
             if processor.NAME == self.processor_name:
                 return processor
         return None
@@ -78,19 +79,15 @@ class AudioTransformTrack(MediaStreamTrack):
         X = get_frame_ndarray(frame)
         params = self.processor_params or (
             self.processor and self.processor.init_params())
-        carry, Y = (empty_carry, X) if self.processor is None else self.processor.tick_buffer(
+        carry, Y = (EMPTY_CARRY, X) if self.processor is None else self.processor.tick_buffer(
             {'params': params, 'state': self.processor_state or self.processor.init_state()}, X)
         self.processor_state = carry['state']
         Y = np.asarray(Y)
         if Y.ndim == 2:
             Y = np.sum(Y, axis=1)  # TODO stereo out
         set_frame_ndarray(frame, Y)
-        if self.is_estimating_params and self.websocket:
-            # TODO training probably needs to happen on another thread
-            trainer = self.trainer_for_processor[self.processor_name]
-            trainer.step(X, Y)
-            if trainer.step_num % 10 == 0:
-                await self.websocket.send(json.dumps({'train_state': trainer.params_and_loss()}))
+        if self.is_estimating_params:
+            self.train_stack.append([X, Y])
         return frame
 
 
@@ -104,8 +101,8 @@ class AudioTrackAndConfig():
         self.track = None
         self.audio_processor_name = None
         self.is_estimating_params = False
-        self.param_values = {processor.NAME: processor.init_params(
-        ) for processor in AudioTransformTrack.ALL_PROCESSORS}
+        self.param_values = {processor.NAME: processor.init_params()
+                             for processor in ALL_PROCESSORS}
 
     def set_track(self, track):
         self.track = track
@@ -120,17 +117,14 @@ class AudioTrackAndConfig():
         self.update_track()
 
     def start_estimating_params(self):
-        self.is_estimating_params = True
-        self.update_track()
+        self.track.is_estimating_params = True
 
     def stop_estimating_params(self):
-        self.is_estimating_params = False
-        self.update_track()
+        self.track.is_estimating_params = False
 
     def update_track(self):
         if self.track and self.audio_processor_name and self.param_values:
             self.track.set_processor_name(self.audio_processor_name)
-            self.track.is_estimating_params = self.is_estimating_params
             if self.audio_processor_name in self.param_values:
                 self.track.set_processor_params(
                     self.param_values[self.audio_processor_name])
@@ -167,7 +161,7 @@ async def offer(request):
                         processor.NAME: {
                             'params': [param.__dict__ for param in processor.PARAMS],
                             'presets': processor.PRESETS,
-                        } for processor in AudioTransformTrack.ALL_PROCESSORS
+                        } for processor in ALL_PROCESSORS
                     },
                     'param_values': audio_track_and_config.param_values,
                 }))
@@ -197,9 +191,10 @@ async def offer(request):
             return
 
         log_info("Track %s received", track.kind)
-        audio_track = AudioTransformTrack(track)
-        audio_track_and_config.set_track(audio_track)
+        train_stack = deque([], TRAIN_STACK_MAX_SIZE)
+        audio_track = AudioTransformTrack(track, train_stack)
         track_for_client_uid[client_uid] = audio_track
+        audio_track_and_config.set_track(audio_track)
         pc.addTrack(audio_track)
 
         @track.on("ended")
@@ -234,14 +229,27 @@ async def on_shutdown(app):
 
 
 async def register_websocket(websocket, path):
+    client_uid = None
+    while client_uid == None:
+        message = await websocket.recv()
+        message_object = json.loads(message)
+        client_uid = message_object.get('client_uid')
+
+    track = track_for_client_uid.get(client_uid)
+    if not track:
+        print(f'No track cached for client_uid {client_uid}')
+
+    trainer_for_processor = {processor.NAME: IterativeTrainer(
+        processor) for processor in ALL_PROCESSORS}
+    train_stack = track.train_stack
     while True:
         try:
-            message = await websocket.recv()
-            message_object = json.loads(message)
-            if message_object.get('client_uid'):
-                track = track_for_client_uid.get(message_object['client_uid'])
-                if track:
-                    track.websocket = websocket
+            if len(train_stack) > 0:
+                train_pair = train_stack.pop()
+                trainer = trainer_for_processor[track.processor_name]
+                trainer.step(*train_pair)
+                await websocket.send(json.dumps({'train_state': trainer.params_and_loss()}))
+            await asyncio.sleep(0.01)
         except websockets.ConnectionClosed:
             print('ws terminated')
             break
