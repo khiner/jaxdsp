@@ -242,18 +242,18 @@ export default function Monitor({ testSample }) {
     }
 
     const startStreamingTestSample = () => {
-      const testSampleAudio = new Audio(testSample)
+      const sampleAudio = new Audio(testSample)
       const audioContext = new AudioContext()
-      const testSampleSource = audioContext.createMediaElementSource(testSampleAudio)
-      const testSampleDestination = audioContext.createMediaStreamDestination()
-      testSampleSource.connect(testSampleDestination)
+      const sampleSource = audioContext.createMediaElementSource(sampleAudio)
+      const sampleDestination = audioContext.createMediaStreamDestination()
+      sampleSource.connect(sampleDestination)
 
-      const testSampleTrack = testSampleDestination.stream.getAudioTracks()[0]
-      addOrReplaceTrack(testSampleTrack)
+      const sampleTrack = sampleDestination.stream.getAudioTracks()[0]
+      addOrReplaceTrack(sampleTrack)
 
-      testSampleAudio.loop = true
-      testSampleAudio.currentTime = 0
-      testSampleAudio.play()
+      sampleAudio.loop = true
+      sampleAudio.currentTime = 0
+      sampleAudio.play()
     }
 
     if (isStreamingAudio) {
