@@ -65,6 +65,8 @@ class AudioTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
+        assert frame.format.is_packed, f'Processing assumes frames are packed, but frame is planar'
+
         X = np.frombuffer(frame.planes[0], dtype=np.int16).astype(
             np.float32) / np.iinfo(np.int16).max
         params = self.processor_params or (
