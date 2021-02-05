@@ -33,17 +33,6 @@ TRAIN_STACK_MAX_SIZE = 100
 track_for_client_uid = {}
 
 
-def get_frame_ndarray(frame):
-    ints = np.frombuffer(frame.planes[0], dtype=np.int16)
-    floats = ints.astype(np.float32) / np.iinfo(np.int16).max
-    return floats
-
-
-def set_frame_ndarray(frame, floats):
-    ints = (floats * np.iinfo(np.int16).max).astype(np.int16)
-    frame.planes[0].update(ints)
-
-
 class AudioTransformTrack(MediaStreamTrack):
     kind = "audio"
 
@@ -76,7 +65,8 @@ class AudioTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
-        X = get_frame_ndarray(frame)
+        X = np.frombuffer(frame.planes[0], dtype=np.int16).astype(
+            np.float32) / np.iinfo(np.int16).max
         params = self.processor_params or (
             self.processor and self.processor.init_params())
         carry, Y = (EMPTY_CARRY, X) if self.processor is None else self.processor.tick_buffer(
@@ -85,7 +75,7 @@ class AudioTransformTrack(MediaStreamTrack):
         Y = np.asarray(Y)
         if Y.ndim == 2:
             Y = np.sum(Y, axis=1)  # TODO stereo out
-        set_frame_ndarray(frame, Y)
+        frame.planes[0].update((Y * np.iinfo(np.int16).max).astype(np.int16))
         if self.is_estimating_params:
             self.train_stack.append([X, Y])
         return frame
