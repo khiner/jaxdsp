@@ -32,6 +32,8 @@ class IterativeTrainer():
         def loss(params, state, X, Y_target):
             carry, Y_estimated = processor.tick_buffer(
                 {'params': params, 'state': state}, X)
+            if Y_estimated.shape == Y_target.shape[::-1]:
+                Y_estimated = Y_estimated.T # TODO should eventually remove this check
             return mse(Y_estimated, Y_target), carry['state']
 
         self.step_num = 0

@@ -65,21 +65,38 @@ class AudioTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
+        num_channels = len(frame.layout.channels)
         assert frame.format.is_packed, f'Processing assumes frames are packed, but frame is planar'
+        assert num_channels == 2, f'Processing assumes frames have 2 channels'
 
-        X = np.frombuffer(frame.planes[0], dtype=np.int16).astype(
+        X_interleaved = np.frombuffer(frame.planes[0], dtype=np.int16).astype(
             np.float32) / np.iinfo(np.int16).max
+        X_deinterleaved = [X_interleaved[channel_num::num_channels]
+                           for channel_num in range(num_channels)]
+        X_left = X_deinterleaved[0]  # TODO handle stereo in
         params = self.processor_params or (
             self.processor and self.processor.init_params())
-        carry, Y = (EMPTY_CARRY, X) if self.processor is None else self.processor.tick_buffer(
-            {'params': params, 'state': self.processor_state or self.processor.init_state()}, X)
+        carry, Y_deinterleaved = (EMPTY_CARRY, X_left) if self.processor is None else self.processor.tick_buffer(
+            {'params': params, 'state': self.processor_state or self.processor.init_state()}, X_left)
         self.processor_state = carry['state']
-        Y = np.asarray(Y)
-        if Y.ndim == 2:
-            Y = np.sum(Y, axis=1)  # TODO stereo out
-        frame.planes[0].update((Y * np.iinfo(np.int16).max).astype(np.int16))
+        Y_deinterleaved = np.asarray(Y_deinterleaved)
+        if Y_deinterleaved.ndim == 1:
+            Y_deinterleaved = np.array([Y_deinterleaved, Y_deinterleaved])
+        else:
+            assert(Y_deinterleaved.ndim == 2)
+            # Transposing to conform to processors with stereo output.
+            # Stereo processing is done that way to support the same
+            # array-of-ticks processing for both stereo and mono.
+            Y_deinterleaved = Y_deinterleaved.T
+
+        Y_interleaved = np.empty(
+            (Y_deinterleaved.shape[1] * 2,), dtype=Y_deinterleaved.dtype)
+        Y_interleaved[0::2] = Y_deinterleaved[0]
+        Y_interleaved[1::2] = Y_deinterleaved[1]
+        frame.planes[0].update(
+            (Y_interleaved * np.iinfo(np.int16).max).astype(np.int16))
         if self.is_estimating_params:
-            self.train_stack.append([X, Y])
+            self.train_stack.append([X_deinterleaved, Y_deinterleaved])
         return frame
 
 
@@ -239,7 +256,9 @@ async def register_websocket(websocket, path):
             if len(train_stack) > 0:
                 train_pair = train_stack.pop()
                 trainer = trainer_for_processor[track.processor_name]
-                trainer.step(*train_pair)
+                X, Y = train_pair
+                X_left = X[0]  # TODO support stereo in
+                trainer.step(X_left, Y)
                 await websocket.send(json.dumps({'train_state': trainer.params_and_loss()}))
             await asyncio.sleep(0.01)
         except websockets.ConnectionClosed:
