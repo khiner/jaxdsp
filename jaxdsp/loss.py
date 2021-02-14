@@ -1,5 +1,15 @@
 import jax.numpy as jnp
 
+import jaxdsp.ddsp.loss as ddsp_loss
+
+spectral_loss_opts = ddsp_loss.MultiScaleSpectralOpts(
+    mag_weight=1.0,
+    delta_time_weight=1.0,
+    delta_freq_weight=1.0,
+    cumsum_freq_weight=1.0,
+    logmag_weight=0.0,
+)
+
 
 def mse(X, Y):
     return ((Y - X) ** 2).mean()
@@ -10,14 +20,11 @@ def mae(X, Y):
 
 
 def spectral(X, Y):
-    def magnitude_spectrum(reals):
-        return jnp.abs(jnp.fft.rfft(reals))
-
-    return mse(magnitude_spectrum(X), magnitude_spectrum(Y))
-
-
-def spectral_plus_mse(X, Y):
-    return spectral(X, Y) + mse(X, Y)
+    if len(X.shape) == 1:
+        X = jnp.expand_dims(X, 0)
+    if len(Y.shape) == 1:
+        Y = jnp.expand_dims(Y, 0)
+    return ddsp_loss.multi_scale_spectral(X, Y, spectral_loss_opts)
 
 
 def correlation(X, Y):

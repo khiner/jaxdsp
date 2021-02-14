@@ -6,7 +6,6 @@ LD_RANGE = 120.0  # dB
 
 
 def stft(audio, sample_rate=16000, frame_size=2048, overlap=0.75, pad_end=True):
-    """Differentiable stft in tensorflow, computed in batch."""
     assert frame_size * overlap % 2.0 == 0.0
 
     # Remove channel dim if present.
@@ -18,7 +17,7 @@ def stft(audio, sample_rate=16000, frame_size=2048, overlap=0.75, pad_end=True):
         # sample_rate,
         nperseg=int(frame_size),
         noverlap=int(overlap),
-        nfft=int(frame_size),
+#        nfft=int(frame_size),
         padded=pad_end,
     )
 
