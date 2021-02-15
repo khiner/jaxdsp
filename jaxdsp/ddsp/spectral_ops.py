@@ -4,7 +4,6 @@ import jax_spectral
 
 LD_RANGE = 120.0  # dB
 
-
 def stft(audio, sample_rate=16000, frame_size=2048, overlap=0.75, pad_end=True):
     assert frame_size * overlap % 2.0 == 0.0
 

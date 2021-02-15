@@ -1,6 +1,7 @@
 import functools
 
 import jax.numpy as jnp
+from jax import jit
 from jax.scipy.stats import norm
 
 from jaxdsp.ddsp import spectral_ops
@@ -32,7 +33,10 @@ def mean_difference(target, value, loss_type="L1", weights=None):
 class MultiScaleSpectralOpts:
     def __init__(
         self,
-        fft_sizes=(2048, 1024, 512, 256, 128, 64),
+        # Note: removing smaller fft sizes seems to get rid of some small non-convex "bumps"
+        # in the loss curve for a sine wave with a target frequency param
+        # fft_sizes=(2048, 1024, 512, 256, 128, 64),
+        fft_sizes=(2048, 1024, 512, 256, 128),
         loss_type="L1",
         mag_weight=1.0,
         delta_time_weight=0.0,
