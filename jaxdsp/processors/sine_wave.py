@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 from jax import jit
 
+from jaxdsp.config import buffer_size, sample_rate
 from jaxdsp.processors.base import default_param_values
 from jaxdsp.param import Param
 
@@ -10,12 +11,11 @@ PARAMS = [
 ]
 PRESETS = {}
 
-SAMPLE_RATE = 16_000.0
-BUFFER_SIZE = int(SAMPLE_RATE)
-t = jnp.linspace(0, BUFFER_SIZE / SAMPLE_RATE, BUFFER_SIZE)
+t = jnp.linspace(0, buffer_size / sample_rate, buffer_size)
+
 
 def init_state():
-    return {"sample_rate": SAMPLE_RATE}
+    return {}
 
 
 def init_params():
@@ -28,10 +28,10 @@ def default_target_params():
 
 @jit
 def tick(carry, x):
-    params = carry["params"]
-    return carry, jnp.sin(params["frequency_hz"] * 2 * jnp.pi * t)
+    raise "single-sample tick method not implemented for sine_wave"
 
 
 @jit
 def tick_buffer(carry, X):
-    return tick(carry, X)
+    params = carry["params"]
+    return carry, jnp.sin(params["frequency_hz"] * 2 * jnp.pi * t)

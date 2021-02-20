@@ -4,10 +4,11 @@ import numpy as np
 import jax.numpy as jnp
 from jax import jit
 
+from jaxdsp.config import sample_rate
 from jaxdsp.param import Param
 from jaxdsp.processors.base import default_param_values
 
-MAX_DELAY_SIZE_SAMPLES = 44_100
+MAX_DELAY_SIZE_SAMPLES = int(sample_rate)
 
 NAME = "Feedforward Delay"
 PARAMS = [
@@ -30,13 +31,12 @@ def default_target_params():
 
 
 def tick(carry, x):
-    raise "single-sample tick method not implemented for feedforward delay"
+    raise "single-sample tick method not implemented for feedforward_delay"
 
 
 @jit
 def tick_buffer(carry, X):
     params = carry["params"]
-    state = carry["state"]
     delay_samples = params["delay_samples"]
     remainder = delay_samples - jnp.floor(delay_samples)
     X_linear_interp = (1 - remainder) * X + remainder * jnp.concatenate(

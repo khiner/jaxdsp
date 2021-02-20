@@ -35,7 +35,7 @@ class IterativeTrainer:
             )
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
-            return mse(Y_estimated, Y_target), carry["state"]
+            return jaxdsp.loss.mse(Y_estimated, Y_target), carry["state"]
 
         self.step_num = 0
         self.loss = 0.0
