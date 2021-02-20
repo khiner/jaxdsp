@@ -9,11 +9,20 @@ from jaxdsp.processors import serial_processors
 import jaxdsp.loss
 from jax.tree_util import tree_map, tree_multimap
 
-### Non-batched ###
+
+@jit
+def mean_loss_and_grads(loss, grads):
+    return np.mean(loss), tree_map(lambda grad: np.mean(grad, axis=0), grads)
+
+
+class Config:
+    def __init__(self, loss_fn=jaxdsp.loss.mse, step_size=0.2):
+        self.step_size = 0.2
+        self.loss_fn = loss_fn
 
 
 class IterativeTrainer:
-    def __init__(self, processor, params_init=None, step_size=0.2):
+    def __init__(self, processor, config=Config(), params_init=None):
         """
         from jaxdsp.training import IterativeTrainer
 
@@ -35,16 +44,20 @@ class IterativeTrainer:
             )
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
-            return jaxdsp.loss.mse(Y_estimated, Y_target), carry["state"]
+            return config.loss_fn(Y_estimated, Y_target), carry["state"]
 
         self.step_num = 0
         self.loss = 0.0
+        # jit(vmap(value_and_grad(loss), in_axes=(None, 0), out_axes=0))
         self.grad_fn = jit(value_and_grad(loss, has_aux=True))
-        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(step_size)
+        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
+            config.step_size
+        )
         self.opt_state = self.opt_init(params_init or processor.init_params())
         self.processor_state = processor.init_state()
 
     def step(self, X, Y_target):
+        # loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
         (self.loss, self.processor_state), self.grads = self.grad_fn(
             self.get_params(self.opt_state), self.processor_state, X, Y_target
         )
@@ -63,11 +76,6 @@ class IterativeTrainer:
 
 
 ### Batched ###
-
-
-@jit
-def mean_loss_and_grads(loss, grads):
-    return np.mean(loss), tree_map(lambda grad: np.mean(grad, axis=0), grads)
 
 
 def evaluate(carry_estimated, carry_target, processor, X):
@@ -111,7 +119,6 @@ def train(
     for batch_i in range(num_batches):
         Xs_batch = Xs[np.random.choice(Xs.shape[0], size=batch_size)]
         loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
-        # TODO clip grads such that all params are in [min, max]?
         opt_state = opt_update(batch_i, grads, opt_state)
         loss_history[batch_i] = loss
         new_params = get_params(opt_state)
