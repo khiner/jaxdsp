@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from jax import jit
 
 from jaxdsp.config import buffer_size, sample_rate
-from jaxdsp.processors.base import default_param_values
+from jaxdsp.processors.base import Config, default_param_values
 from jaxdsp.param import Param
 
 NAME = "Sine Wave"
@@ -14,16 +14,12 @@ PRESETS = {}
 t = jnp.linspace(0, buffer_size / sample_rate, buffer_size)
 
 
-def init_state():
-    return {}
-
-
-def init_params():
-    return default_param_values(PARAMS)
-
-
-def default_target_params():
-    return {"frequency_hz": 443.0}
+def config():
+    return Config(
+        {},
+        default_param_values(PARAMS),
+        {"frequency_hz": 443.0},
+    )
 
 
 @jit

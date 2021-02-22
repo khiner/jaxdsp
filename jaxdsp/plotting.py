@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from matplotlib import pyplot as plt
 import numpy as np
 
-from jaxdsp.training import train
+from jaxdsp import training
 
 
 def plot_filter(X, Y, Y_reference, Y_estimated, title):
@@ -114,14 +114,15 @@ def plot_optimization(
         param_init[varying_param_name] for param_init in params_inits
     ]  # TODO only pass in one to vary
     for params_init in params_inits:
-        params_estimated_i, _, _, loss_history = train(
-            [processor],
-            Xs,
-            params_init={processor.NAME: params_init},
-            params_target={processor.NAME: params_target},
-            num_batches=steps,
-            batch_size=4,
+        processor_config = processor.config()
+        processor_config.params_init = params_init
+        trainer = training.IterativeTrainer(
+            processor, training.Config(), processor_config, track_history=True
         )
+        for i in range(steps):
+            X = Xs[i % Xs.shape[0]]
+            carry_target, Y_target = processor.tick_buffer(carry_target, X)
+            trainer.step(X, Y_target)
         for key, param_estimated in params_estimated_i[processor.NAME].items():
             params_estimated[key].append(param_estimated)
         initial_losses.append(loss_history[0])

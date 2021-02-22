@@ -4,7 +4,7 @@ from jax import jit, lax
 from jaxdsp.processors import lowpass_feedback_comb_filter as comb
 from jaxdsp.processors import allpass_filter as allpass
 from jaxdsp.param import Param
-from jaxdsp.processors.base import default_param_values
+from jaxdsp.processors.base import Config, default_param_values
 
 NAME = "Freeverb"
 PARAMS = [
@@ -60,35 +60,33 @@ def create_allpass_carry(buffer_size):
     }
 
 
-def init_state():
-    return {
-        "combs_l": [create_comb_carry(buffer_size) for buffer_size in comb_tunings_l],
-        "combs_r": [
-            create_comb_carry(buffer_size + stereo_spread)
-            for buffer_size in comb_tunings_l
-        ],
-        "allpasses_l": [
-            create_allpass_carry(buffer_size) for buffer_size in allpass_tunings_l
-        ],
-        "allpasses_r": [
-            create_allpass_carry(buffer_size + stereo_spread)
-            for buffer_size in allpass_tunings_l
-        ],
-    }
-
-
-def init_params():
-    return default_param_values(PARAMS)
-
-
-def default_target_params():
-    return {
-        "wet": 0.3,
-        "dry": 0.0,
-        "width": 1.0,
-        "damp": 0.5,
-        "room_size": 0.5,
-    }
+def config():
+    return Config(
+        {
+            "combs_l": [
+                create_comb_carry(buffer_size) for buffer_size in comb_tunings_l
+            ],
+            "combs_r": [
+                create_comb_carry(buffer_size + stereo_spread)
+                for buffer_size in comb_tunings_l
+            ],
+            "allpasses_l": [
+                create_allpass_carry(buffer_size) for buffer_size in allpass_tunings_l
+            ],
+            "allpasses_r": [
+                create_allpass_carry(buffer_size + stereo_spread)
+                for buffer_size in allpass_tunings_l
+            ],
+        },
+        default_param_values(PARAMS),
+        {
+            "wet": 0.3,
+            "dry": 0.0,
+            "width": 1.0,
+            "damp": 0.5,
+            "room_size": 0.5,
+        },
+    )
 
 
 @jit

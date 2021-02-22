@@ -6,7 +6,7 @@ from jax import jit
 
 from jaxdsp.config import sample_rate
 from jaxdsp.param import Param
-from jaxdsp.processors.base import default_param_values
+from jaxdsp.processors.base import Config, default_param_values
 
 MAX_DELAY_SIZE_SAMPLES = int(sample_rate)
 
@@ -18,16 +18,12 @@ PARAMS = [
 PRESETS = {}
 
 
-def init_state():
-    return {}
-
-
-def init_params():
-    return default_param_values(PARAMS)
-
-
-def default_target_params():
-    return {"wet": 0.5, "delay_samples": 6.0}
+def config():
+    return Config(
+        {},
+        default_param_values(PARAMS),
+        {"wet": 0.5, "delay_samples": 6.0},
+    )
 
 
 def tick(carry, x):

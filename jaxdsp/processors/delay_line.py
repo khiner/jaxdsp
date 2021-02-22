@@ -17,7 +17,7 @@ from jax.ops import index, index_update
 
 from jaxdsp.config import sample_rate
 from jaxdsp.param import Param
-from jaxdsp.processors.base import default_param_values
+from jaxdsp.processors.base import Config, default_param_values
 
 MAX_DELAY_LENGTH_SAMPLES = int(sample_rate)
 
@@ -29,20 +29,16 @@ PARAMS = [
 PRESETS = {}
 
 
-def init_state():
-    return {
-        "delay_line": jnp.zeros(MAX_DELAY_LENGTH_SAMPLES),
-        "read_sample": 0.0,
-        "write_sample": 0.0,
-    }
-
-
-def init_params():
-    return default_param_values(PARAMS)
-
-
-def default_target_params():
-    return {"wet": 0.5, "delay_samples": 10.0}
+def config():
+    return Config(
+        {
+            "delay_line": jnp.zeros(MAX_DELAY_LENGTH_SAMPLES),
+            "read_sample": 0.0,
+            "write_sample": 0.0,
+        },
+        default_param_values(PARAMS),
+        {"wet": 0.5, "delay_samples": 10.0},
+    )
 
 
 @jit

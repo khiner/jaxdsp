@@ -17,12 +17,32 @@ def mean_loss_and_grads(loss, grads):
 
 class Config:
     def __init__(self, loss_fn=jaxdsp.loss.mse, step_size=0.2):
-        self.step_size = 0.2
+        self.step_size = step_size
         self.loss_fn = loss_fn
 
 
+class LossHistoryAccumulator:
+    def __init__(self, params_init):
+        self.params_history = tree_map(lambda param: [param], params_init)
+        self.loss_history = []
+
+    def after_step(self, loss, new_params):
+        self.loss_history.append(loss)
+        self.params_history = tree_multimap(
+            lambda new_param, params: params + [new_param],
+            new_params,
+            self.params_history,
+        )
+
+
 class IterativeTrainer:
-    def __init__(self, processor, config=Config(), params_init=None):
+    def __init__(
+        self,
+        processor,
+        training_config=Config(),
+        processor_config=None,
+        track_history=False,
+    ):
         """
         from jaxdsp.training import IterativeTrainer
 
@@ -44,17 +64,24 @@ class IterativeTrainer:
             )
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
-            return config.loss_fn(Y_estimated, Y_target), carry["state"]
+            return training_config.loss_fn(Y_estimated, Y_target), carry["state"]
+
+        processor_config = processor_config or processor.config()
 
         self.step_num = 0
         self.loss = 0.0
         # jit(vmap(value_and_grad(loss), in_axes=(None, 0), out_axes=0))
         self.grad_fn = jit(value_and_grad(loss, has_aux=True))
         self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
-            config.step_size
+            training_config.step_size
         )
-        self.opt_state = self.opt_init(params_init or processor.init_params())
-        self.processor_state = processor.init_state()
+        self.opt_state = self.opt_init(processor_config.params_init)
+        self.processor_state = processor_config.state_init
+        self.step_evaluator = (
+            LossHistoryAccumulator(processor_config.params_init)
+            if track_history
+            else None
+        )
 
     def step(self, X, Y_target):
         # loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
@@ -63,10 +90,13 @@ class IterativeTrainer:
         )
         self.opt_state = self.opt_update(self.step_num, self.grads, self.opt_state)
         self.step_num += 1
+        if self.step_evaluator:
+            self.step_evaluator.after_step(self.loss, self.get_params(self.opt_state))
 
     def params(self):
         params = self.get_params(self.opt_state)
-        return {key: float(value) for key, value in params.items()}
+        return tree_map(lambda param: float(param), params)
+        # return {key: float(value) for key, value in params.items()}
 
     def params_and_loss(self):
         return {
@@ -75,57 +105,7 @@ class IterativeTrainer:
         }
 
 
-### Batched ###
-
-
 def evaluate(carry_estimated, carry_target, processor, X):
     carry_estimated, Y_estimated = processor.tick_buffer(carry_estimated, X)
     carry_target, Y_target = processor.tick_buffer(carry_target, X)
     return Y_estimated, Y_target
-
-
-# TODO evaluation callback to build up loss/params history instead of baking it in here
-
-
-def train(
-    processors,
-    Xs,
-    loss_fn=jaxdsp.loss.mse,
-    step_size=0.2,
-    num_batches=200,
-    batch_size=32,
-    params_init=None,
-    params_target=None,
-):
-    processor = serial_processors
-    params_target = params_target or processor.default_target_params(processors)
-
-    def loss(params, X):
-        carry_estimated = {"params": params, "state": processor.init_state(processors)}
-        carry_target = {
-            "params": params_target,
-            "state": processor.init_state(processors),
-        }
-        carry_estimated, Y_estimated = processor.tick_buffer(carry_estimated, X)
-        carry_target, Y_target = processor.tick_buffer(carry_target, X)
-        return loss_fn(Y_estimated, Y_target)
-
-    params_init = params_init or processor.init_params(processors)
-    params_history = tree_map(lambda param: [param], params_init)
-    loss_history = np.zeros(num_batches)
-    grad_fn = jit(vmap(value_and_grad(loss), in_axes=(None, 0), out_axes=0))
-    opt_init, opt_update, get_params = optimizers.sgd(step_size)
-    opt_state = opt_init(params_init)
-    for batch_i in range(num_batches):
-        Xs_batch = Xs[np.random.choice(Xs.shape[0], size=batch_size)]
-        loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
-        opt_state = opt_update(batch_i, grads, opt_state)
-        loss_history[batch_i] = loss
-        new_params = get_params(opt_state)
-        # params_history = tree_multimap(lambda h, *rest: h.append(rest[0]), params_history, new_params)
-        for (processor_key, processor_params) in new_params.items():
-            for (param_key, param) in processor_params.items():
-                params_history[processor_key][param_key].append(param)
-
-    params_estimated = get_params(opt_state)
-    return params_estimated, params_target, params_history, loss_history
