@@ -1,6 +1,5 @@
 from jaxdsp.processors.base import Config
-
-from jaxdsp.processors import lowpass_feedback_comb_filter as lbcf
+from jaxdsp.processors import processor_by_name
 
 NAME = "Serial Processors"
 PARAMS = []
@@ -11,10 +10,7 @@ def config(processors):
     configs = {processor.NAME: processor.config() for processor in processors}
     return Config(
         {
-            processor.NAME: {
-                "state": configs[processor.NAME].state_init,
-                # "tick_buffer": processor.tick_buffer,
-            }
+            processor.NAME: configs[processor.NAME].state_init
             for processor in processors
         },
         {
@@ -35,10 +31,12 @@ def tick_buffer(carry, X):
     Y = X
     for processor_name in state.keys():
         processor_carry = {
-            "state": state[processor_name]["state"],
+            "state": state[processor_name],
             "params": params[processor_name],
         }
-        processor_carry, Y = lbcf.tick_buffer(processor_carry, Y)
-        # state[processor_name]["state"] = processor_carry['state']
-        # params[processor_name] = processor_carry['params']
+        processor_carry, Y = processor_by_name[processor_name].tick_buffer(
+            processor_carry, Y
+        )
+        state[processor_name] = processor_carry["state"]
+        params[processor_name] = processor_carry["params"]
     return carry, Y

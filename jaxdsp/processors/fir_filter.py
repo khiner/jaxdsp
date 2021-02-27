@@ -10,7 +10,7 @@ PARAMS = [Param("B", jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]))]
 PRESETS = {}
 
 
-def config():
+def config(length=4):
     return Config(
         {"inputs": jnp.zeros(length)},
         default_param_values(PARAMS),

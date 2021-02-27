@@ -48,14 +48,14 @@ stereo_spread = 23
 
 def create_comb_carry(buffer_size):
     return {
-        "state": comb.init_state(buffer_size=buffer_size),
+        "state": comb.config(buffer_size=buffer_size).state_init,
         "params": {"feedback": 0.5, "damp": 0.0},
     }
 
 
 def create_allpass_carry(buffer_size):
     return {
-        "state": allpass.init_state(buffer_size=buffer_size),
+        "state": allpass.config(buffer_size=buffer_size).state_init,
         "params": {"feedback": 0.5},
     }
 

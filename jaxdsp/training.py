@@ -2,8 +2,8 @@ import numpy as np
 import jax.numpy as jnp
 from jax import grad, value_and_grad, jit, vmap
 from jax.experimental import optimizers
-import collections.abc
 from operator import itemgetter
+from collections.abc import Iterable
 
 from jaxdsp.processors import serial_processors
 import jaxdsp.loss
@@ -33,6 +33,15 @@ class LossHistoryAccumulator:
             new_params,
             self.params_history,
         )
+
+
+def float_params(params):
+    return tree_map(
+        lambda param: param
+        if hasattr(param, "ndim") and param.ndim > 0
+        else float(param),
+        params,
+    )
 
 
 class IterativeTrainer:
@@ -94,9 +103,7 @@ class IterativeTrainer:
             self.step_evaluator.after_step(self.loss, self.get_params(self.opt_state))
 
     def params(self):
-        params = self.get_params(self.opt_state)
-        return tree_map(lambda param: float(param), params)
-        # return {key: float(value) for key, value in params.items()}
+        return float_params(self.get_params(self.opt_state))
 
     def params_and_loss(self):
         return {
