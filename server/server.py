@@ -18,28 +18,21 @@ from av import AudioFrame
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 
 from jaxdsp.processors import (
-    fir_filter,
-    iir_filter,
-    clip,
-    delay_line,
-    lowpass_feedback_comb_filter,
     allpass_filter,
-    freeverb,
+    clip,
+    lowpass_feedback_comb_filter,
+    sine_wave,
+    processor_by_name,
 )
 from jaxdsp.training import IterativeTrainer
+
+all_processors = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
 
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
 
-ALL_PROCESSORS = [
-    clip,
-    delay_line,
-    lowpass_feedback_comb_filter,
-    allpass_filter,
-    freeverb,
-]
 EMPTY_CARRY = {"state": None, "params": None}
 
 TRAIN_STACK_MAX_SIZE = 100
@@ -53,36 +46,51 @@ class AudioTransformTrack(MediaStreamTrack):
         super().__init__()
         self.track = track
         self.train_stack = train_stack
+        # Keep a memory of param values for each processor, so that clients can switch between
+        # processors without losing the params they set.
+        # This param_values object is updated wholesale by the client.
+        # Note that processor state is reset to initial conditions when the processor changes,
+        # since frames may have been processed by a different processor between switching away and back
+        # to a processor. (See `set_processor_name`.)
+        self.param_values = {
+            processor.NAME: processor.config().params_init
+            for processor in all_processors
+        }
+        self.processor_name = None
         self.processor = None
-        self.processor_name = "none"
+        self.processor_name = "None"
         self.processor_state = None
-        self.processor_params = None
         self.is_estimating_params = False
         self.websocket = None
 
     def set_processor_name(self, processor_name):
         if self.processor_name != processor_name:
             self.processor_name = processor_name
-            self.processor_state = None
-            self.processor_params = None
-            self.processor = self.get_processor()
+            self.processor = processor_by_name.get(self.processor_name)
+            self.processor_state = (
+                self.processor.config().state_init if self.processor else None
+            )
 
-    def set_processor_params(self, processor_params):
-        self.processor_params = processor_params
+    def set_track(self, track):
+        self.track = track
 
-    def get_processor(self):
-        for processor in ALL_PROCESSORS:
-            if processor.NAME == self.processor_name:
-                return processor
-        return None
+    def set_param_values(self, param_values):
+        self.param_values = param_values
+
+    def start_estimating_params(self):
+        self.is_estimating_params = True
+
+    def stop_estimating_params(self):
+        self.is_estimating_params = False
 
     async def recv(self):
+        assert self.track
         frame = await self.track.recv()
         num_channels = len(frame.layout.channels)
         assert (
             frame.format.is_packed
-        ), f"Processing assumes frames are packed, but frame is planar"
-        assert num_channels == 2, f"Processing assumes frames have 2 channels"
+        ), "Processing assumes frames are packed, but frame is planar"
+        assert num_channels == 2, "Processing assumes frames have 2 channels"
 
         X_interleaved = (
             np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32)
@@ -93,20 +101,20 @@ class AudioTransformTrack(MediaStreamTrack):
             for channel_num in range(num_channels)
         ]
         X_left = X_deinterleaved[0]  # TODO handle stereo in
-        params = self.processor_params or (
-            self.processor and self.processor.init_params()
-        )
-        carry, Y_deinterleaved = (
-            (EMPTY_CARRY, X_left)
-            if self.processor is None
-            else self.processor.tick_buffer(
+        if self.processor:
+            processor_params = self.param_values.get(self.processor_name)
+            assert processor_params
+            assert self.processor_state
+            carry, Y_deinterleaved = self.processor.tick_buffer(
                 {
-                    "params": params,
-                    "state": self.processor_state or self.processor.init_state(),
+                    "params": processor_params,
+                    "state": self.processor_state,
                 },
                 X_left,
             )
-        )
+        else:
+            carry, Y_deinterleaved = (EMPTY_CARRY, X_left)
+
         self.processor_state = carry["state"]
         Y_deinterleaved = np.asarray(Y_deinterleaved)
         if Y_deinterleaved.ndim == 1:
@@ -128,48 +136,8 @@ class AudioTransformTrack(MediaStreamTrack):
         )
         if self.is_estimating_params:
             self.train_stack.append([X_deinterleaved, Y_deinterleaved])
+
         return frame
-
-
-class AudioTrackAndConfig:
-    """
-    RTC::track and RTC::datachannel may arrive in any order.
-    This class just handles properly instantiating things regardless of received order.
-    """
-
-    def __init__(self):
-        self.track = None
-        self.audio_processor_name = None
-        self.is_estimating_params = False
-        self.param_values = {
-            processor.NAME: processor.init_params() for processor in ALL_PROCESSORS
-        }
-
-    def set_track(self, track):
-        self.track = track
-        self.update_track()
-
-    def set_audio_processor_name(self, audio_processor_name):
-        self.audio_processor_name = audio_processor_name
-        self.update_track()
-
-    def set_param_values(self, param_values):
-        self.param_values = param_values
-        self.update_track()
-
-    def start_estimating_params(self):
-        self.track.is_estimating_params = True
-
-    def stop_estimating_params(self):
-        self.track.is_estimating_params = False
-
-    def update_track(self):
-        if self.track and self.audio_processor_name and self.param_values:
-            self.track.set_processor_name(self.audio_processor_name)
-            if self.audio_processor_name in self.param_values:
-                self.track.set_processor_params(
-                    self.param_values[self.audio_processor_name]
-                )
 
 
 async def index(request):
@@ -181,7 +149,7 @@ async def index(request):
 
 async def offer(request):
     client_uid = str(uuid.uuid4())
-    audio_track_and_config = AudioTrackAndConfig()
+    audio_transform_track = AudioTransformTrack(None, deque([], TRAIN_STACK_MAX_SIZE))
 
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
@@ -207,28 +175,28 @@ async def offer(request):
                             "processors": {
                                 processor.NAME: {
                                     "params": [
-                                        param.__dict__ for param in processor.PARAMS
+                                        param.serialize() for param in processor.PARAMS
                                     ],
                                     "presets": processor.PRESETS,
                                 }
-                                for processor in ALL_PROCESSORS
+                                for processor in all_processors
                             },
-                            "param_values": audio_track_and_config.param_values,
+                            "param_values": audio_transform_track.param_values,
                         }
                     )
                 )
             elif message == "start_estimating_params":
-                audio_track_and_config.start_estimating_params()
+                audio_transform_track.start_estimating_params()
             elif message == "stop_estimating_params":
-                audio_track_and_config.stop_estimating_params()
+                audio_transform_track.stop_estimating_params()
             else:
                 message_object = json.loads(message)
                 if "audio_processor_name" in message_object:
-                    audio_track_and_config.set_audio_processor_name(
+                    audio_transform_track.set_processor_name(
                         message_object["audio_processor_name"]
                     )
                 if "param_values" in message_object:
-                    audio_track_and_config.set_param_values(
+                    audio_transform_track.set_param_values(
                         message_object["param_values"]
                     )
 
@@ -245,11 +213,9 @@ async def offer(request):
             return
 
         log_info("Track %s received", track.kind)
-        train_stack = deque([], TRAIN_STACK_MAX_SIZE)
-        audio_track = AudioTransformTrack(track, train_stack)
-        track_for_client_uid[client_uid] = audio_track
-        audio_track_and_config.set_track(audio_track)
-        pc.addTrack(audio_track)
+        audio_transform_track.set_track(track)
+        track_for_client_uid[client_uid] = audio_transform_track
+        pc.addTrack(audio_transform_track)
 
         @track.on("ended")
         async def on_ended():
@@ -294,7 +260,7 @@ async def register_websocket(websocket, path):
         print(f"No track cached for client_uid {client_uid}")
 
     trainer_for_processor = {
-        processor.NAME: IterativeTrainer(processor) for processor in ALL_PROCESSORS
+        processor.NAME: IterativeTrainer(processor) for processor in all_processors
     }
     train_stack = track.train_stack
     while True:
