@@ -194,12 +194,8 @@ export default function Monitor({ testSample }) {
         const message = JSON.parse(event.data)
         const { processors, param_values: paramValues } = message
 
-        if (processors) {
-          setProcessors(processors)
-        }
-        if (paramValues) {
-          setParamValues(paramValues)
-        }
+        if (processors) setProcessors(processors)
+        if (paramValues) setParamValues(paramValues)
       }
     }
 

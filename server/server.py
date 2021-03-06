@@ -51,25 +51,24 @@ class AudioTransformTrack(MediaStreamTrack):
         # This param_values object is updated wholesale by the client.
         # Note that processor state is reset to initial conditions when the processor changes,
         # since frames may have been processed by a different processor between switching away and back
-        # to a processor. (See `set_processor_name`.)
+        # to a processor. (See `set_processor`.)
         self.param_values = {
             processor.NAME: processor.config().params_init
             for processor in all_processors
         }
-        self.processor_name = None
         self.processor = None
-        self.processor_name = "None"
         self.processor_state = None
         self.is_estimating_params = False
         self.websocket = None
 
-    def set_processor_name(self, processor_name):
-        if self.processor_name != processor_name:
-            self.processor_name = processor_name
-            self.processor = processor_by_name.get(self.processor_name)
-            self.processor_state = (
-                self.processor.config().state_init if self.processor else None
-            )
+    def set_processor(self, processor):
+        if self.processor and processor and self.processor.NAME == processor.NAME:
+            return
+
+        self.processor = processor
+        self.processor_state = (
+            self.processor.config().state_init if self.processor else None
+        )
 
     def set_track(self, track):
         self.track = track
@@ -102,12 +101,10 @@ class AudioTransformTrack(MediaStreamTrack):
         ]
         X_left = X_deinterleaved[0]  # TODO handle stereo in
         if self.processor:
-            processor_params = self.param_values.get(self.processor_name)
-            assert processor_params
             assert self.processor_state
             carry, Y_deinterleaved = self.processor.tick_buffer(
                 {
-                    "params": processor_params,
+                    "params": self.param_values[self.processor.NAME],
                     "state": self.processor_state,
                 },
                 X_left,
@@ -192,8 +189,8 @@ async def offer(request):
             else:
                 message_object = json.loads(message)
                 if "audio_processor_name" in message_object:
-                    audio_transform_track.set_processor_name(
-                        message_object["audio_processor_name"]
+                    audio_transform_track.set_processor(
+                        processor_by_name.get(message_object["audio_processor_name"])
                     )
                 if "param_values" in message_object:
                     audio_transform_track.set_param_values(
@@ -267,14 +264,17 @@ async def register_websocket(websocket, path):
         try:
             if len(train_stack) > 0:
                 train_pair = train_stack.pop()
-                trainer = trainer_for_processor[track.processor_name]
-                X, Y = train_pair
-                X_left = X[0]  # TODO support stereo in
-                trainer.step(X_left, Y)
-                await websocket.send(
-                    json.dumps({"train_state": trainer.params_and_loss()})
+                trainer = (
+                    track.processor and trainer_for_processor[track.processor.NAME]
                 )
-            await asyncio.sleep(0.01)
+                if trainer:
+                    X, Y = train_pair
+                    X_left = X[0]  # TODO support stereo in
+                    trainer.step(X_left, Y)
+                    await websocket.send(
+                        json.dumps({"train_state": trainer.params_and_loss()})
+                    )
+            await asyncio.sleep(0.01)  # boo
         except websockets.ConnectionClosed:
             print("ws terminated")
             break

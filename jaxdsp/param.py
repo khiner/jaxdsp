@@ -10,6 +10,7 @@ class Param:
 
     def serialize(self):
         return {
+            "name": self.name,
             "default_value": self.default_value.tolist()
             if isinstance(self.default_value, jnp.DeviceArray)
             else self.default_value,
