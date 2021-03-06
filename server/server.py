@@ -31,7 +31,7 @@ all_processors = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
-pcs = set()
+peer_connections = set()
 
 EMPTY_CARRY = {"state": None, "params": None}
 
@@ -151,17 +151,18 @@ async def offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
-    pc = RTCPeerConnection()
-    pcs.add(pc)
+    peer_connection = RTCPeerConnection()
+    peer_connections.add(peer_connection)
 
-    pc_id = "PeerConnection(%s)" % uuid.uuid4()
+    print(f"pcs: {len(peer_connections)}")
+    peer_connection_id = "PeerConnection(%s)" % uuid.uuid4()
 
     def log_info(msg, *args):
-        logger.info(pc_id + " " + msg, *args)
+        logger.info(peer_connection_id + " " + msg, *args)
 
     log_info("Created for %s", request.remote)
 
-    @pc.on("datachannel")
+    @peer_connection.on("datachannel")
     def on_datachannel(channel):
         @channel.on("message")
         def on_message(message):
@@ -197,14 +198,15 @@ async def offer(request):
                         message_object["param_values"]
                     )
 
-    @pc.on("iceconnectionstatechange")
+    @peer_connection.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
-        log_info("ICE connection state is %s", pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
-            await pc.close()
-            pcs.discard(pc)
+        state = peer_connection.iceConnectionState
+        log_info("ICE connection state is %s", state)
+        if state == "failed" or state == "closed":
+            await peer_connection.close()
+            peer_connections.discard(peer_connection)
 
-    @pc.on("track")
+    @peer_connection.on("track")
     def on_track(track):
         if track.kind != "audio":
             return
@@ -212,7 +214,7 @@ async def offer(request):
         log_info("Track %s received", track.kind)
         audio_transform_track.set_track(track)
         track_for_client_uid[client_uid] = audio_transform_track
-        pc.addTrack(audio_transform_track)
+        peer_connection.addTrack(audio_transform_track)
 
         @track.on("ended")
         async def on_ended():
@@ -220,18 +222,18 @@ async def offer(request):
             del track_for_client_uid[client_uid]
 
     # handle offer
-    await pc.setRemoteDescription(offer)
+    await peer_connection.setRemoteDescription(offer)
 
     # send answer
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
+    answer = await peer_connection.createAnswer()
+    await peer_connection.setLocalDescription(answer)
 
     return web.Response(
         content_type="application/json",
         text=json.dumps(
             {
-                "sdp": pc.localDescription.sdp,
-                "type": pc.localDescription.type,
+                "sdp": peer_connection.localDescription.sdp,
+                "type": peer_connection.localDescription.type,
                 "client_uid": client_uid,
             }
         ),
@@ -240,9 +242,9 @@ async def offer(request):
 
 async def on_shutdown(app):
     # close peer connections
-    coros = [pc.close() for pc in pcs]
+    coros = [pc.close() for pc in peer_connections]
     await asyncio.gather(*coros)
-    pcs.clear()
+    peer_connections.clear()
 
 
 async def register_websocket(websocket, path):
