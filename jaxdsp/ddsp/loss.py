@@ -2,31 +2,31 @@ import functools
 
 import jax.numpy as jnp
 from jax import jit
-from jax.scipy.stats import norm
 
 from jaxdsp.ddsp import spectral_ops
 
 
-def safe_log(x, eps=1e-5):
+def safe_log(X, eps=1e-5):
     """Avoid taking the log of a non-positive number."""
-    return jnp.log(jnp.where(x <= eps, eps, x))
+    return jnp.log(jnp.where(X <= eps, eps, X))
 
 
-def mean_difference(target, value, loss_type="L1", weights=None):
+def norm(X):
+    return jnp.sqrt((X ** 2).sum())
+
+
+def mean_difference(target, value, loss_type="L1", weights=1.0):
     difference = target - value
-    weights = 1.0 if weights is None else weights
     loss_type = loss_type.upper()
     if loss_type == "L1":
         return jnp.mean(jnp.abs(difference * weights))
     elif loss_type == "L2":
         return jnp.mean(difference ** 2 * weights)
     elif loss_type == "COSINE":
-        return (target @ value.T) / (norm(target) * norm(value))
+        return ((target * weights) @ (value * weights).T) / (norm(target) * norm(value))
         # return tf.losses.cosine_distance(target, value, weights=weights, axis=-1)
     else:
-        raise ValueError(
-            "Loss type ({}), must be " '"L1", "L2", or "COSINE"'.format(loss_type)
-        )
+        raise ValueError(f"Loss type ({loss_type}), must be 'L1, 'L2', or 'COSINE'")
 
 
 # Doesn't support `loudness` from original ddsp
