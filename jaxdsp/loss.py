@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import jaxdsp.ddsp.loss as ddsp_loss
 
 spectral_loss_opts = ddsp_loss.MultiScaleSpectralOpts(
-    loss_type='L2',
+    distance_type='L2',
     mag_weight=0.0,
     delta_time_weight=0.0,
     delta_freq_weight=0.0,

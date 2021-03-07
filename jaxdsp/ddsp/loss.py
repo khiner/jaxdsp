@@ -15,18 +15,18 @@ def norm(X):
     return jnp.sqrt((X ** 2).sum())
 
 
-def mean_difference(target, value, loss_type="L1", weights=1.0):
+def distance(target, value, kind="L1", weights=1.0):
     difference = target - value
-    loss_type = loss_type.upper()
-    if loss_type == "L1":
+    kind = kind.upper()
+    if kind == "L1":
         return jnp.mean(jnp.abs(difference * weights))
-    elif loss_type == "L2":
+    elif kind == "L2":
         return jnp.mean(difference ** 2 * weights)
-    elif loss_type == "COSINE":
+    elif kind == "COSINE":
         return ((target * weights) @ (value * weights).T) / (norm(target) * norm(value))
         # return tf.losses.cosine_distance(target, value, weights=weights, axis=-1)
     else:
-        raise ValueError(f"Loss type ({loss_type}), must be 'L1, 'L2', or 'COSINE'")
+        raise ValueError(f"Distance type ({kind}), must be 'L1, 'L2', or 'COSINE'")
 
 
 # Doesn't support `loudness` from original ddsp
@@ -37,7 +37,7 @@ class MultiScaleSpectralOpts:
         # in the loss curve for a sine wave with a target frequency param
         # fft_sizes=(2048, 1024, 512, 256, 128, 64),
         fft_sizes=(2048, 1024, 512, 256, 128),
-        loss_type="L1",
+        distance_type="L1",
         mag_weight=1.0,
         delta_time_weight=0.0,
         delta_freq_weight=0.0,
@@ -46,7 +46,7 @@ class MultiScaleSpectralOpts:
         name="spectral_loss",
     ):
         self.fft_sizes = fft_sizes
-        self.loss_type = loss_type
+        self.distance_type = distance_type
         self.mag_weight = mag_weight
         self.delta_time_weight = delta_time_weight
         self.delta_freq_weight = delta_freq_weight
@@ -63,7 +63,6 @@ def multi_scale_spectral(X, Y, opts, weights=None):
     """https://github.com/magenta/ddsp/blob/master/ddsp/losses.py#L132"""
 
     loss = 0.0
-
     diff = jnp.diff
 
     # Compute loss for each fft size.
@@ -73,38 +72,38 @@ def multi_scale_spectral(X, Y, opts, weights=None):
 
         # Add magnitude loss.
         if opts.mag_weight > 0:
-            loss += opts.mag_weight * mean_difference(
-                target_mag, value_mag, opts.loss_type, weights=weights
+            loss += opts.mag_weight * distance(
+                target_mag, value_mag, opts.distance_type, weights=weights
             )
 
         if opts.delta_time_weight > 0:
             target = diff(target_mag, axis=1)
             value = diff(value_mag, axis=1)
-            loss += opts.delta_time_weight * mean_difference(
-                target, value, opts.loss_type, weights=weights
+            loss += opts.delta_time_weight * distance(
+                target, value, opts.distance_type, weights=weights
             )
 
         if opts.delta_freq_weight > 0:
             target = diff(target_mag, axis=2)
             value = diff(value_mag, axis=2)
-            loss += opts.delta_freq_weight * mean_difference(
-                target, value, opts.loss_type, weights=weights
+            loss += opts.delta_freq_weight * distance(
+                target, value, opts.distance_type, weights=weights
             )
 
         # TODO(kyriacos) normalize cumulative spectrogram
         if opts.cumsum_freq_weight > 0:
             target = jnp.cumsum(target_mag, axis=2)
             value = jnp.cumsum(value_mag, axis=2)
-            loss += opts.cumsum_freq_weight * mean_difference(
-                target, value, opts.loss_type, weights=weights
+            loss += opts.cumsum_freq_weight * distance(
+                target, value, opts.distance_type, weights=weights
             )
 
         # Add logmagnitude loss, reusing spectrogram.
         if opts.logmag_weight > 0:
             target = safe_log(target_mag)
             value = safe_log(value_mag)
-            loss += opts.logmag_weight * mean_difference(
-                target, value, opts.loss_type, weights=weights
+            loss += opts.logmag_weight * distance(
+                target, value, opts.distance_type, weights=weights
             )
 
     return loss
