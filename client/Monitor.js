@@ -107,6 +107,48 @@ const AUDIO_INPUT_SOURCES = {
 }
 const NONE_PROCESSOR_LABEL = 'None'
 
+function Slider({ name, value, minValue, maxValue, logScale, updateParamValue }) {
+  // `position` vars correspond to slider position. (e.g. 0-1)
+  // `value` vars correspond to scaled parameter values (e.g. frequency in Hz)
+  const minPosition = 0.0
+  const maxPosition = 1.0
+  let scale
+  let position
+  if (logScale) {
+    scale = (Math.log(maxValue) - Math.log(minValue)) / (maxPosition - minPosition)
+    position = (Math.log(value) - Math.log(minValue)) / scale + minPosition
+  } else {
+    scale = (maxValue - minValue) / (maxPosition - minPosition)
+    position = (value - minValue) / scale + minPosition
+  }
+
+  const isPreview = !updateParamValue;
+  return (
+    <div key={name} style={{ display: 'flex', alignItems: 'center', margin: '5px' }}>
+      {!isPreview && <label htmlFor={name}>{name}</label>}
+      <input
+        type="range"
+        name={name}
+        value={position}
+        min={minPosition}
+        max={maxPosition}
+        step={(maxPosition - minPosition) / 100_000.0} // as continuous as possible
+        onChange={event => {
+          if (!updateParamValue) return
+
+          const position = +event.target.value
+          const newValue = logScale
+            ? Math.exp(Math.log(minValue) + scale * (position - minPosition))
+            : minValue + scale * (position - minPosition)
+          return updateParamValue(name, newValue)
+        }}
+        disabled={isPreview}
+      />
+      <span style={{ color: isPreview ? '#aaa' : '#000', marginLeft: '4px' }}>{value.toFixed(3)}</span>
+    </div>
+  )
+}
+
 export default function Monitor({ testSample }) {
   const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.testSample.label)
   const [isStreamingAudio, setIsStreamingAudio] = useState(false)
@@ -153,7 +195,8 @@ export default function Monitor({ testSample }) {
     // TODO wss? (SSL)
     const ws = new WebSocket('ws://127.0.0.1:8765/')
     ws.onopen = () => {
-      ws.send(JSON.stringify({ client_uid: clientUid }))    }
+      ws.send(JSON.stringify({ client_uid: clientUid }))
+    }
     ws.onmessage = event => {
       const message = JSON.parse(event.data)
       const { train_state: trainState } = message
@@ -331,45 +374,41 @@ export default function Monitor({ testSample }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'row' }}>
             <div>
-              {processorParams.map(({ name, default_value, min_value, max_value }) => (
-                <div key={name}>
-                  <input
-                    type="range"
-                    name={name}
-                    value={processorParamValues[name] || default_value || 0.0}
-                    min={min_value}
-                    max={max_value}
-                    step={(max_value - min_value) / 100.0}
-                    onChange={event => updateParamValue(name, +event.target.value)}
-                  />
-                  <label htmlFor={name}>{name}</label>
-                </div>
+              {processorParams.map(({ name, default_value, min_value, max_value, log_scale }) => (
+                <Slider
+                  name={name}
+                  value={processorParamValues[name] || default_value || 0.0}
+                  minValue={min_value}
+                  maxValue={max_value}
+                  logScale={log_scale}
+                  updateParamValue={updateParamValue}
+                />
               ))}
             </div>
             {trainState && trainState.params && (
               <div>
                 {processorParams.map(
-                  ({ name, min_value, max_value }) =>
+                  ({ name, min_value, max_value, log_scale }) =>
                     !isNaN(trainState.params[name]) && (
-                      <div key={name}>
-                        <input
-                          type="range"
-                          name={name}
-                          value={trainState.params[name]}
-                          min={min_value}
-                          max={max_value}
-                          step={(max_value - min_value) / 100.0}
-                          onChange={event => updateParamValue(name, +event.target.value)}
-                          disabled
-                        />
-                        <label htmlFor={name}>{name}</label>
-                      </div>
+                      <Slider
+                        name={name}
+                        value={trainState.params[name]}
+                        minValue={min_value}
+                        maxValue={max_value}
+                        logScale={log_scale}
+                        updateParamValue={null}
+                      />
                     )
                 )}
               </div>
             )}
-            {trainState && trainState.loss !== undefined && <div>{trainState.loss}</div>}
           </div>
+          {trainState && trainState.loss !== undefined && (
+            <div>
+              <span>Loss: </span>
+              {trainState.loss}
+            </div>
+          )}
         </div>
       )}
       <div>

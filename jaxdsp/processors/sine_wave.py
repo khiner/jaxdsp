@@ -6,7 +6,7 @@ from jaxdsp.param import Param
 
 NAME = "Sine Wave"
 PARAMS = [
-    Param("frequency_hz", 399.0, 30.0, 10_000.0),
+    Param("frequency_hz", 400.0, 30.0, 10_000.0, log_scale=True),
 ]
 PRESETS = {}
 
