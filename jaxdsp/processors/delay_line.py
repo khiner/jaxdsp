@@ -15,11 +15,10 @@ import numpy as np
 from jax import jit, lax
 from jax.ops import index, index_update
 
-from jaxdsp.config import sample_rate
 from jaxdsp.param import Param
 from jaxdsp.processors.base import Config, default_param_values
 
-MAX_DELAY_LENGTH_SAMPLES = int(sample_rate)
+MAX_DELAY_LENGTH_SAMPLES = 44100
 
 NAME = "Delay Line"
 PARAMS = [

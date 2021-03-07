@@ -1,20 +1,19 @@
 import jax.numpy as jnp
 from jax import jit
 
-from jaxdsp import config as global_config
 from jaxdsp.processors.base import Config, default_param_values
 from jaxdsp.param import Param
 
 NAME = "Sine Wave"
 PARAMS = [
-    Param("frequency_hz", 400.0, 20.0, 16_000.0),
+    Param("frequency_hz", 399.0, 30.0, 10_000.0),
 ]
 PRESETS = {}
 
 
 def config():
     return Config(
-        {"phase_radians": 0.0, "sample_rate": global_config.sample_rate},
+        {"phase_radians": 0.0, "sample_rate": 44100},
         default_param_values(PARAMS),
         {"frequency_hz": 443.0},
     )

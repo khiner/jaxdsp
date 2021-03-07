@@ -24,7 +24,6 @@ from jaxdsp.processors import (
     processor_by_name,
 )
 from jaxdsp.training import IterativeTrainer
-from jaxdsp import config
 
 all_processors = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
 DEFAULT_PARAM_VALUES = {
@@ -79,7 +78,6 @@ class AudioTransformTrack(MediaStreamTrack):
     async def recv(self):
         assert self.track
         frame = await self.track.recv()
-        config.sample_rate = frame.sample_rate
         num_channels = len(frame.layout.channels)
         assert (
             frame.format.is_packed
@@ -96,6 +94,7 @@ class AudioTransformTrack(MediaStreamTrack):
         ]
         X_left = X_deinterleaved[0]  # TODO handle stereo in
         if self.processor:
+            self.processor_state["sample_rate"] = frame.sample_rate
             carry, Y_deinterleaved = self.processor.tick_buffer(
                 {
                     "params": self.param_values[self.processor.NAME],

@@ -4,11 +4,10 @@ import numpy as np
 import jax.numpy as jnp
 from jax import jit
 
-from jaxdsp.config import sample_rate
 from jaxdsp.param import Param
 from jaxdsp.processors.base import Config, default_param_values
 
-MAX_DELAY_SIZE_SAMPLES = int(sample_rate)
+MAX_DELAY_SIZE_SAMPLES = 44100
 
 NAME = "Feedforward Delay"
 PARAMS = [
