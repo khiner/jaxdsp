@@ -22,3 +22,4 @@ all_processors = [
     sine_wave,
 ]
 processor_by_name = {processor.NAME: processor for processor in all_processors}
+empty_carry = {"state": None, "params": None}

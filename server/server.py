@@ -22,23 +22,20 @@ from jaxdsp.processors import (
     lowpass_feedback_comb_filter,
     sine_wave,
     processor_by_name,
+    empty_carry,
 )
 from jaxdsp.training import IterativeTrainer
 
-all_processors = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
+ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
 DEFAULT_PARAM_VALUES = {
-    processor.NAME: processor.config().params_init for processor in all_processors
+    processor.NAME: processor.config().params_init for processor in ALL_PROCESSORS
 }
-
-ROOT = os.path.dirname(__file__)
+# Training frame pairs are queued up for each client, limited to this cap:
+MAX_TRAIN_FRAMES_PER_CLIENT = 100
 
 logger = logging.getLogger("pc")
-peer_connections = set()
-
-EMPTY_CARRY = {"state": None, "params": None}
-
-TRAIN_STACK_MAX_SIZE = 100
 track_for_client_uid = {}
+peer_connections = set()
 
 
 class AudioTransformTrack(MediaStreamTrack):
@@ -103,7 +100,7 @@ class AudioTransformTrack(MediaStreamTrack):
                 X_left,
             )
         else:
-            carry, Y_deinterleaved = (EMPTY_CARRY, X_left)
+            carry, Y_deinterleaved = (empty_carry, X_left)
 
         self.processor_state = carry["state"]
         Y_deinterleaved = np.asarray(Y_deinterleaved)
@@ -139,7 +136,9 @@ async def index(request):
 
 async def offer(request):
     client_uid = str(uuid.uuid4())
-    audio_transform_track = AudioTransformTrack(None, deque([], TRAIN_STACK_MAX_SIZE))
+    audio_transform_track = AudioTransformTrack(
+        None, deque([], MAX_TRAIN_FRAMES_PER_CLIENT)
+    )
 
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
@@ -170,7 +169,7 @@ async def offer(request):
                                     ],
                                     "presets": processor.PRESETS,
                                 }
-                                for processor in all_processors
+                                for processor in ALL_PROCESSORS
                             },
                         }
                     )
@@ -254,7 +253,7 @@ async def register_websocket(websocket, path):
         print(f"No track cached for client_uid {client_uid}")
 
     trainer_for_processor = {
-        processor.NAME: IterativeTrainer(processor) for processor in all_processors
+        processor.NAME: IterativeTrainer(processor) for processor in ALL_PROCESSORS
     }
     train_stack = track.train_stack
     while True:
