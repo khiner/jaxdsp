@@ -27,6 +27,9 @@ from jaxdsp.processors import (
 from jaxdsp.training import IterativeTrainer
 
 all_processors = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
+DEFAULT_PARAM_VALUES = {
+    processor.NAME: processor.config().params_init for processor in all_processors
+}
 
 ROOT = os.path.dirname(__file__)
 
@@ -52,10 +55,7 @@ class AudioTransformTrack(MediaStreamTrack):
         # Note that processor state is reset to initial conditions when the processor changes,
         # since frames may have been processed by a different processor between switching away and back
         # to a processor. (See `set_processor`.)
-        self.param_values = {
-            processor.NAME: processor.config().params_init
-            for processor in all_processors
-        }
+        self.param_values = DEFAULT_PARAM_VALUES
         self.processor = None
         self.processor_state = None
         self.is_estimating_params = False
@@ -69,12 +69,6 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor_state = (
             self.processor.config().state_init if self.processor else None
         )
-
-    def set_track(self, track):
-        self.track = track
-
-    def set_param_values(self, param_values):
-        self.param_values = param_values
 
     def start_estimating_params(self):
         self.is_estimating_params = True
@@ -166,7 +160,7 @@ async def offer(request):
     def on_datachannel(channel):
         @channel.on("message")
         def on_message(message):
-            if message == "get_config":
+            if message == "get_processors":
                 channel.send(
                     json.dumps(
                         {
@@ -179,9 +173,12 @@ async def offer(request):
                                 }
                                 for processor in all_processors
                             },
-                            "param_values": audio_transform_track.param_values,
                         }
                     )
+                )
+            elif message == "get_param_values":
+                channel.send(
+                    json.dumps({"param_values": audio_transform_track.param_values})
                 )
             elif message == "start_estimating_params":
                 audio_transform_track.start_estimating_params()
@@ -194,9 +191,7 @@ async def offer(request):
                         processor_by_name.get(message_object["audio_processor_name"])
                     )
                 if "param_values" in message_object:
-                    audio_transform_track.set_param_values(
-                        message_object["param_values"]
-                    )
+                    audio_transform_track.param_values = message_object["param_values"]
 
     @peer_connection.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
@@ -212,7 +207,8 @@ async def offer(request):
             return
 
         log_info("Track %s received", track.kind)
-        audio_transform_track.set_track(track)
+
+        audio_transform_track.track = track
         track_for_client_uid[client_uid] = audio_transform_track
         peer_connection.addTrack(audio_transform_track)
 

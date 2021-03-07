@@ -113,7 +113,7 @@ export default function Monitor({ testSample }) {
   const [isEstimatingParams, setIsEstimatingParams] = useState(false)
   const [processorName, setProcessorName] = useState(NONE_PROCESSOR_LABEL)
   const [processors, setProcessors] = useState(null)
-  const [paramValues, setParamValues] = useState({})
+  const [paramValues, setParamValues] = useState(null)
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
@@ -126,7 +126,7 @@ export default function Monitor({ testSample }) {
   }
 
   const updateParamValue = (paramName, value) => {
-    const newParamValues = { ...paramValues }
+    const newParamValues = { ...(paramValues || {}) }
     if (newParamValues[processorName]) {
       newParamValues[processorName][paramName] = value
     }
@@ -135,12 +135,16 @@ export default function Monitor({ testSample }) {
 
   const audioRef = useRef(null)
 
-  useEffect(() => {
+  const sendAudioProcessorName = () =>
     dataChannel?.send(JSON.stringify({ audio_processor_name: processorName }))
+  const sendParamValues = () => dataChannel?.send(JSON.stringify({ param_values: paramValues }))
+
+  useEffect(() => {
+    sendAudioProcessorName()
   }, [processorName])
 
   useEffect(() => {
-    dataChannel?.send(JSON.stringify({ param_values: paramValues }))
+    if (paramValues) sendParamValues()
   }, [paramValues])
 
   useEffect(() => {
@@ -149,8 +153,7 @@ export default function Monitor({ testSample }) {
     // TODO wss? (SSL)
     const ws = new WebSocket('ws://127.0.0.1:8765/')
     ws.onopen = () => {
-      ws.send(JSON.stringify({ client_uid: clientUid }))
-    }
+      ws.send(JSON.stringify({ client_uid: clientUid }))    }
     ws.onmessage = event => {
       const message = JSON.parse(event.data)
       const { train_state: trainState } = message
@@ -189,7 +192,12 @@ export default function Monitor({ testSample }) {
       }
       peerConnection.addEventListener('track', event => (audioRef.current.srcObject = event.streams[0]))
       dataChannel = peerConnection.createDataChannel('jaxdsp-client', { ordered: true })
-      dataChannel.onopen = () => dataChannel.send('get_config')
+      dataChannel.onopen = () => {
+        dataChannel.send('get_processors')
+        sendAudioProcessorName()
+        if (paramValues) sendParamValues()
+        else dataChannel.send('get_param_values')
+      }
       dataChannel.onmessage = event => {
         const message = JSON.parse(event.data)
         const { processors, param_values: paramValues } = message
