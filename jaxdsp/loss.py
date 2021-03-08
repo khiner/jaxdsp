@@ -35,21 +35,19 @@ def norm(X):
     return jnp.sqrt((X ** 2).sum())
 
 
-def distance(target, value, kind="L1", weights=1.0):
-    difference = target - value
+def distance(X, Y, kind="L1"):
     kind = kind.upper()
-    weights = weights or 1.0
     if kind == "L1":
-        return jnp.mean(jnp.abs(difference * weights))
+        return jnp.mean(jnp.abs(Y - X))
     elif kind == "L2":
-        return jnp.mean(difference ** 2 * weights)
+        return jnp.mean((Y - X) ** 2)
     elif kind == "COSINE":
-        return ((target * weights) @ (value * weights).T) / (norm(target) * norm(value))
-        # return tf.losses.cosine_distance(target, value, weights=weights, axis=-1)
+        return (Y @ X.T) / (norm(Y) * norm(X))
     else:
         raise ValueError(f"Distance type ({kind}), must be 'L1, 'L2', or 'COSINE'")
 
 
+# Based on https://github.com/magenta/ddsp/blob/master/ddsp/losses.py#L132
 # Doesn't support `loudness` from original ddsp
 class MultiScaleSpectralOpts:
     def __init__(
@@ -64,69 +62,68 @@ class MultiScaleSpectralOpts:
         delta_freq_weight=0.0,
         cumsum_freq_weight=0.0,
         logmag_weight=0.0,
-        name="spectral_loss",
     ):
+        """Constructor, set loss weights of various components.
+        Args:
+        fft_sizes: Compare spectrograms at each of this list of fft sizes. Each
+            spectrogram has a time-frequency resolution trade-off based on fft size,
+            so comparing multiple scales allows multiple resolutions.
+        loss_type: One of 'L1', 'L2', or 'COSINE'.
+        mag_weight: Weight to compare linear magnitudes of spectrograms. Core
+            audio similarity loss. More sensitive to peak magnitudes than log
+            magnitudes.
+        delta_time_weight: Weight to compare the first finite difference of
+            spectrograms in time. Emphasizes changes of magnitude in time, such as
+            at transients.
+        delta_freq_weight: Weight to compare the first finite difference of
+            spectrograms in frequency. Emphasizes changes of magnitude in frequency,
+            such as at the boundaries of a stack of harmonics.
+        cumsum_freq_weight: Weight to compare the cumulative sum of spectrograms
+            across frequency for each slice in time. Similar to a 1-D Wasserstein
+            loss, this hopefully provides a non-vanishing gradient to push two
+            non-overlapping sinusoids towards eachother.
+        logmag_weight: Weight to compare log magnitudes of spectrograms. Core
+            audio similarity loss. More sensitive to quiet magnitudes than linear
+            magnitudes.
+        """
         self.fft_sizes = fft_sizes
         self.distance_type = distance_type
+        self.distance_fn = functools.partial(distance, kind=distance_type)
         self.mag_weight = mag_weight
         self.delta_time_weight = delta_time_weight
         self.delta_freq_weight = delta_freq_weight
         self.cumsum_freq_weight = cumsum_freq_weight
         self.logmag_weight = logmag_weight
-
-        self.spectrogram_ops = []
-        for size in self.fft_sizes:
-            self.spectrogram_ops.append(
-                functools.partial(magnitute_spectrogram, size=size)
-            )
+        self.spectrogram_fns = [
+            functools.partial(magnitute_spectrogram, size=size)
+            for size in self.fft_sizes
+        ]
 
 
-def multi_scale_spectral(X, Y, opts, weights=None):
-    """https://github.com/magenta/ddsp/blob/master/ddsp/losses.py#L132"""
-
+# Based on https://github.com/magenta/ddsp/blob/master/ddsp/losses.py#L132
+def multi_scale_spectral(X, Y, opts):
     loss = 0.0
-    diff = jnp.diff
+    distance_fn = opts.distance_fn
+    for spectrogram_fn in opts.spectrogram_fns:
+        X_mag = spectrogram_fn(X)
+        Y_mag = spectrogram_fn(Y)
 
-    # Compute loss for each fft size.
-    for loss_op in opts.spectrogram_ops:
-        target_mag = loss_op(Y)
-        value_mag = loss_op(X)
-
-        # Add magnitude loss.
         if opts.mag_weight > 0:
-            loss += opts.mag_weight * distance(
-                target_mag, value_mag, opts.distance_type, weights=weights
-            )
-
+            loss += opts.mag_weight * distance_fn(X_mag, Y_mag)
         if opts.delta_time_weight > 0:
-            target = diff(target_mag, axis=1)
-            value = diff(value_mag, axis=1)
-            loss += opts.delta_time_weight * distance(
-                target, value, opts.distance_type, weights=weights
+            loss += opts.delta_time_weight * distance_fn(
+                jnp.diff(X_mag, axis=1), jnp.diff(Y_mag, axis=1)
             )
-
         if opts.delta_freq_weight > 0:
-            target = diff(target_mag, axis=2)
-            value = diff(value_mag, axis=2)
-            loss += opts.delta_freq_weight * distance(
-                target, value, opts.distance_type, weights=weights
+            loss += opts.delta_freq_weight * distance_fn(
+                jnp.diff(X_mag, axis=2), jnp.diff(Y_mag, axis=2)
             )
-
-        # TODO(kyriacos) normalize cumulative spectrogram
         if opts.cumsum_freq_weight > 0:
-            target = jnp.cumsum(target_mag, axis=2)
-            value = jnp.cumsum(value_mag, axis=2)
-            loss += opts.cumsum_freq_weight * distance(
-                target, value, opts.distance_type, weights=weights
+            loss += opts.cumsum_freq_weight * distance_fn(
+                jnp.cumsum(X_mag, axis=2), jnp.cumsum(Y_mag, axis=2)
             )
-
-        # Add logmagnitude loss, reusing spectrogram.
         if opts.logmag_weight > 0:
-            target = safe_log(target_mag)
-            value = safe_log(value_mag)
-            loss += opts.logmag_weight * distance(
-                target, value, opts.distance_type, weights=weights
-            )
+            loss += opts.logmag_weight * distance_fn(safe_log(X_mag), safe_log(Y_mag))
 
     return loss
 
