@@ -6,8 +6,16 @@ from operator import itemgetter
 from collections.abc import Iterable
 
 from jaxdsp.processors import serial_processors
-import jaxdsp.loss
+from jaxdsp.loss import LossOpts, loss_fn
 from jax.tree_util import tree_map, tree_multimap
+
+
+default_loss_opts = LossOpts(
+    weights={
+        "sample": 1.0,
+    },
+    sample_distance_type="L2",
+)
 
 
 @jit
@@ -16,9 +24,9 @@ def mean_loss_and_grads(loss, grads):
 
 
 class Config:
-    def __init__(self, loss_fn=jaxdsp.loss.mse, step_size=0.2):
+    def __init__(self, loss_opts=default_loss_opts, step_size=0.2):
+        self.loss_opts = loss_opts
         self.step_size = step_size
-        self.loss_fn = loss_fn
 
 
 class LossHistoryAccumulator:
@@ -48,41 +56,29 @@ class IterativeTrainer:
     def __init__(
         self,
         processor,
-        training_config=Config(),
+        config=Config(),
         processor_config=None,
         track_history=False,
     ):
-        """
-        from jaxdsp.training import IterativeTrainer
-
-        processor = lbcf
-        Xs = Xs_chirp
-        carry_target = {'params': processor.default_target_params(), 'state': processor.init_state()}
-        trainer = IterativeTrainer(processor, processor.init_params())
-        for _ in range(10):
-            X = Xs[np.random.randint(Xs.shape[0])]
-            carry_target, Y_target = processor.tick_buffer(carry_target, X)
-            trainer.step(X, Y_target)
-
-        params_and_loss = trainer.params_and_loss()
-        """
-
-        def loss(params, state, X, Y_target):
+        def processor_loss(params, state, X, Y_target):
             carry, Y_estimated = processor.tick_buffer(
                 {"params": params, "state": state}, X
             )
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
-            return training_config.loss_fn(Y_estimated, Y_target), carry["state"]
+            return (
+                loss_fn(Y_estimated, Y_target, config.loss_opts),
+                carry["state"],
+            )
 
         processor_config = processor_config or processor.config()
 
         self.step_num = 0
         self.loss = 0.0
-        # jit(vmap(value_and_grad(loss), in_axes=(None, 0), out_axes=0))
-        self.grad_fn = jit(value_and_grad(loss, has_aux=True))
+        # jit(vmap(value_and_grad(processor_loss), in_axes=(None, 0), out_axes=0))
+        self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))
         self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
-            training_config.step_size
+            config.step_size
         )
         self.opt_state = self.opt_init(processor_config.params_init)
         self.processor_state = processor_config.state_init
