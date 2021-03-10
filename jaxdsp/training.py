@@ -6,11 +6,11 @@ from operator import itemgetter
 from collections.abc import Iterable
 
 from jaxdsp.processors import serial_processors
-from jaxdsp.loss import LossOpts, loss_fn
+from jaxdsp.loss import create_loss_opts, loss_fn
 from jax.tree_util import tree_map, tree_multimap
 
 
-default_loss_opts = LossOpts(
+default_loss_opts = create_loss_opts(
     weights={
         "sample": 1.0,
     },
@@ -91,7 +91,10 @@ class IterativeTrainer:
     def step(self, X, Y_target):
         # loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
         (self.loss, self.processor_state), self.grads = self.grad_fn(
-            self.get_params(self.opt_state), self.processor_state, X, Y_target
+            self.get_params(self.opt_state),
+            self.processor_state,
+            X,
+            Y_target,
         )
         self.opt_state = self.opt_update(self.step_num, self.grads, self.opt_state)
         self.step_num += 1
