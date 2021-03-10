@@ -60,33 +60,37 @@ class IterativeTrainer:
         processor_config=None,
         track_history=False,
     ):
-        def processor_loss(params, state, X, Y_target):
-            carry, Y_estimated = processor.tick_buffer(
-                {"params": params, "state": state}, X
-            )
-            if Y_estimated.shape == Y_target.shape[::-1]:
-                Y_estimated = Y_estimated.T  # TODO should eventually remove this check
-            return (
-                loss_fn(Y_estimated, Y_target, config.loss_opts),
-                carry["state"],
-            )
-
-        processor_config = processor_config or processor.config()
-
+        self.processor = processor
         self.step_num = 0
         self.loss = 0.0
-        # jit(vmap(value_and_grad(processor_loss), in_axes=(None, 0), out_axes=0))
-        self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))
-        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
-            config.step_size
-        )
-        self.opt_state = self.opt_init(processor_config.params_init)
-        self.processor_state = processor_config.state_init
+        processor_config = processor_config or processor.config()
         self.step_evaluator = (
             LossHistoryAccumulator(processor_config.params_init)
             if track_history
             else None
         )
+        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
+            config.step_size
+        )
+        self.opt_state = self.opt_init(processor_config.params_init)
+        self.processor_state = processor_config.state_init
+        self.set_loss_opts(config.loss_opts)
+
+    # TODO set_step_size (without re-initializing params)
+    def set_loss_opts(self, loss_opts):
+        def processor_loss(params, state, X, Y_target):
+            carry, Y_estimated = self.processor.tick_buffer(
+                {"params": params, "state": state}, X
+            )
+            if Y_estimated.shape == Y_target.shape[::-1]:
+                Y_estimated = Y_estimated.T  # TODO should eventually remove this check
+            return (
+                loss_fn(Y_estimated, Y_target, loss_opts),
+                carry["state"],
+            )
+
+        # jit(vmap(value_and_grad(processor_loss), in_axes=(None, 0), out_axes=0))
+        self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))
 
     def step(self, X, Y_target):
         # loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
