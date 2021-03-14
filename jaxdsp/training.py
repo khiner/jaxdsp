@@ -6,11 +6,11 @@ from operator import itemgetter
 from collections.abc import Iterable
 
 from jaxdsp.processors import serial_processors
-from jaxdsp.loss import create_loss_opts, loss_fn
+from jaxdsp.loss import LossOptions, loss_fn
 from jax.tree_util import tree_map, tree_multimap
 
 
-default_loss_opts = create_loss_opts(
+default_loss_opts = LossOptions(
     weights={
         "sample": 1.0,
     },
