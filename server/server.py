@@ -56,6 +56,7 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor_state = None
         self.is_estimating_params = False
         self.websocket = None
+        self.is_training = False
 
     def set_processor(self, processor):
         if self.processor and processor and self.processor.NAME == processor.NAME:
@@ -65,12 +66,20 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor_state = (
             self.processor.config().state_init if self.processor else None
         )
+        self.update_trainer()
 
     def start_estimating_params(self):
         self.is_estimating_params = True
+        self.update_trainer()
 
     def stop_estimating_params(self):
         self.is_estimating_params = False
+        self.update_trainer()
+
+    def update_trainer(self):
+        self.trainer = (
+            IterativeTrainer(self.processor) if self.is_estimating_params else None
+        )
 
     async def recv(self):
         assert self.track
@@ -247,29 +256,21 @@ async def register_websocket(websocket, path):
         message = await websocket.recv()
         message_object = json.loads(message)
         client_uid = message_object.get("client_uid")
-        # TODO need a sleep here? (does this cause audio stutter?)
 
     track = track_for_client_uid.get(client_uid)
     if not track:
         print(f"No track cached for client_uid {client_uid}")
 
-    trainer = None
     train_stack = track.train_stack
     while True:
         try:
-            if track.processor and len(train_stack) > 0:
+            if track.trainer and len(train_stack) > 0:
                 train_pair = train_stack.pop()
-                if (
-                    not trainer
-                    or not trainer.processor
-                    or trainer.processor.NAME != track.processor.NAME
-                ):
-                    trainer = IterativeTrainer(track.processor)
                 X, Y = train_pair
                 X_left = X[0]  # TODO support stereo in
-                trainer.step(X_left, Y)
+                track.trainer.step(X_left, Y)
                 await websocket.send(
-                    json.dumps({"train_state": trainer.params_and_loss()})
+                    json.dumps({"train_state": track.trainer.params_and_loss()})
                 )
             await asyncio.sleep(0.01)  # boo
         except websockets.ConnectionClosed:
