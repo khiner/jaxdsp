@@ -102,12 +102,14 @@ class LossOptions:
             "delta_freq": 0.0,
             "cumsum_freq": 0.0,
         },
+        distance_types={
+            "sample": "L1",
+            "frequency": "L1",
+        },
         # Note: removing smaller fft sizes seems to get rid of some small non-convex "bumps"
         # in the loss curve for a sine wave with a target frequency param
         # fft_sizes=(2048, 1024, 512, 256, 128, 64),
         fft_sizes=(2048, 1024, 512, 256, 128),
-        sample_distance_type="L1",
-        freq_distance_type="L1",
     ):
         """Args:
         weights: Dict of loss labels to relative weighting of that loss.
@@ -115,12 +117,13 @@ class LossOptions:
         fft_sizes: Compare spectrograms at each of this list of fft sizes.
             Each spectrogram has a time-frequency resolution trade-off based on fft size,
             so comparing multiple scales allows multiple resolutions.
-        sample_distance_type: One of 'L1', 'L2', or 'COSINE'.
-        freq_distance_type: One of 'L1', 'L2', or 'COSINE'.
+        distance_types: Dict of "sample" and/or "frequency", with possible values: 'L1', 'L2', or 'COSINE'
         """
-        self.fft_sizes = fft_sizes
-        self.sample_distance_type = sample_distance_type
-        self.freq_distance_type = freq_distance_type
+        weights = weights or {}
+        distance_types = distance_types or {}
+        self.fft_sizes = fft_sizes or ()
+        self.sample_distance_type = distance_types.get("sample") or "L1"
+        self.freq_distance_type = distance_types.get("frequency") or "L1"
         self.sample_weights = [
             (label, weight)
             for label, weight in weights.items()

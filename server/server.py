@@ -25,6 +25,7 @@ from jaxdsp.processors import (
     empty_carry,
 )
 from jaxdsp.training import IterativeTrainer
+from jaxdsp.loss import LossOptions
 
 ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
 DEFAULT_PARAM_VALUES = {
@@ -54,32 +55,29 @@ class AudioTransformTrack(MediaStreamTrack):
         self.param_values = DEFAULT_PARAM_VALUES
         self.processor = None
         self.processor_state = None
+        self.loss_options = None
         self.is_estimating_params = False
-        self.websocket = None
-        self.is_training = False
 
     def set_processor(self, processor):
         if self.processor and processor and self.processor.NAME == processor.NAME:
             return
 
         self.processor = processor
-        self.processor_state = (
-            self.processor.config().state_init if self.processor else None
+        self.processor_state = processor.config().state_init if processor else None
+        self.trainer = (
+            IterativeTrainer(processor, self.loss_options) if processor else None
         )
-        self.update_trainer()
+
+    def set_loss_options(self, loss_options):
+        self.loss_options = loss_options
+        if self.trainer:
+            self.trainer.set_loss_options(loss_options)
 
     def start_estimating_params(self):
         self.is_estimating_params = True
-        self.update_trainer()
 
     def stop_estimating_params(self):
         self.is_estimating_params = False
-        self.update_trainer()
-
-    def update_trainer(self):
-        self.trainer = (
-            IterativeTrainer(self.processor) if self.is_estimating_params else None
-        )
 
     async def recv(self):
         assert self.track
@@ -192,13 +190,22 @@ async def offer(request):
             elif message == "stop_estimating_params":
                 audio_transform_track.stop_estimating_params()
             else:
-                message_object = json.loads(message)
-                if "audio_processor_name" in message_object:
+                message_dict = json.loads(message)
+                if "audio_processor_name" in message_dict:
                     audio_transform_track.set_processor(
-                        processor_by_name.get(message_object["audio_processor_name"])
+                        processor_by_name.get(message_dict["audio_processor_name"])
                     )
-                if "param_values" in message_object:
-                    audio_transform_track.param_values = message_object["param_values"]
+                if "param_values" in message_dict:
+                    audio_transform_track.param_values = message_dict["param_values"]
+                if "loss_options" in message_dict:
+                    loss_options = message_dict["loss_options"]
+                    audio_transform_track.set_loss_options(
+                        LossOptions(
+                            weights=loss_options["weights"],
+                            distance_types=loss_options["distance_types"],
+                            fft_sizes=loss_options["fft_sizes"],
+                        )
+                    )
 
     @peer_connection.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
@@ -264,7 +271,7 @@ async def register_websocket(websocket, path):
     train_stack = track.train_stack
     while True:
         try:
-            if track.trainer and len(train_stack) > 0:
+            if track.is_estimating_params and track.trainer and len(train_stack) > 0:
                 train_pair = train_stack.pop()
                 X, Y = train_pair
                 X_left = X[0]  # TODO support stereo in

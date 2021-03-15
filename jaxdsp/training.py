@@ -10,11 +10,13 @@ from jaxdsp.loss import LossOptions, loss_fn
 from jax.tree_util import tree_map, tree_multimap
 
 
-default_loss_opts = LossOptions(
+default_loss_options = LossOptions(
     weights={
         "sample": 1.0,
     },
-    sample_distance_type="L2",
+    distance_types={
+        "sample": "L2",
+    },
 )
 
 
@@ -24,8 +26,8 @@ def mean_loss_and_grads(loss, grads):
 
 
 class Config:
-    def __init__(self, loss_opts=default_loss_opts, step_size=0.2):
-        self.loss_opts = loss_opts
+    def __init__(self, loss_options=default_loss_options, step_size=0.2):
+        self.loss_options = loss_options
         self.step_size = step_size
 
 
@@ -56,13 +58,14 @@ class IterativeTrainer:
     def __init__(
         self,
         processor,
-        config=Config(),
+        config=None,
         processor_config=None,
         track_history=False,
     ):
         self.processor = processor
         self.step_num = 0
         self.loss = 0.0
+        config = config or Config()
         processor_config = processor_config or processor.config()
         self.step_evaluator = (
             LossHistoryAccumulator(processor_config.params_init)
@@ -74,10 +77,10 @@ class IterativeTrainer:
         )
         self.opt_state = self.opt_init(processor_config.params_init)
         self.processor_state = processor_config.state_init
-        self.set_loss_opts(config.loss_opts)
+        self.set_loss_options(config.loss_options)
 
     # TODO set_step_size (without re-initializing params)
-    def set_loss_opts(self, loss_opts):
+    def set_loss_options(self, loss_options):
         def processor_loss(params, state, X, Y_target):
             carry, Y_estimated = self.processor.tick_buffer(
                 {"params": params, "state": state}, X
@@ -85,7 +88,7 @@ class IterativeTrainer:
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
             return (
-                loss_fn(Y_estimated, Y_target, loss_opts),
+                loss_fn(Y_estimated, Y_target, loss_options),
                 carry["state"],
             )
 
