@@ -247,29 +247,30 @@ async def register_websocket(websocket, path):
         message = await websocket.recv()
         message_object = json.loads(message)
         client_uid = message_object.get("client_uid")
+        # TODO need a sleep here? (does this cause audio stutter?)
 
     track = track_for_client_uid.get(client_uid)
     if not track:
         print(f"No track cached for client_uid {client_uid}")
 
-    trainer_for_processor = {
-        processor.NAME: IterativeTrainer(processor) for processor in ALL_PROCESSORS
-    }
+    trainer = None
     train_stack = track.train_stack
     while True:
         try:
-            if len(train_stack) > 0:
+            if track.processor and len(train_stack) > 0:
                 train_pair = train_stack.pop()
-                trainer = (
-                    track.processor and trainer_for_processor[track.processor.NAME]
+                if (
+                    not trainer
+                    or not trainer.processor
+                    or trainer.processor.NAME != track.processor.NAME
+                ):
+                    trainer = IterativeTrainer(track.processor)
+                X, Y = train_pair
+                X_left = X[0]  # TODO support stereo in
+                trainer.step(X_left, Y)
+                await websocket.send(
+                    json.dumps({"train_state": trainer.params_and_loss()})
                 )
-                if trainer:
-                    X, Y = train_pair
-                    X_left = X[0]  # TODO support stereo in
-                    trainer.step(X_left, Y)
-                    await websocket.send(
-                        json.dumps({"train_state": trainer.params_and_loss()})
-                    )
             await asyncio.sleep(0.01)  # boo
         except websockets.ConnectionClosed:
             print("ws terminated")
