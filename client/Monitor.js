@@ -107,7 +107,7 @@ const AUDIO_INPUT_SOURCES = {
 }
 const NONE_PROCESSOR_LABEL = 'None'
 
-function Slider({ name, value, minValue, maxValue, logScale, updateParamValue }) {
+function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
   // `position` vars correspond to slider position. (e.g. 0-1)
   // `value` vars correspond to scaled parameter values (e.g. frequency in Hz)
   const minPosition = 0.0
@@ -122,7 +122,7 @@ function Slider({ name, value, minValue, maxValue, logScale, updateParamValue })
     position = (value - minValue) / scale + minPosition
   }
 
-  const isPreview = !updateParamValue;
+  const isPreview = !onChange
   return (
     <div key={name} style={{ display: 'flex', alignItems: 'center', margin: '5px' }}>
       {!isPreview && <label htmlFor={name}>{name}</label>}
@@ -134,13 +134,13 @@ function Slider({ name, value, minValue, maxValue, logScale, updateParamValue })
         max={maxPosition}
         step={(maxPosition - minPosition) / 100_000.0} // as continuous as possible
         onChange={event => {
-          if (!updateParamValue) return
+          if (!onChange) return
 
           const position = +event.target.value
           const newValue = logScale
             ? Math.exp(Math.log(minValue) + scale * (position - minPosition))
             : minValue + scale * (position - minPosition)
-          return updateParamValue(name, newValue)
+          return onChange(newValue)
         }}
         disabled={isPreview}
       />
@@ -156,6 +156,22 @@ export default function Monitor({ testSample }) {
   const [processorName, setProcessorName] = useState(NONE_PROCESSOR_LABEL)
   const [processors, setProcessors] = useState(null)
   const [paramValues, setParamValues] = useState(null)
+  const [lossOptions, setLossOptions] = useState({
+    weights: {
+      sample: 1.0,
+      magnitude: 0.0,
+      log_magnitude: 0.0,
+      delta_time: 0.0,
+      delta_freq: 0.0,
+      cumsum_freq: 0.0,
+    },
+    distance_types: {
+      sample: 'L1',
+      frequency: 'L1',
+    },
+    fft_sizes: [2048, 1024, 512, 256, 128],
+  })
+
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
@@ -167,19 +183,12 @@ export default function Monitor({ testSample }) {
     console.error(errorMessage)
   }
 
-  const updateParamValue = (paramName, value) => {
-    const newParamValues = { ...(paramValues || {}) }
-    if (newParamValues[processorName]) {
-      newParamValues[processorName][paramName] = value
-    }
-    setParamValues(newParamValues)
-  }
-
   const audioRef = useRef(null)
 
   const sendAudioProcessorName = () =>
     dataChannel?.send(JSON.stringify({ audio_processor_name: processorName }))
   const sendParamValues = () => dataChannel?.send(JSON.stringify({ param_values: paramValues }))
+  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
 
   useEffect(() => {
     sendAudioProcessorName()
@@ -381,7 +390,13 @@ export default function Monitor({ testSample }) {
                   minValue={min_value}
                   maxValue={max_value}
                   logScale={log_scale}
-                  updateParamValue={updateParamValue}
+                  onChange={newValue => {
+                    const newParamValues = { ...(paramValues || {}) }
+                    if (newParamValues[processorName]) {
+                      newParamValues[processorName][name] = newValue
+                    }
+                    setParamValues(newParamValues)
+                  }}
                 />
               ))}
             </div>
@@ -396,7 +411,7 @@ export default function Monitor({ testSample }) {
                         minValue={min_value}
                         maxValue={max_value}
                         logScale={log_scale}
-                        updateParamValue={null}
+                        onChange={null}
                       />
                     )
                 )}
@@ -411,6 +426,55 @@ export default function Monitor({ testSample }) {
           )}
         </div>
       )}
+      <div>
+        <span style={{ fontSize: 18, fontWeight: 'bold' }}>Loss options</span>
+        <ul style={{ listStyle: 'none' }}>
+          <li>
+            <label htmlFor="weights">Weights:</label>
+            <ul id="weights">
+              {Object.entries(lossOptions.weights).map(([key, value]) => (
+                <li key={key} style={{ listStyle: 'none' }}>
+                  <Slider
+                    key={key}
+                    name={key}
+                    value={value}
+                    minValue={0.0}
+                    maxValue={1.0}
+                    onChange={newValue => {
+                      const newLossOptions = { ...lossOptions }
+                      newLossOptions.weights[key] = newValue
+                      setLossOptions(newLossOptions)
+                    }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </li>
+          <li>
+            <label htmlFor="distance_types">Distance types:</label>
+            <ul id="distance_types">
+              {Object.entries(lossOptions.distance_types).map(([key, value]) => (
+                <li id={key} key={key} style={{ listStyle: 'none' }}>
+                  <label htmlFor={key}>{key}: </label>
+                  <select
+                    id={key}
+                    value={value}
+                    onChange={event => {
+                      const newLossOptions = { ...lossOptions }
+                      newLossOptions.distance_types[key] = event.target.value
+                      setLossOptions(newLossOptions)
+                    }}
+                  >
+                    <option value="L1">L1</option>
+                    <option value="L2">L2</option>
+                  </select>
+                </li>
+              ))}
+            </ul>
+          </li>
+        </ul>
+        <button onClick={sendLossOptions}>Set loss options</button>
+      </div>
       <div>
         <button disabled={isStreamingAudio} onClick={() => setIsStreamingAudio(true)}>
           Start sending

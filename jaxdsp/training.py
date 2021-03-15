@@ -27,7 +27,7 @@ def mean_loss_and_grads(loss, grads):
 
 class Config:
     def __init__(self, loss_options=default_loss_options, step_size=0.2):
-        self.loss_options = loss_options
+        self.loss_options = loss_options or default_loss_options
         self.step_size = step_size
 
 

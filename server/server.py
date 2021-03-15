@@ -24,7 +24,7 @@ from jaxdsp.processors import (
     processor_by_name,
     empty_carry,
 )
-from jaxdsp.training import IterativeTrainer
+from jaxdsp.training import IterativeTrainer, Config
 from jaxdsp.loss import LossOptions
 
 ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
@@ -65,7 +65,9 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor = processor
         self.processor_state = processor.config().state_init if processor else None
         self.trainer = (
-            IterativeTrainer(processor, self.loss_options) if processor else None
+            IterativeTrainer(processor, Config(self.loss_options))
+            if processor
+            else None
         )
 
     def set_loss_options(self, loss_options):
@@ -198,6 +200,7 @@ async def offer(request):
                 if "param_values" in message_dict:
                     audio_transform_track.param_values = message_dict["param_values"]
                 if "loss_options" in message_dict:
+                    print(message)
                     loss_options = message_dict["loss_options"]
                     audio_transform_track.set_loss_options(
                         LossOptions(
