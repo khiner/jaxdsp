@@ -24,7 +24,7 @@ from jaxdsp.processors import (
     processor_by_name,
     empty_carry,
 )
-from jaxdsp.training import IterativeTrainer, Config
+from jaxdsp.training import IterativeTrainer, OptimizationOptions
 from jaxdsp.loss import LossOptions
 
 ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
@@ -65,15 +65,18 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor = processor
         self.processor_state = processor.config().state_init if processor else None
         self.trainer = (
-            IterativeTrainer(processor, Config(self.loss_options))
-            if processor
-            else None
+            IterativeTrainer(processor, self.loss_options) if processor else None
         )
 
     def set_loss_options(self, loss_options):
         self.loss_options = loss_options
         if self.trainer:
             self.trainer.set_loss_options(loss_options)
+
+    def set_optimization_options(self, optimization_options):
+        self.optimization_options = optimization_options
+        if self.trainer:
+            self.trainer.set_optimization_options(optimization_options)
 
     def start_estimating_params(self):
         self.is_estimating_params = True
@@ -193,20 +196,28 @@ async def offer(request):
                 audio_transform_track.stop_estimating_params()
             else:
                 message_dict = json.loads(message)
-                if "audio_processor_name" in message_dict:
+                audio_processor_name = message_dict.get("audio_processor_name")
+                param_values = message_dict.get("param_values")
+                loss_options = message_dict.get("loss_options")
+                optimization_options = message_dict.get("optimization_options")
+                if audio_processor_name:
                     audio_transform_track.set_processor(
-                        processor_by_name.get(message_dict["audio_processor_name"])
+                        processor_by_name.get(audio_processor_name)
                     )
-                if "param_values" in message_dict:
-                    audio_transform_track.param_values = message_dict["param_values"]
-                if "loss_options" in message_dict:
-                    print(message)
-                    loss_options = message_dict["loss_options"]
+                if param_values:
+                    audio_transform_track.param_values = param_values
+                if loss_options:
                     audio_transform_track.set_loss_options(
                         LossOptions(
-                            weights=loss_options["weights"],
-                            distance_types=loss_options["distance_types"],
-                            fft_sizes=loss_options["fft_sizes"],
+                            weights=loss_options.get("weights"),
+                            distance_types=loss_options.get("distance_types"),
+                            fft_sizes=loss_options.get("fft_sizes"),
+                        )
+                    )
+                if optimization_options:
+                    audio_transform_track.set_optimization_options(
+                        OptimizationOptions(
+                            step_size=optimization_options.get("step_size"),
                         )
                     )
 

@@ -171,6 +171,9 @@ export default function Monitor({ testSample }) {
     },
     fft_sizes: [2048, 1024, 512, 256, 128],
   })
+  const [optimizationOptions, setOptimizationOptions] = useState({
+    step_size: 0.2,
+  })
 
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
@@ -189,6 +192,8 @@ export default function Monitor({ testSample }) {
     dataChannel?.send(JSON.stringify({ audio_processor_name: processorName }))
   const sendParamValues = () => dataChannel?.send(JSON.stringify({ param_values: paramValues }))
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
+  const sendOptimizationOptions = () =>
+    dataChannel?.send(JSON.stringify({ optimization_options: optimizationOptions }))
 
   useEffect(() => {
     sendAudioProcessorName()
@@ -474,6 +479,26 @@ export default function Monitor({ testSample }) {
           </li>
         </ul>
         <button onClick={sendLossOptions}>Set loss options</button>
+      </div>
+      <div>
+        <span style={{ fontSize: 18, fontWeight: 'bold' }}>Optimization options</span>
+        <ul style={{ listStyle: 'none' }}>
+          <li>
+            <Slider
+              name="Step size"
+              value={optimizationOptions.step_size}
+              minValue={1e-9}
+              maxValue={4.0}
+              logScale
+              onChange={value => {
+                const newOptimizationOptions = { ...optimizationOptions }
+                newOptimizationOptions.step_size = value
+                setOptimizationOptions(newOptimizationOptions)
+              }}
+            />
+          </li>
+        </ul>
+        <button onClick={sendOptimizationOptions}>Set optimization options</button>
       </div>
       <div>
         <button disabled={isStreamingAudio} onClick={() => setIsStreamingAudio(true)}>

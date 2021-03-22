@@ -10,6 +10,11 @@ from jaxdsp.loss import LossOptions, loss_fn
 from jax.tree_util import tree_map, tree_multimap
 
 
+class OptimizationOptions:
+    def __init__(self, step_size=0.1):
+        self.step_size = step_size
+
+
 default_loss_options = LossOptions(
     weights={
         "sample": 1.0,
@@ -19,16 +24,14 @@ default_loss_options = LossOptions(
     },
 )
 
+default_optimization_options = OptimizationOptions(
+    step_size=0.2,
+)
+
 
 @jit
 def mean_loss_and_grads(loss, grads):
     return np.mean(loss), tree_map(lambda grad: np.mean(grad, axis=0), grads)
-
-
-class Config:
-    def __init__(self, loss_options=default_loss_options, step_size=0.2):
-        self.loss_options = loss_options or default_loss_options
-        self.step_size = step_size
 
 
 class LossHistoryAccumulator:
@@ -58,28 +61,35 @@ class IterativeTrainer:
     def __init__(
         self,
         processor,
-        config=None,
+        loss_options=None,
+        optimization_options=None,
         processor_config=None,
         track_history=False,
     ):
         self.processor = processor
         self.step_num = 0
         self.loss = 0.0
-        config = config or Config()
-        processor_config = processor_config or processor.config()
+        self.processor_config = processor_config or processor.config()
+        self.current_params = self.processor_config.params_init
         self.step_evaluator = (
-            LossHistoryAccumulator(processor_config.params_init)
+            LossHistoryAccumulator(self.processor_config.params_init)
             if track_history
             else None
         )
-        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
-            config.step_size
+        self.set_optimization_options(
+            optimization_options or default_optimization_options
         )
-        self.opt_state = self.opt_init(processor_config.params_init)
-        self.processor_state = processor_config.state_init
-        self.set_loss_options(config.loss_options)
+        self.set_loss_options(loss_options or default_loss_options)
 
-    # TODO set_step_size (without re-initializing params)
+    def set_optimization_options(self, optimization_options):
+        optimization_options.step_size
+        # TODO set optimization algorithm
+        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
+            optimization_options.step_size
+        )
+        self.opt_state = self.opt_init(self.current_params)
+        self.processor_state = self.processor_config.state_init
+
     def set_loss_options(self, loss_options):
         def processor_loss(params, state, X, Y_target):
             carry, Y_estimated = self.processor.tick_buffer(
@@ -98,18 +108,19 @@ class IterativeTrainer:
     def step(self, X, Y_target):
         # loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
         (self.loss, self.processor_state), self.grads = self.grad_fn(
-            self.get_params(self.opt_state),
+            self.current_params,
             self.processor_state,
             X,
             Y_target,
         )
         self.opt_state = self.opt_update(self.step_num, self.grads, self.opt_state)
         self.step_num += 1
+        self.current_params = self.get_params(self.opt_state)
         if self.step_evaluator:
-            self.step_evaluator.after_step(self.loss, self.get_params(self.opt_state))
+            self.step_evaluator.after_step(self.loss, self.current_params)
 
     def params(self):
-        return float_params(self.get_params(self.opt_state))
+        return float_params(self.current_params)
 
     def params_and_loss(self):
         return {
