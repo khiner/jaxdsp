@@ -7,12 +7,8 @@ from collections.abc import Iterable
 
 from jaxdsp.processors import serial_processors
 from jaxdsp.loss import LossOptions, loss_fn
+from jaxdsp.optimizers import OptimizationOptions, default_optimization_options
 from jax.tree_util import tree_map, tree_multimap
-
-
-class OptimizationOptions:
-    def __init__(self, step_size=0.1):
-        self.step_size = step_size
 
 
 default_loss_options = LossOptions(
@@ -23,11 +19,6 @@ default_loss_options = LossOptions(
         "sample": "L2",
     },
 )
-
-default_optimization_options = OptimizationOptions(
-    step_size=0.2,
-)
-
 
 @jit
 def mean_loss_and_grads(loss, grads):
@@ -82,11 +73,11 @@ class IterativeTrainer:
         self.set_loss_options(loss_options or default_loss_options)
 
     def set_optimization_options(self, optimization_options):
-        optimization_options.step_size
-        # TODO set optimization algorithm
-        self.opt_init, self.opt_update, self.get_params = optimizers.sgd(
-            optimization_options.step_size
-        )
+        (
+            self.opt_init,
+            self.opt_update,
+            self.get_params,
+        ) = optimization_options.create()
         self.opt_state = self.opt_init(self.current_params)
         self.processor_state = self.processor_config.state_init
 

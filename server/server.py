@@ -24,7 +24,8 @@ from jaxdsp.processors import (
     processor_by_name,
     empty_carry,
 )
-from jaxdsp.training import IterativeTrainer, OptimizationOptions
+from jaxdsp.training import IterativeTrainer
+from jaxdsp.optimizers import OptimizationOptions, all_optimizers
 from jaxdsp.loss import LossOptions
 
 ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
@@ -183,6 +184,12 @@ async def offer(request):
                                 }
                                 for processor in ALL_PROCESSORS
                             },
+                            "optimizers": {
+                                optimizer.NAME: [
+                                    param.serialize() for param in optimizer.PARAMS
+                                ]
+                                for optimizer in all_optimizers
+                            },
                         }
                     )
                 )
@@ -216,9 +223,7 @@ async def offer(request):
                     )
                 if optimization_options:
                     audio_transform_track.set_optimization_options(
-                        OptimizationOptions(
-                            step_size=optimization_options.get("step_size"),
-                        )
+                        OptimizationOptions(optimization_options)
                     )
 
     @peer_connection.on("iceconnectionstatechange")
