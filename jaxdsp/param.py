@@ -11,8 +11,28 @@ class Param:
         self.max_value = max_value
         self.log_scale = log_scale
 
+    def from_unit_scale(self, unit_scale_value):
+        return self.min_value + unit_scale_value * (self.max_value - self.min_value)
+
+    def to_unit_scale(self, value):
+        return (value - self.min_value) / (self.max_value - self.min_value)
+
     def serialize(self):
         serialized = self.__dict__
         if isinstance(self.default_value, jnp.DeviceArray):
             serialized["default_value"] = self.default_value.tolist()
         return serialized
+
+
+def params_to_unit_scale(params, param_for_name):
+    return {
+        name: param_for_name[name].to_unit_scale(value)
+        for name, value in params.items()
+    }
+
+
+def params_from_unit_scale(params, param_for_name):
+    return {
+        name: param_for_name[name].from_unit_scale(value)
+        for name, value in params.items()
+    }

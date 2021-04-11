@@ -1,8 +1,20 @@
 from jax.experimental import optimizers
+from jax.experimental.optimizers import optimizer
+from jax.tree_util import tree_map
 
 from jaxdsp.param import Param
 
-step_size_param = Param("step_size", 0.1, 1e-9, 4)
+step_size_param = Param("step_size", 0.05, 1e-9, 0.2)
+
+# Clip all params to [0.0, 1.0] (params are all normalized to unit scale before passing to gradient fn).
+# TODO should also add a loss component to strongly encourage params into this range
+@optimizer
+def param_clipping_optimizer(init, update, get_params):
+    def get_clipped_params(state):
+        params = get_params(state)
+        return tree_map(lambda param: max(0.0, min(param, 1.0)), params)
+
+    return init, update, get_clipped_params
 
 
 class AdaGrad:
@@ -45,12 +57,12 @@ all_optimizers = [AdaGrad, Adam, Adamax, Nesterov, RmsProp, Sgd]
 
 
 class OptimizationOptions:
-    def __init__(self, options_dict):
+    def __init__(self, options_dict={}):
         self.options = options_dict
 
     def create(self):
-        optimizer_name = self.options["name"] or Sgd.NAME
-        params = self.options["params"]
+        optimizer_name = self.options.get("name") or RmsProp.NAME
+        params = self.options.get("params") or {}
         optimizer = next(
             (
                 optimizer
@@ -59,14 +71,13 @@ class OptimizationOptions:
             ),
             None,
         )
-        return optimizer.FUNCTION(
+        init, update, get_params = optimizer.FUNCTION(
             *[
                 params.get(param.name) or param.default_value
                 for param in optimizer.PARAMS
             ]
         )
+        return param_clipping_optimizer(init, update, get_params)
 
 
-default_optimization_options = OptimizationOptions(
-    {"name": Sgd.NAME, "params": {step_size_param.name: 0.2}}
-)
+default_optimization_options = OptimizationOptions()

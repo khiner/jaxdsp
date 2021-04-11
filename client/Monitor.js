@@ -173,7 +173,7 @@ export default function Monitor({ testSample }) {
     },
     fft_sizes: [2048, 1024, 512, 256, 128],
   })
-  const [optimizerName, setOptimizerName] = useState('SGD')
+  const [optimizerName, setOptimizerName] = useState('SGD') // TODO start null and get optimizer defaults from server
   const [optimizerParamValues, setOptimizerParamValues] = useState(null)
 
   const [trainState, setTrainState] = useState({})

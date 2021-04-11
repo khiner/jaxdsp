@@ -1,14 +1,11 @@
 import numpy as np
-import jax.numpy as jnp
-from jax import grad, value_and_grad, jit, vmap
-from jax.experimental import optimizers
-from operator import itemgetter
-from collections.abc import Iterable
+from jax import grad, value_and_grad, jit
+from jax.tree_util import tree_map, tree_multimap
 
 from jaxdsp.processors import serial_processors
+from jaxdsp.param import params_to_unit_scale, params_from_unit_scale
 from jaxdsp.loss import LossOptions, loss_fn
 from jaxdsp.optimizers import OptimizationOptions, default_optimization_options
-from jax.tree_util import tree_map, tree_multimap
 
 
 default_loss_options = LossOptions(
@@ -19,6 +16,7 @@ default_loss_options = LossOptions(
         "sample": "L2",
     },
 )
+
 
 @jit
 def mean_loss_and_grads(loss, grads):
@@ -58,6 +56,7 @@ class IterativeTrainer:
         track_history=False,
     ):
         self.processor = processor
+        self.param_for_name = {param.name: param for param in processor.PARAMS}
         self.step_num = 0
         self.loss = 0.0
         self.processor_config = processor_config or processor.config()
@@ -78,11 +77,14 @@ class IterativeTrainer:
             self.opt_update,
             self.get_params,
         ) = optimization_options.create()
-        self.opt_state = self.opt_init(self.current_params)
+        self.opt_state = self.opt_init(
+            params_to_unit_scale(self.current_params, self.param_for_name)
+        )
         self.processor_state = self.processor_config.state_init
 
     def set_loss_options(self, loss_options):
-        def processor_loss(params, state, X, Y_target):
+        def processor_loss(unit_scale_params, state, X, Y_target):
+            params = params_from_unit_scale(unit_scale_params, self.param_for_name)
             carry, Y_estimated = self.processor.tick_buffer(
                 {"params": params, "state": state}, X
             )
@@ -99,14 +101,16 @@ class IterativeTrainer:
     def step(self, X, Y_target):
         # loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
         (self.loss, self.processor_state), self.grads = self.grad_fn(
-            self.current_params,
+            params_to_unit_scale(self.current_params, self.param_for_name),
             self.processor_state,
             X,
             Y_target,
         )
         self.opt_state = self.opt_update(self.step_num, self.grads, self.opt_state)
         self.step_num += 1
-        self.current_params = self.get_params(self.opt_state)
+        self.current_params = params_from_unit_scale(
+            self.get_params(self.opt_state), self.param_for_name
+        )
         if self.step_evaluator:
             self.step_evaluator.after_step(self.loss, self.current_params)
 
