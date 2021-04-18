@@ -95,8 +95,8 @@ class LossOptions:
     def __init__(
         self,
         weights={
-            "sample": 0.0,
-            "magnitude": 1.0,
+            "sample": 1.0,
+            "magnitude": 0.0,
             "log_magnitude": 0.0,
             "delta_time": 0.0,
             "delta_freq": 0.0,

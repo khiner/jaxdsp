@@ -23,15 +23,14 @@ from jaxdsp.processors import (
     sine_wave,
     processor_by_name,
     empty_carry,
+    serialize_processor,
 )
 from jaxdsp.training import IterativeTrainer
-from jaxdsp.optimizers import OptimizationOptions, all_optimizers
+from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
+
 from jaxdsp.loss import LossOptions
 
 ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
-DEFAULT_PARAM_VALUES = {
-    processor.NAME: processor.config().params_init for processor in ALL_PROCESSORS
-}
 # Training frame pairs are queued up for each client, limited to this cap:
 MAX_TRAIN_FRAMES_PER_CLIENT = 100
 
@@ -46,38 +45,32 @@ class AudioTransformTrack(MediaStreamTrack):
     def __init__(self, track, train_stack):
         super().__init__()
         self.track = track
-        self.train_stack = train_stack
-        # Keep a memory of param values for each processor, so that clients can switch between
-        # processors without losing the params they set.
-        # This param_values object is updated wholesale by the client.
-        # Note that processor state is reset to initial conditions when the processor changes,
-        # since frames may have been processed by a different processor between switching away and back
-        # to a processor. (See `set_processor`.)
-        self.param_values = DEFAULT_PARAM_VALUES
         self.processor = None
         self.processor_state = None
-        self.loss_options = None
         self.is_estimating_params = False
-
-    def set_processor(self, processor):
-        if self.processor and processor and self.processor.NAME == processor.NAME:
-            return
-
-        self.processor = processor
-        self.processor_state = processor.config().state_init if processor else None
-        self.trainer = (
-            IterativeTrainer(processor, self.loss_options) if processor else None
+        self.processor_params = None
+        self.trainer = IterativeTrainer(
+            self.processor,
+            loss_options=None,
+            optimizer_options=None,
+            processor_params=self.processor_params,
         )
+        self.train_stack = train_stack
+
+    def set_processor(self, processor, params=None):
+        self.processor_params = params or (
+            processor.config().params_init if processor else None
+        )
+        if not self.processor or (processor and processor.NAME and self.processor.NAME != processor.NAME):
+            self.processor = processor
+            self.processor_state = processor.config().state_init if processor else None
+            self.trainer.set_processor(self.processor)
 
     def set_loss_options(self, loss_options):
-        self.loss_options = loss_options
-        if self.trainer:
-            self.trainer.set_loss_options(loss_options)
+        self.trainer.set_loss_options(loss_options)
 
-    def set_optimization_options(self, optimization_options):
-        self.optimization_options = optimization_options
-        if self.trainer:
-            self.trainer.set_optimization_options(optimization_options)
+    def set_optimizer_options(self, optimizer_options):
+        self.trainer.set_optimizer_options(optimizer_options)
 
     def start_estimating_params(self):
         self.is_estimating_params = True
@@ -107,7 +100,7 @@ class AudioTransformTrack(MediaStreamTrack):
             self.processor_state["sample_rate"] = frame.sample_rate
             carry, Y_deinterleaved = self.processor.tick_buffer(
                 {
-                    "params": self.param_values[self.processor.NAME],
+                    "params": self.processor_params,
                     "state": self.processor_state,
                 },
                 X_left,
@@ -175,27 +168,21 @@ async def offer(request):
                 channel.send(
                     json.dumps(
                         {
-                            "processors": {
-                                processor.NAME: {
-                                    "params": [
-                                        param.serialize() for param in processor.PARAMS
-                                    ],
-                                    "presets": processor.PRESETS,
-                                }
-                                for processor in ALL_PROCESSORS
-                            },
-                            "optimizers": {
-                                optimizer.NAME: [
-                                    param.serialize() for param in optimizer.PARAMS
-                                ]
-                                for optimizer in all_optimizers
-                            },
+                            "processors": [
+                                serialize_processor(processor_options)
+                                for processor_options in ALL_PROCESSORS
+                            ],
+                            "optimizers": [
+                                create_optimizer(definition.NAME).serialize()
+                                for definition in all_optimizer_definitions
+                            ],
+                            "optimizer": audio_transform_track.trainer.optimizer.serialize(),
+                            "processor": serialize_processor(
+                                audio_transform_track.trainer.processor,
+                                audio_transform_track.trainer.current_params,
+                            ),
                         }
                     )
-                )
-            elif message == "get_param_values":
-                channel.send(
-                    json.dumps({"param_values": audio_transform_track.param_values})
                 )
             elif message == "start_estimating_params":
                 audio_transform_track.start_estimating_params()
@@ -203,16 +190,14 @@ async def offer(request):
                 audio_transform_track.stop_estimating_params()
             else:
                 message_dict = json.loads(message)
-                audio_processor_name = message_dict.get("audio_processor_name")
-                param_values = message_dict.get("param_values")
-                loss_options = message_dict.get("loss_options")
-                optimization_options = message_dict.get("optimization_options")
-                if audio_processor_name:
+                processor_options = message_dict.get("processor")
+                loss_options = message_dict.get("loss")
+                optimizer_options = message_dict.get("optimizer")
+                if processor_options:
                     audio_transform_track.set_processor(
-                        processor_by_name.get(audio_processor_name)
+                        processor_by_name.get(processor_options["name"]),
+                        processor_options["params"],
                     )
-                if param_values:
-                    audio_transform_track.param_values = param_values
                 if loss_options:
                     audio_transform_track.set_loss_options(
                         LossOptions(
@@ -221,10 +206,8 @@ async def offer(request):
                             fft_sizes=loss_options.get("fft_sizes"),
                         )
                     )
-                if optimization_options:
-                    audio_transform_track.set_optimization_options(
-                        OptimizationOptions(optimization_options)
-                    )
+                if optimizer_options:
+                    audio_transform_track.set_optimizer_options(optimizer_options)
 
     @peer_connection.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():

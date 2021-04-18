@@ -5,17 +5,7 @@ from jax.tree_util import tree_map, tree_multimap
 from jaxdsp.processors import serial_processors
 from jaxdsp.param import params_to_unit_scale, params_from_unit_scale
 from jaxdsp.loss import LossOptions, loss_fn
-from jaxdsp.optimizers import OptimizationOptions, default_optimization_options
-
-
-default_loss_options = LossOptions(
-    weights={
-        "sample": 1.0,
-    },
-    distance_types={
-        "sample": "L2",
-    },
-)
+from jaxdsp.optimizers import create_optimizer
 
 
 @jit
@@ -51,36 +41,51 @@ class IterativeTrainer:
         self,
         processor,
         loss_options=None,
-        optimization_options=None,
+        optimizer_options=None,
         processor_config=None,
+        processor_params=None,
         track_history=False,
     ):
-        self.processor = processor
-        self.param_for_name = {param.name: param for param in processor.PARAMS}
         self.step_num = 0
         self.loss = 0.0
-        self.processor_config = processor_config or processor.config()
-        self.current_params = self.processor_config.params_init
-        self.step_evaluator = (
-            LossHistoryAccumulator(self.processor_config.params_init)
-            if track_history
-            else None
-        )
-        self.set_optimization_options(
-            optimization_options or default_optimization_options
-        )
-        self.set_loss_options(loss_options or default_loss_options)
+        self.track_history = track_history
+        self.set_processor(processor, processor_params, processor_config)
+        self.set_optimizer_options(optimizer_options)
+        self.set_loss_options(loss_options or LossOptions())
 
-    def set_optimization_options(self, optimization_options):
-        (
-            self.opt_init,
-            self.opt_update,
-            self.get_params,
-        ) = optimization_options.create()
-        self.opt_state = self.opt_init(
-            params_to_unit_scale(self.current_params, self.param_for_name)
+    def set_processor(self, processor, params=None, config=None):
+        self.processor = processor
+        if processor:
+            self.param_for_name = {param.name: param for param in processor.PARAMS}
+            self.processor_config = config or processor.config()
+            self.current_params = params or self.processor_config.params_init
+            self.step_evaluator = LossHistoryAccumulator(self.current_params)
+            self.opt_state = self.optimizer.init(
+                params_to_unit_scale(self.current_params, self.param_for_name)
+            )
+            self.processor_state = self.processor_config.state_init
+        else:
+            self.param_for_name = None
+            self.processor_config = None
+            self.current_params = None
+            self.step_evaluator = None
+            self.opt_state = None
+            self.processor_state = None
+
+    def set_optimizer_options(self, optimizer_options):
+        self.optimizer = (
+            create_optimizer(
+                optimizer_options.get("name"), optimizer_options.get("params")
+            )
+            if optimizer_options
+            else create_optimizer()
         )
-        self.processor_state = self.processor_config.state_init
+        if self.current_params:
+            self.opt_state = self.optimizer.init(
+                params_to_unit_scale(self.current_params, self.param_for_name)
+            )
+        if self.processor_config:
+            self.processor_state = self.processor_config.state_init
 
     def set_loss_options(self, loss_options):
         def processor_loss(unit_scale_params, state, X, Y_target):
@@ -106,10 +111,12 @@ class IterativeTrainer:
             X,
             Y_target,
         )
-        self.opt_state = self.opt_update(self.step_num, self.grads, self.opt_state)
+        self.opt_state = self.optimizer.update(
+            self.step_num, self.grads, self.opt_state
+        )
         self.step_num += 1
         self.current_params = params_from_unit_scale(
-            self.get_params(self.opt_state), self.param_for_name
+            self.optimizer.get_params(self.opt_state), self.param_for_name
         )
         if self.step_evaluator:
             self.step_evaluator.after_step(self.loss, self.current_params)

@@ -154,10 +154,9 @@ export default function Monitor({ testSample }) {
   const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.testSample.label)
   const [isStreamingAudio, setIsStreamingAudio] = useState(false)
   const [isEstimatingParams, setIsEstimatingParams] = useState(false)
-  const [processorName, setProcessorName] = useState(NONE_PROCESSOR_LABEL)
   const [processors, setProcessors] = useState(null)
   const [optimizers, setOptimizers] = useState(null)
-  const [paramValues, setParamValues] = useState(null)
+  const [processor, setProcessor] = useState(null)
   const [lossOptions, setLossOptions] = useState({
     weights: {
       sample: 1.0,
@@ -173,17 +172,10 @@ export default function Monitor({ testSample }) {
     },
     fft_sizes: [2048, 1024, 512, 256, 128],
   })
-  const [optimizerName, setOptimizerName] = useState('SGD') // TODO start null and get optimizer defaults from server
-  const [optimizerParamValues, setOptimizerParamValues] = useState(null)
-
+  const [optimizer, setOptimizer] = useState(null)
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
-
-  const processorParams = processors && processors[processorName] && processors[processorName].params
-  const processorParamValues = (paramValues && paramValues[processorName]) || {}
-  const optimizerParams = optimizers && optimizers[optimizerName]
-  const currentOptimizerParamValues = (optimizerParamValues && optimizerParamValues[optimizerName]) || {}
 
   const onAudioStreamError = (displayMessage, error) => {
     setIsStreamingAudio(false)
@@ -194,22 +186,13 @@ export default function Monitor({ testSample }) {
 
   const audioRef = useRef(null)
 
-  const sendAudioProcessorName = () =>
-    dataChannel?.send(JSON.stringify({ audio_processor_name: processorName }))
-  const sendParamValues = () => dataChannel?.send(JSON.stringify({ param_values: paramValues }))
-  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
-  const sendOptimizationOptions = () =>
-    dataChannel?.send(
-      JSON.stringify({ optimization_options: { name: optimizerName, params: currentOptimizerParamValues } })
-    )
+  const sendProcessorOptions = () => dataChannel?.send(JSON.stringify({ processor }))
+  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss: lossOptions }))
+  const sendOptimizationOptions = () => dataChannel?.send(JSON.stringify({ optimizer }))
 
   useEffect(() => {
-    sendAudioProcessorName()
-  }, [processorName])
-
-  useEffect(() => {
-    if (paramValues) sendParamValues()
-  }, [paramValues])
+    sendProcessorOptions()
+  }, [processor])
 
   useEffect(() => {
     if (clientUid === null) return
@@ -257,29 +240,15 @@ export default function Monitor({ testSample }) {
       }
       peerConnection.addEventListener('track', event => (audioRef.current.srcObject = event.streams[0]))
       dataChannel = peerConnection.createDataChannel('jaxdsp-client', { ordered: true })
-      dataChannel.onopen = () => {
-        dataChannel.send('get_processors')
-        sendAudioProcessorName()
-        if (paramValues) sendParamValues()
-        else dataChannel.send('get_param_values')
-      }
+      dataChannel.onopen = () => dataChannel.send('get_processors')
       dataChannel.onmessage = event => {
         const message = JSON.parse(event.data)
-        const { processors, optimizers, param_values: paramValues } = message
+        const { processors, processor, optimizers, optimizer } = message
 
         if (processors) setProcessors(processors)
-        if (optimizers) {
-          setOptimizers(optimizers)
-          setOptimizerParamValues(
-            Object.fromEntries(
-              Object.entries(optimizers).map(([optimizerName, params]) => [
-                optimizerName,
-                Object.fromEntries(params.map(({ name, default_value }) => [name, default_value])),
-              ])
-            )
-          )
-        }
-        if (paramValues) setParamValues(paramValues)
+        if (processor) setProcessor(processor)
+        if (optimizers) setOptimizers(optimizers)
+        if (optimizer) setOptimizer(optimizer)
       }
     }
 
@@ -294,7 +263,7 @@ export default function Monitor({ testSample }) {
     }
 
     const addOrReplaceTrack = async track => {
-      const audioSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio')
+      const audioSender = peerConnection.getSenders().find(s => s.track?.kind === 'audio')
       if (audioSender) {
         audioSender.replaceTrack(track)
       } else {
@@ -384,16 +353,19 @@ export default function Monitor({ testSample }) {
       </div>
       {processors && (
         <div>
-          <select value={processorName} onChange={event => setProcessorName(event.target.value)}>
-            {[NONE_PROCESSOR_LABEL, ...Object.keys(processors)].map(processorName => (
-              <option key={processorName} value={processorName}>
-                {processorName}
+          <select
+            value={processor?.name}
+            onChange={event => setProcessor(processors?.find(({ name }) => name === event.target.value))}
+          >
+            {[NONE_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
+              <option key={name} value={name}>
+                {name}
               </option>
             ))}
           </select>
         </div>
       )}
-      {processorParams && (
+      {processor && (
         <div>
           <div>
             <button disabled={isEstimatingParams} onClick={startEstimatingParams}>
@@ -405,26 +377,24 @@ export default function Monitor({ testSample }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'row' }}>
             <div>
-              {processorParams.map(({ name, default_value, min_value, max_value, log_scale }) => (
+              {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
                 <Slider
                   name={name}
-                  value={processorParamValues[name] || default_value || 0.0}
+                  value={processor.params[name] || default_value || 0.0}
                   minValue={min_value}
                   maxValue={max_value}
                   logScale={log_scale}
                   onChange={newValue => {
-                    const newParamValues = { ...(paramValues || {}) }
-                    if (newParamValues[processorName]) {
-                      newParamValues[processorName][name] = newValue
-                    }
-                    setParamValues(newParamValues)
+                    const newProcessor = { ...processor }
+                    newProcessor.params[name] = newValue
+                    setProcessor(newProcessor)
                   }}
                 />
               ))}
             </div>
-            {trainState && trainState.params && (
+            {trainState?.params && (
               <div>
-                {processorParams.map(
+                {processor.param_definitions.map(
                   ({ name, min_value, max_value, log_scale }) =>
                     !isNaN(trainState.params[name]) && (
                       <Slider
@@ -441,7 +411,7 @@ export default function Monitor({ testSample }) {
               </div>
             )}
           </div>
-          {trainState && trainState.loss !== undefined && (
+          {trainState?.loss !== undefined && (
             <div>
               <span>Loss: </span>
               {trainState.loss}
@@ -504,8 +474,11 @@ export default function Monitor({ testSample }) {
           <ul style={{ listStyle: 'none' }}>
             <li>
               <div>
-                <select value={optimizerName} onChange={event => setOptimizerName(event.target.value)}>
-                  {Object.keys(optimizers).map(name => (
+                <select
+                  value={optimizer?.name}
+                  onChange={event => setOptimizer(optimizers.find(({ name }) => name === event.target.value))}
+                >
+                  {optimizers.map(({ name }) => (
                     <option key={name} value={name}>
                       {name}
                     </option>
@@ -513,30 +486,30 @@ export default function Monitor({ testSample }) {
                 </select>
               </div>
             </li>
-            {currentOptimizerParamValues && <li>
-              <ul>
-                {optimizerParams.map(
-                  ({ name, min_value, max_value, log_scale }) =>
-                    !isNaN(currentOptimizerParamValues[name]) && (
-                      <Slider
-                        key={name}
-                        name={name}
-                        value={currentOptimizerParamValues[name]}
-                        minValue={min_value}
-                        maxValue={max_value}
-                        logScale={log_scale}
-                        onChange={newValue => {
-                          const newOptimizerParamValues = { ...optimizerParamValues }
-                          if (newOptimizerParamValues[optimizerName]) {
-                            newOptimizerParamValues[optimizerName][name] = newValue
-                          }
-                          setOptimizerParamValues(newOptimizerParamValues)
-                        }}
-                      />
-                    )
-                )}
-              </ul>
-            </li>}
+            {optimizer && (
+              <li>
+                <ul>
+                  {optimizer.param_definitions.map(
+                    ({ name, min_value, max_value, log_scale }) =>
+                      !isNaN(optimizer.params[name]) && (
+                        <Slider
+                          key={name}
+                          name={name}
+                          value={optimizer.params[name]}
+                          minValue={min_value}
+                          maxValue={max_value}
+                          logScale={log_scale}
+                          onChange={newValue => {
+                            const newOptimizer = { ...optimizer }
+                            newOptimizer.params[name] = newValue
+                            setOptimizer(newOptimizer)
+                          }}
+                        />
+                      )
+                  )}
+                </ul>
+              </li>
+            )}
           </ul>
           <button onClick={sendOptimizationOptions}>Set optimization options</button>
         </div>

@@ -10,11 +10,39 @@ step_size_param = Param("step_size", 0.05, 1e-9, 0.2)
 # TODO should also add a loss component to strongly encourage params into this range
 @optimizer
 def param_clipping_optimizer(init, update, get_params):
+    # Note that these are the params being optimized, NOT the optimizer params :)
     def get_clipped_params(state):
         params = get_params(state)
         return tree_map(lambda param: max(0.0, min(param, 1.0)), params)
 
     return init, update, get_clipped_params
+
+
+class Optimizer:
+    def __init__(self, definition, param_values=None):
+        self.definition = definition
+        self.set_param_values(param_values)
+
+    def set_param_values(self, param_values=None):
+        self.param_values = {
+            param.name: (param_values or {}).get(param.name) or param.default_value
+            for param in self.definition.PARAMS
+        }
+        init, update, get_params = self.definition.FUNCTION(
+            *[self.param_values[param.name] for param in self.definition.PARAMS]
+        )
+        self.init, self.update, self.get_params = param_clipping_optimizer(
+            init, update, get_params
+        )
+
+    def serialize(self):
+        return {
+            "name": self.definition.NAME,
+            "param_definitions": [
+                param.serialize() for param in self.definition.PARAMS
+            ],
+            "params": self.param_values,
+        }
 
 
 class AdaGrad:
@@ -53,31 +81,17 @@ class Sgd:
     FUNCTION = optimizers.sgd
 
 
-all_optimizers = [AdaGrad, Adam, Adamax, Nesterov, RmsProp, Sgd]
+all_optimizer_definitions = [AdaGrad, Adam, Adamax, Nesterov, RmsProp, Sgd]
 
 
-class OptimizationOptions:
-    def __init__(self, options_dict={}):
-        self.options = options_dict
+def create_optimizer(name=None, param_values=None):
+    definition = next(
+        (
+            definition
+            for definition in all_optimizer_definitions
+            if definition.NAME == name
+        ),
+        RmsProp,
+    )
 
-    def create(self):
-        optimizer_name = self.options.get("name") or RmsProp.NAME
-        params = self.options.get("params") or {}
-        optimizer = next(
-            (
-                optimizer
-                for optimizer in all_optimizers
-                if optimizer.NAME == optimizer_name
-            ),
-            None,
-        )
-        init, update, get_params = optimizer.FUNCTION(
-            *[
-                params.get(param.name) or param.default_value
-                for param in optimizer.PARAMS
-            ]
-        )
-        return param_clipping_optimizer(init, update, get_params)
-
-
-default_optimization_options = OptimizationOptions()
+    return Optimizer(definition, param_values)
