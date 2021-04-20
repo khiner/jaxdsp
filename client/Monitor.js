@@ -163,18 +163,18 @@ export default function Monitor({ testSample }) {
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
 
+  const audioRef = useRef(null)
+
+  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor }))
+  const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
+  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
+
   const onAudioStreamError = (displayMessage, error) => {
     setIsStreamingAudio(false)
     setAudioStreamErrorMessage(displayMessage)
     const errorMessage = error ? `${displayMessage}: ${error}` : displayMessage
     console.error(errorMessage)
   }
-
-  const audioRef = useRef(null)
-
-  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor }))
-  const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
-  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
 
   useEffect(() => {
     sendProcessor()
@@ -338,76 +338,82 @@ export default function Monitor({ testSample }) {
           ))}
         </select>
       </div>
-      {processors && (
-        <div>
-          <select
-            value={processor?.name}
-            onChange={event =>
-              setProcessor(processors?.find(({ name }) => name === event.target.value) || null)
-            }
-          >
-            {[NO_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      {processor && (
-        <div>
-          <div>
-            <button disabled={isEstimatingParams} onClick={startEstimatingParams}>
-              Start estimating
-            </button>
-            <button disabled={!isEstimatingParams} onClick={stopEstimatingParams}>
-              Stop estimating
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'row' }}>
+      {isStreamingAudio && (
+        <>
+          {processors && (
             <div>
-              {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
-                <Slider
-                  key={name}
-                  name={name}
-                  value={processor.params[name] || default_value || 0.0}
-                  minValue={min_value}
-                  maxValue={max_value}
-                  logScale={log_scale}
-                  onChange={newValue => {
-                    const newProcessor = { ...processor }
-                    newProcessor.params[name] = newValue
-                    setProcessor(newProcessor)
-                  }}
-                />
-              ))}
+              <select
+                value={processor?.name}
+                onChange={event =>
+                  setProcessor(processors?.find(({ name }) => name === event.target.value) || null)
+                }
+              >
+                {[NO_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
-            {isEstimatingParams && trainState?.params && (
+          )}
+          {processor && (
+            <div>
               <div>
-                {processor.param_definitions.map(
-                  ({ name, min_value, max_value, log_scale }) =>
-                    !isNaN(trainState.params[name]) && (
+                <button disabled={isEstimatingParams} onClick={startEstimatingParams}>
+                  Start estimating
+                </button>
+                <button disabled={!isEstimatingParams} onClick={stopEstimatingParams}>
+                  Stop estimating
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'row' }}>
+                <div>
+                  {processor.param_definitions.map(
+                    ({ name, default_value, min_value, max_value, log_scale }) => (
                       <Slider
                         key={name}
                         name={name}
-                        value={trainState.params[name]}
+                        value={processor.params[name] || default_value || 0.0}
                         minValue={min_value}
                         maxValue={max_value}
                         logScale={log_scale}
-                        onChange={null}
+                        onChange={newValue => {
+                          const newProcessor = { ...processor }
+                          newProcessor.params[name] = newValue
+                          setProcessor(newProcessor)
+                        }}
                       />
                     )
+                  )}
+                </div>
+                {isEstimatingParams && trainState?.params && (
+                  <div>
+                    {processor.param_definitions.map(
+                      ({ name, min_value, max_value, log_scale }) =>
+                        !isNaN(trainState.params[name]) && (
+                          <Slider
+                            key={name}
+                            name={name}
+                            value={trainState.params[name]}
+                            minValue={min_value}
+                            maxValue={max_value}
+                            logScale={log_scale}
+                            onChange={null}
+                          />
+                        )
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-          {trainState?.loss !== undefined && (
-            <div>
-              <span>Loss: </span>
-              {trainState.loss}
+              {trainState?.loss !== undefined && (
+                <div>
+                  <span>Loss: </span>
+                  {trainState.loss}
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
       {isEstimatingParams && (
         <>
@@ -513,11 +519,15 @@ export default function Monitor({ testSample }) {
         </>
       )}
       <div>
-        <button disabled={isStreamingAudio} onClick={() => setIsStreamingAudio(true)}>
-          Start sending
-        </button>
-        <button disabled={!isStreamingAudio} onClick={() => setIsStreamingAudio(false)}>
-          Stop sending
+        <button
+          onClick={() => {
+            if (isStreamingAudio) {
+              setIsEstimatingParams(false)
+            }
+            setIsStreamingAudio(!isStreamingAudio)
+          }}
+        >
+          {isStreamingAudio ? 'Stop sending' : 'Start sending'}
         </button>
         {audioStreamErrorMessage && (
           <div style={{ color: '#B33A3A', fontSize: '12px' }}>{audioStreamErrorMessage}.</div>
