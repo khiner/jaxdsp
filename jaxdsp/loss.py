@@ -82,7 +82,7 @@ loss_fn_for_label = {
 }
 
 sample_loss_labels = ["sample"]
-freq_loss_labels = [
+frequency_loss_labels = [
     "magnitude",
     "log_magnitude",
     "delta_time",
@@ -119,21 +119,39 @@ class LossOptions:
             so comparing multiple scales allows multiple resolutions.
         distance_types: Dict of "sample" and/or "frequency", with possible values: 'L1', 'L2', or 'COSINE'
         """
-        weights = weights or {}
+        self.weights_options = weights or {}
         distance_types = distance_types or {}
         self.fft_sizes = fft_sizes or ()
         self.sample_distance_type = distance_types.get("sample") or "L1"
-        self.freq_distance_type = distance_types.get("frequency") or "L1"
+        self.frequency_distance_type = distance_types.get("frequency") or "L1"
         self.sample_weights = [
             (label, weight)
-            for label, weight in weights.items()
+            for label, weight in self.weights_options.items()
             if weight and weight > 0 and label in sample_loss_labels
         ]
-        self.freq_weights = [
+        self.frequency_weights = [
             (label, weight)
-            for label, weight in weights.items()
-            if weight and weight > 0 and label in freq_loss_labels
+            for label, weight in self.weights_options.items()
+            if weight and weight > 0 and label in frequency_loss_labels
         ]
+
+    def serialize(self):
+        return {
+            # Every key should be present in serialized options.
+            "weights": {
+                label: self.weights_options.get(label) or 0.0
+                for label in sample_loss_labels
+            }
+            | {
+                label: self.weights_options.get(label) or 0.0
+                for label in frequency_loss_labels
+            },
+            "distance_types": {
+                "sample": self.sample_distance_type,
+                "frequency": self.frequency_distance_type,
+            },
+            "fft_sizes": list(self.fft_sizes),
+        }
 
 
 def loss_fn(X, Y, opts):
@@ -141,7 +159,7 @@ def loss_fn(X, Y, opts):
         weight * loss_fn_for_label[label](X, Y, opts.sample_distance_type)
         for label, weight in opts.sample_weights
     )
-    if len(opts.freq_weights) > 0:
+    if len(opts.frequency_weights) > 0:
         for fft_size in opts.fft_sizes:
             # TODO janky. Should have the same dimension reqs for time & freq
             if len(X.shape) == 1:
@@ -151,8 +169,9 @@ def loss_fn(X, Y, opts):
             X_mag = magnitute_spectrogram(X, size=fft_size)
             Y_mag = magnitute_spectrogram(Y, size=fft_size)
             loss += sum(
-                weight * loss_fn_for_label[label](X_mag, Y_mag, opts.freq_distance_type)
-                for label, weight in opts.freq_weights
+                weight
+                * loss_fn_for_label[label](X_mag, Y_mag, opts.frequency_distance_type)
+                for label, weight in opts.frequency_weights
             )
     return loss
 

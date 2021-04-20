@@ -51,7 +51,7 @@ class IterativeTrainer:
         self.track_history = track_history
         self.set_processor(processor, processor_params, processor_config)
         self.set_optimizer_options(optimizer_options)
-        self.set_loss_options(loss_options or LossOptions())
+        self.set_loss_options(loss_options)
 
     def set_processor(self, processor, params=None, config=None):
         self.processor = processor
@@ -88,6 +88,8 @@ class IterativeTrainer:
             self.processor_state = self.processor_config.state_init
 
     def set_loss_options(self, loss_options):
+        self.loss_options = loss_options or LossOptions()
+
         def processor_loss(unit_scale_params, state, X, Y_target):
             params = params_from_unit_scale(unit_scale_params, self.param_for_name)
             carry, Y_estimated = self.processor.tick_buffer(
@@ -96,7 +98,7 @@ class IterativeTrainer:
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
             return (
-                loss_fn(Y_estimated, Y_target, loss_options),
+                loss_fn(Y_estimated, Y_target, self.loss_options),
                 carry["state"],
             )
 

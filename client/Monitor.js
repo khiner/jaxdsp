@@ -157,21 +157,7 @@ export default function Monitor({ testSample }) {
   const [processors, setProcessors] = useState(null)
   const [optimizers, setOptimizers] = useState(null)
   const [processor, setProcessor] = useState(null)
-  const [lossOptions, setLossOptions] = useState({
-    weights: {
-      sample: 1.0,
-      magnitude: 0.0,
-      log_magnitude: 0.0,
-      delta_time: 0.0,
-      delta_freq: 0.0,
-      cumsum_freq: 0.0,
-    },
-    distance_types: {
-      sample: 'L1',
-      frequency: 'L1',
-    },
-    fft_sizes: [2048, 1024, 512, 256, 128],
-  })
+  const [lossOptions, setLossOptions] = useState(null)
   const [optimizer, setOptimizer] = useState(null)
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
@@ -188,7 +174,7 @@ export default function Monitor({ testSample }) {
 
   const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor }))
   const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
-  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss: lossOptions }))
+  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
 
   useEffect(() => {
     sendProcessor()
@@ -240,15 +226,16 @@ export default function Monitor({ testSample }) {
       }
       peerConnection.addEventListener('track', event => (audioRef.current.srcObject = event.streams[0]))
       dataChannel = peerConnection.createDataChannel('jaxdsp-client', { ordered: true })
-      dataChannel.onopen = () => dataChannel.send('get_processors')
+      dataChannel.onopen = () => dataChannel.send('get_state')
       dataChannel.onmessage = event => {
         const message = JSON.parse(event.data)
-        const { processors, processor, optimizers, optimizer } = message
+        const { processors, processor, optimizers, optimizer, loss_options: lossOptions } = message
 
         if (processors) setProcessors(processors)
         if (processor) setProcessor(processor)
         if (optimizers) setOptimizers(optimizers)
         if (optimizer) setOptimizer(optimizer)
+        if (lossOptions) setLossOptions(lossOptions)
       }
     }
 
@@ -355,7 +342,9 @@ export default function Monitor({ testSample }) {
         <div>
           <select
             value={processor?.name}
-            onChange={event => setProcessor(processors?.find(({ name }) => name === event.target.value) || null)}
+            onChange={event =>
+              setProcessor(processors?.find(({ name }) => name === event.target.value) || null)
+            }
           >
             {[NO_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
               <option key={name} value={name}>
@@ -420,55 +409,57 @@ export default function Monitor({ testSample }) {
           )}
         </div>
       )}
-      <div>
-        <span style={{ fontSize: 18, fontWeight: 'bold' }}>Loss options</span>
-        <ul style={{ listStyle: 'none' }}>
-          <li>
-            <label htmlFor="weights">Weights:</label>
-            <ul id="weights">
-              {Object.entries(lossOptions.weights).map(([key, value]) => (
-                <li key={key} style={{ listStyle: 'none' }}>
-                  <Slider
-                    key={key}
-                    name={key}
-                    value={value}
-                    minValue={0.0}
-                    maxValue={1.0}
-                    onChange={newValue => {
-                      const newLossOptions = { ...lossOptions }
-                      newLossOptions.weights[key] = newValue
-                      setLossOptions(newLossOptions)
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-          </li>
-          <li>
-            <label htmlFor="distance_types">Distance types:</label>
-            <ul id="distance_types">
-              {Object.entries(lossOptions.distance_types).map(([key, value]) => (
-                <li id={key} key={key} style={{ listStyle: 'none' }}>
-                  <label htmlFor={key}>{key}: </label>
-                  <select
-                    id={key}
-                    value={value}
-                    onChange={event => {
-                      const newLossOptions = { ...lossOptions }
-                      newLossOptions.distance_types[key] = event.target.value
-                      setLossOptions(newLossOptions)
-                    }}
-                  >
-                    <option value="L1">L1</option>
-                    <option value="L2">L2</option>
-                  </select>
-                </li>
-              ))}
-            </ul>
-          </li>
-        </ul>
-        <button onClick={sendLossOptions}>Set loss options</button>
-      </div>
+      {lossOptions && (
+        <div>
+          <span style={{ fontSize: 18, fontWeight: 'bold' }}>Loss options</span>
+          <ul style={{ listStyle: 'none' }}>
+            <li>
+              <label htmlFor="weights">Weights:</label>
+              <ul id="weights">
+                {Object.entries(lossOptions.weights).map(([key, value]) => (
+                  <li key={key} style={{ listStyle: 'none' }}>
+                    <Slider
+                      key={key}
+                      name={key}
+                      value={value}
+                      minValue={0.0}
+                      maxValue={1.0}
+                      onChange={newValue => {
+                        const newLossOptions = { ...lossOptions }
+                        newLossOptions.weights[key] = newValue
+                        setLossOptions(newLossOptions)
+                      }}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </li>
+            <li>
+              <label htmlFor="distance_types">Distance types:</label>
+              <ul id="distance_types">
+                {Object.entries(lossOptions.distance_types).map(([key, value]) => (
+                  <li id={key} key={key} style={{ listStyle: 'none' }}>
+                    <label htmlFor={key}>{key}: </label>
+                    <select
+                      id={key}
+                      value={value}
+                      onChange={event => {
+                        const newLossOptions = { ...lossOptions }
+                        newLossOptions.distance_types[key] = event.target.value
+                        setLossOptions(newLossOptions)
+                      }}
+                    >
+                      <option value="L1">L1</option>
+                      <option value="L2">L2</option>
+                    </select>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          </ul>
+          <button onClick={sendLossOptions}>Set loss options</button>
+        </div>
+      )}
       {optimizers && (
         <div>
           <span style={{ fontSize: 18, fontWeight: 'bold' }}>Optimization options</span>

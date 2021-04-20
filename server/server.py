@@ -166,7 +166,7 @@ async def offer(request):
     def on_datachannel(channel):
         @channel.on("message")
         def on_message(message):
-            if message == "get_processors":
+            if message == "get_state":
                 channel.send(
                     json.dumps(
                         {
@@ -183,6 +183,7 @@ async def offer(request):
                                 audio_transform_track.trainer.processor,
                                 audio_transform_track.trainer.current_params,
                             ),
+                            "loss_options": audio_transform_track.trainer.loss_options.serialize(),
                         }
                     )
                 )
@@ -192,8 +193,6 @@ async def offer(request):
                 audio_transform_track.stop_estimating_params()
             else:
                 message_dict = json.loads(message)
-                loss_options = message_dict.get("loss")
-                optimizer_options = message_dict.get("optimizer")
                 if "processor" in message_dict:
                     processor = message_dict["processor"]
                     processor_name = processor and processor["name"]
@@ -202,6 +201,7 @@ async def offer(request):
                         processor_by_name.get(processor_name),
                         processor_params,
                     )
+                loss_options = message_dict.get("loss_options")
                 if loss_options:
                     audio_transform_track.set_loss_options(
                         LossOptions(
@@ -210,6 +210,7 @@ async def offer(request):
                             fft_sizes=loss_options.get("fft_sizes"),
                         )
                     )
+                optimizer_options = message_dict.get("optimizer")
                 if optimizer_options:
                     audio_transform_track.set_optimizer_options(optimizer_options)
 
