@@ -382,7 +382,7 @@ export default function Monitor({ testSample }) {
                 />
               ))}
             </div>
-            {trainState?.params && (
+            {isEstimatingParams && trainState?.params && (
               <div>
                 {processor.param_definitions.map(
                   ({ name, min_value, max_value, log_scale }) =>
@@ -409,102 +409,108 @@ export default function Monitor({ testSample }) {
           )}
         </div>
       )}
-      {lossOptions && (
-        <div>
-          <span style={{ fontSize: 18, fontWeight: 'bold' }}>Loss options</span>
-          <ul style={{ listStyle: 'none' }}>
-            <li>
-              <label htmlFor="weights">Weights:</label>
-              <ul id="weights">
-                {Object.entries(lossOptions.weights).map(([key, value]) => (
-                  <li key={key} style={{ listStyle: 'none' }}>
-                    <Slider
-                      key={key}
-                      name={key}
-                      value={value}
-                      minValue={0.0}
-                      maxValue={1.0}
-                      onChange={newValue => {
-                        const newLossOptions = { ...lossOptions }
-                        newLossOptions.weights[key] = newValue
-                        setLossOptions(newLossOptions)
-                      }}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </li>
-            <li>
-              <label htmlFor="distance_types">Distance types:</label>
-              <ul id="distance_types">
-                {Object.entries(lossOptions.distance_types).map(([key, value]) => (
-                  <li id={key} key={key} style={{ listStyle: 'none' }}>
-                    <label htmlFor={key}>{key}: </label>
-                    <select
-                      id={key}
-                      value={value}
-                      onChange={event => {
-                        const newLossOptions = { ...lossOptions }
-                        newLossOptions.distance_types[key] = event.target.value
-                        setLossOptions(newLossOptions)
-                      }}
-                    >
-                      <option value="L1">L1</option>
-                      <option value="L2">L2</option>
-                    </select>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          </ul>
-          <button onClick={sendLossOptions}>Set loss options</button>
-        </div>
-      )}
-      {optimizers && (
-        <div>
-          <span style={{ fontSize: 18, fontWeight: 'bold' }}>Optimization options</span>
-          <ul style={{ listStyle: 'none' }}>
-            <li>
-              <div>
-                <select
-                  value={optimizer?.name}
-                  onChange={event => setOptimizer(optimizers.find(({ name }) => name === event.target.value))}
-                >
-                  {optimizers.map(({ name }) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </li>
-            {optimizer && (
-              <li>
-                <ul>
-                  {optimizer.param_definitions.map(
-                    ({ name, min_value, max_value, log_scale }) =>
-                      !isNaN(optimizer.params[name]) && (
+      {isEstimatingParams && (
+        <>
+          {lossOptions && (
+            <div>
+              <span style={{ fontSize: 18, fontWeight: 'bold' }}>Loss options</span>
+              <ul style={{ listStyle: 'none' }}>
+                <li>
+                  <label htmlFor="weights">Weights:</label>
+                  <ul id="weights">
+                    {Object.entries(lossOptions.weights).map(([key, value]) => (
+                      <li key={key} style={{ listStyle: 'none' }}>
                         <Slider
-                          key={name}
-                          name={name}
-                          value={optimizer.params[name]}
-                          minValue={min_value}
-                          maxValue={max_value}
-                          logScale={log_scale}
+                          key={key}
+                          name={key}
+                          value={value}
+                          minValue={0.0}
+                          maxValue={1.0}
                           onChange={newValue => {
-                            const newOptimizer = { ...optimizer }
-                            newOptimizer.params[name] = newValue
-                            setOptimizer(newOptimizer)
+                            const newLossOptions = { ...lossOptions }
+                            newLossOptions.weights[key] = newValue
+                            setLossOptions(newLossOptions)
                           }}
                         />
-                      )
-                  )}
-                </ul>
-              </li>
-            )}
-          </ul>
-          <button onClick={sendOptimizer}>Set optimization options</button>
-        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+                <li>
+                  <label htmlFor="distance_types">Distance types:</label>
+                  <ul id="distance_types">
+                    {Object.entries(lossOptions.distance_types).map(([key, value]) => (
+                      <li id={key} key={key} style={{ listStyle: 'none' }}>
+                        <label htmlFor={key}>{key}: </label>
+                        <select
+                          id={key}
+                          value={value}
+                          onChange={event => {
+                            const newLossOptions = { ...lossOptions }
+                            newLossOptions.distance_types[key] = event.target.value
+                            setLossOptions(newLossOptions)
+                          }}
+                        >
+                          <option value="L1">L1</option>
+                          <option value="L2">L2</option>
+                        </select>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              </ul>
+              <button onClick={sendLossOptions}>Set loss options</button>
+            </div>
+          )}
+          {optimizers && (
+            <div>
+              <span style={{ fontSize: 18, fontWeight: 'bold' }}>Optimization options</span>
+              <ul style={{ listStyle: 'none' }}>
+                <li>
+                  <div>
+                    <select
+                      value={optimizer?.name}
+                      onChange={event =>
+                        setOptimizer(optimizers.find(({ name }) => name === event.target.value))
+                      }
+                    >
+                      {optimizers.map(({ name }) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </li>
+                {optimizer && (
+                  <li>
+                    <ul>
+                      {optimizer.param_definitions.map(
+                        ({ name, min_value, max_value, log_scale }) =>
+                          !isNaN(optimizer.params[name]) && (
+                            <Slider
+                              key={name}
+                              name={name}
+                              value={optimizer.params[name]}
+                              minValue={min_value}
+                              maxValue={max_value}
+                              logScale={log_scale}
+                              onChange={newValue => {
+                                const newOptimizer = { ...optimizer }
+                                newOptimizer.params[name] = newValue
+                                setOptimizer(newOptimizer)
+                              }}
+                            />
+                          )
+                      )}
+                    </ul>
+                  </li>
+                )}
+              </ul>
+              <button onClick={sendOptimizer}>Set optimization options</button>
+            </div>
+          )}
+        </>
       )}
       <div>
         <button disabled={isStreamingAudio} onClick={() => setIsStreamingAudio(true)}>
