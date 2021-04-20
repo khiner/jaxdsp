@@ -28,7 +28,7 @@ empty_carry = {"state": None, "params": None}
 
 def serialize_processor(processor, params=None):
     if not processor:
-        return {"name": "None", "param_definitions": [], "presets": [], "params": {}}
+        return None
 
     return {
         "name": processor.NAME,
