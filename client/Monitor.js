@@ -186,12 +186,12 @@ export default function Monitor({ testSample }) {
 
   const audioRef = useRef(null)
 
-  const sendProcessorOptions = () => dataChannel?.send(JSON.stringify({ processor }))
+  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor }))
+  const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss: lossOptions }))
-  const sendOptimizationOptions = () => dataChannel?.send(JSON.stringify({ optimizer }))
 
   useEffect(() => {
-    sendProcessorOptions()
+    sendProcessor()
   }, [processor])
 
   useEffect(() => {
@@ -355,7 +355,7 @@ export default function Monitor({ testSample }) {
         <div>
           <select
             value={processor?.name}
-            onChange={event => setProcessor(processors?.find(({ name }) => name === event.target.value))}
+            onChange={event => setProcessor(processors?.find(({ name }) => name === event.target.value) || null)}
           >
             {[NO_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
               <option key={name} value={name}>
@@ -512,7 +512,7 @@ export default function Monitor({ testSample }) {
               </li>
             )}
           </ul>
-          <button onClick={sendOptimizationOptions}>Set optimization options</button>
+          <button onClick={sendOptimizer}>Set optimization options</button>
         </div>
       )}
       <div>

@@ -61,7 +61,9 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processor_params = params or (
             processor.config().params_init if processor else None
         )
-        if not self.processor or (processor and processor.NAME and self.processor.NAME != processor.NAME):
+        if (bool(processor) != bool(self.processor)) or (
+            processor and self.processor and self.processor.NAME != processor.NAME
+        ):
             self.processor = processor
             self.processor_state = processor.config().state_init if processor else None
             self.trainer.set_processor(self.processor)
@@ -169,8 +171,8 @@ async def offer(request):
                     json.dumps(
                         {
                             "processors": [
-                                serialize_processor(processor_options)
-                                for processor_options in ALL_PROCESSORS
+                                serialize_processor(processor)
+                                for processor in ALL_PROCESSORS
                             ],
                             "optimizers": [
                                 create_optimizer(definition.NAME).serialize()
@@ -190,13 +192,15 @@ async def offer(request):
                 audio_transform_track.stop_estimating_params()
             else:
                 message_dict = json.loads(message)
-                processor_options = message_dict.get("processor")
                 loss_options = message_dict.get("loss")
                 optimizer_options = message_dict.get("optimizer")
-                if processor_options:
+                if "processor" in message_dict:
+                    processor = message_dict["processor"]
+                    processor_name = processor and processor["name"]
+                    processor_params = processor and processor["params"]
                     audio_transform_track.set_processor(
-                        processor_by_name.get(processor_options["name"]),
-                        processor_options["params"],
+                        processor_by_name.get(processor_name),
+                        processor_params,
                     )
                 if loss_options:
                     audio_transform_track.set_loss_options(
