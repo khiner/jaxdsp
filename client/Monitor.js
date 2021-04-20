@@ -244,9 +244,17 @@ export default function Monitor({ testSample }) {
 
       peerConnection.getSenders().forEach(sender => sender?.track?.stop())
       dataChannel?.close()
+      dataChannel = null
       peerConnection.getTransceivers()?.forEach(transceiver => transceiver.stop())
       peerConnection.close()
       peerConnection = null
+      setProcessor(null)
+      setProcessors(null)
+      setOptimizer(null)
+      setOptimizers(null)
+      setIsEstimatingParams(false)
+      setTrainState({})
+      setClientUid(null)
     }
 
     const addOrReplaceTrack = async track => {
@@ -520,12 +528,7 @@ export default function Monitor({ testSample }) {
       )}
       <div>
         <button
-          onClick={() => {
-            if (isStreamingAudio) {
-              setIsEstimatingParams(false)
-            }
-            setIsStreamingAudio(!isStreamingAudio)
-          }}
+          onClick={() => setIsStreamingAudio(!isStreamingAudio)}
         >
           {isStreamingAudio ? 'Stop sending' : 'Start sending'}
         </button>
