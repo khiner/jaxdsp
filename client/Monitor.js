@@ -106,7 +106,7 @@ const AUDIO_INPUT_SOURCES = {
   },
 }
 
-const NONE_PROCESSOR_LABEL = 'None'
+const NO_PROCESSOR_LABEL = 'None'
 
 function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
   // `position` vars correspond to slider position. (e.g. 0-1)
@@ -357,7 +357,7 @@ export default function Monitor({ testSample }) {
             value={processor?.name}
             onChange={event => setProcessor(processors?.find(({ name }) => name === event.target.value))}
           >
-            {[NONE_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
+            {[NO_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
               <option key={name} value={name}>
                 {name}
               </option>
@@ -379,6 +379,7 @@ export default function Monitor({ testSample }) {
             <div>
               {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
                 <Slider
+                  key={name}
                   name={name}
                   value={processor.params[name] || default_value || 0.0}
                   minValue={min_value}
