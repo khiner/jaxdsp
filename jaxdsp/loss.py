@@ -107,9 +107,10 @@ class LossOptions:
             "frequency": "L1",
         },
         # Note: removing smaller fft sizes seems to get rid of some small non-convex "bumps"
-        # in the loss curve for a sine wave with a target frequency param
+        # in the loss curve for a sine wave with a target frequency param.
+        # Also, removing 2048 size since it's just so darn slow.
         # fft_sizes=(2048, 1024, 512, 256, 128, 64),
-        fft_sizes=(2048, 1024, 512, 256, 128),
+        fft_sizes=(1024, 512, 256, 128),
     ):
         """Args:
         weights: Dict of loss labels to relative weighting of that loss.

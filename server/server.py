@@ -58,6 +58,26 @@ class AudioTransformTrack(MediaStreamTrack):
             processor_params=self.processor_params,
         )
         self.train_stack = train_stack
+        self.previous_frame = None
+
+        # Accumulate `packets_per_buffer` packets before processing them all at once,
+        # both for the "forward pass" of processing incoming audio, and for the "backward pass"
+        # of calculating gradients if the client for this track has estimation enabled.
+        #
+        # Downside: Introduces `packets_per_buffer - 1` packets of latency.
+        #
+        # Upside: Larger buffer sizes are faster to process per-sample because we
+        # get more benefit from JAX's vectorization, and incur less round-trip cost
+        # to the XLA code executed on the CPU/GPU (both for the forward pass and the gradient pass).
+        # Estimation should generally be more stable with larger buffers.
+        # Also, crucially for estimation, we can increase the maximum FFT size in the
+        # multi-scale spectral loss.
+        #
+        # (Note: the opus 44100 Hz negotiation with both client and server on my machine only seems
+        # to support 20ms packet sizes, otherwise this work would best be done in the RTC negotiation.)
+        self.packets_per_buffer = 3  # TODO allow changing in realtime by client
+        self.accumulated_packets = []
+        self.processed_packets = []
 
     def set_processor(self, processor, params=None):
         self.processor_params = params or (
@@ -82,26 +102,11 @@ class AudioTransformTrack(MediaStreamTrack):
     def stop_estimating_params(self):
         self.is_estimating_params = False
 
-    async def recv(self):
-        assert self.track
-        frame = await self.track.recv()
-        num_channels = len(frame.layout.channels)
-        assert (
-            frame.format.is_packed
-        ), "Processing assumes frames are packed, but frame is planar"
-        assert num_channels == 2, "Processing assumes frames have 2 channels"
-
-        X_interleaved = (
-            np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32) / int_max
-        )
-        X_deinterleaved = [
-            X_interleaved[channel_num::num_channels]
-            for channel_num in range(num_channels)
-        ]
+    def process(self, X_deinterleaved, sample_rate):
         X_left = X_deinterleaved[0]  # TODO handle stereo in
 
         if self.processor:
-            self.processor_state["sample_rate"] = frame.sample_rate
+            self.processor_state["sample_rate"] = sample_rate
             carry, Y_deinterleaved = self.processor.tick_buffer(
                 {
                     "params": self.processor_params,
@@ -123,14 +128,44 @@ class AudioTransformTrack(MediaStreamTrack):
             # array-of-ticks processing for both stereo and mono.
             Y_deinterleaved = Y_deinterleaved.T
 
-        Y_interleaved = np.empty(
-            (Y_deinterleaved.shape[1] * 2,), dtype=Y_deinterleaved.dtype
+        return Y_deinterleaved
+
+    async def recv(self):
+        frame = await self.track.recv()
+        num_channels = len(frame.layout.channels)
+        assert (
+            frame.format.is_packed
+        ), "Processing assumes frames are packed, but frame is planar"
+        assert num_channels == 2, "Processing assumes frames have 2 channels"
+
+        X_interleaved = (
+            np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32) / int_max
         )
-        Y_interleaved[0::2] = Y_deinterleaved[0]
-        Y_interleaved[1::2] = Y_deinterleaved[1]
-        frame.planes[0].update((Y_interleaved * int_max).astype(np.int16))
-        if self.is_estimating_params:
-            self.train_stack.append([X_deinterleaved, Y_deinterleaved])
+        X_deinterleaved = [
+            X_interleaved[channel_num::num_channels]
+            for channel_num in range(num_channels)
+        ]
+
+        self.accumulated_packets.append(X_deinterleaved)
+        if len(self.accumulated_packets) == self.packets_per_buffer:
+            X = np.hstack(self.accumulated_packets)
+            Y = self.process(X, frame.sample_rate)
+            self.processed_packets = np.split(Y, self.packets_per_buffer, axis=1)
+            self.accumulated_packets = []
+            if self.is_estimating_params:
+                self.train_stack.append([X, Y])
+
+        if len(self.processed_packets) > 0:
+            Y_deinterleaved = self.processed_packets.pop(0)
+            Y_interleaved = np.empty(
+                (Y_deinterleaved.shape[1] * 2,), dtype=Y_deinterleaved.dtype
+            )
+            Y_interleaved[0::2] = Y_deinterleaved[0]
+            Y_interleaved[1::2] = Y_deinterleaved[1]
+
+            frame.planes[0].update((Y_interleaved * int_max).astype(np.int16))
+        else:
+            frame.planes[0].update(np.zeros(X_interleaved.size, dtype="int16"))
 
         return frame
 
