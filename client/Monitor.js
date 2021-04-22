@@ -527,9 +527,7 @@ export default function Monitor({ testSample }) {
         </>
       )}
       <div>
-        <button
-          onClick={() => setIsStreamingAudio(!isStreamingAudio)}
-        >
+        <button onClick={() => setIsStreamingAudio(!isStreamingAudio)}>
           {isStreamingAudio ? 'Stop sending' : 'Start sending'}
         </button>
         {audioStreamErrorMessage && (

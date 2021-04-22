@@ -38,6 +38,8 @@ logger = logging.getLogger("pc")
 track_for_client_uid = {}
 peer_connections = set()
 
+int_max = np.iinfo(np.int16).max
+
 
 class AudioTransformTrack(MediaStreamTrack):
     kind = "audio"
@@ -90,14 +92,14 @@ class AudioTransformTrack(MediaStreamTrack):
         assert num_channels == 2, "Processing assumes frames have 2 channels"
 
         X_interleaved = (
-            np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32)
-            / np.iinfo(np.int16).max
+            np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32) / int_max
         )
         X_deinterleaved = [
             X_interleaved[channel_num::num_channels]
             for channel_num in range(num_channels)
         ]
         X_left = X_deinterleaved[0]  # TODO handle stereo in
+
         if self.processor:
             self.processor_state["sample_rate"] = frame.sample_rate
             carry, Y_deinterleaved = self.processor.tick_buffer(
@@ -126,9 +128,7 @@ class AudioTransformTrack(MediaStreamTrack):
         )
         Y_interleaved[0::2] = Y_deinterleaved[0]
         Y_interleaved[1::2] = Y_deinterleaved[1]
-        frame.planes[0].update(
-            (Y_interleaved * np.iinfo(np.int16).max).astype(np.int16)
-        )
+        frame.planes[0].update((Y_interleaved * int_max).astype(np.int16))
         if self.is_estimating_params:
             self.train_stack.append([X_deinterleaved, Y_deinterleaved])
 
