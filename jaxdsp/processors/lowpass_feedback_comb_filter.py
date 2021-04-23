@@ -3,7 +3,7 @@ from jax import jit, lax
 from jax.ops import index_update
 
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config, default_param_values
+from jaxdsp.processors.base import Config
 
 NAME = "Lowpass Feedback Comb Filter"
 PARAMS = [Param("feedback", 0.0), Param("damp", 0.0)]
@@ -16,8 +16,7 @@ def config(buffer_size=20):
             "buffer": jnp.zeros(buffer_size),
             "buffer_index": 0,
             "filter_store": 0.0,
-        },
-        default_param_values(PARAMS),
+        }
     )
 
 

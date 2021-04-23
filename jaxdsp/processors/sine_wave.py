@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax import jit
 
-from jaxdsp.processors.base import Config, default_param_values
+from jaxdsp.processors.base import Config
 from jaxdsp.param import Param
 
 NAME = "Sine Wave"
@@ -12,10 +12,7 @@ PRESETS = {}
 
 
 def config():
-    return Config(
-        {"phase_radians": 0.0, "sample_rate": 44100},
-        default_param_values(PARAMS),
-    )
+    return Config({"phase_radians": 0.0, "sample_rate": 44100})
 
 
 @jit

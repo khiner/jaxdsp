@@ -24,6 +24,7 @@ from jaxdsp.processors import (
     processor_by_name,
     empty_carry,
     serialize_processor,
+    default_param_values,
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
@@ -55,7 +56,7 @@ class AudioTransformTrack(MediaStreamTrack):
             self.processor,
             loss_options=None,
             optimizer_options=None,
-            processor_params=self.processor_params,
+            processor_params=None,
         )
         self.train_stack = train_stack
         self.previous_frame = None
@@ -80,15 +81,15 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processed_packets = []
 
     def set_processor(self, processor, params=None):
-        self.processor_params = params or (
-            processor.config().params_init if processor else None
-        )
         if (bool(processor) != bool(self.processor)) or (
             processor and self.processor and self.processor.NAME != processor.NAME
         ):
             self.processor = processor
             self.processor_state = processor.config().state_init if processor else None
             self.trainer.set_processor(self.processor)
+        self.processor_params = params or (
+            default_param_values(processor, self.processor_state) if processor else None
+        )
 
     def set_loss_options(self, loss_options):
         self.trainer.set_loss_options(loss_options)

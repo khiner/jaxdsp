@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from jax import jit, lax
 
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config, default_param_values
+from jaxdsp.processors.base import Config
 
 NAME = "FIR Filter"
 # TODO how to handle array params in UI?
@@ -11,10 +11,7 @@ PRESETS = {}
 
 
 def config(length=4):
-    return Config(
-        {"inputs": jnp.zeros(length)},
-        default_param_values(PARAMS),
-    )
+    return Config({"inputs": jnp.zeros(length)})
 
 
 @jit

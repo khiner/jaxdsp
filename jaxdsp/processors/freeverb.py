@@ -4,7 +4,7 @@ from jax import jit, lax
 from jaxdsp.processors import lowpass_feedback_comb_filter as comb
 from jaxdsp.processors import allpass_filter as allpass
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config, default_param_values
+from jaxdsp.processors.base import Config
 
 NAME = "Freeverb"
 PARAMS = [
@@ -77,8 +77,7 @@ def config():
                 create_allpass_carry(buffer_size + stereo_spread)
                 for buffer_size in allpass_tunings_l
             ],
-        },
-        default_param_values(PARAMS),
+        }
     )
 
 

@@ -114,10 +114,12 @@ def plot_optimization(
         param_init[varying_param_name] for param_init in params_inits
     ]  # TODO only pass in one to vary
     for params_init in params_inits:
-        processor_config = processor.config()
-        processor_config.params_init = params_init
         trainer = training.IterativeTrainer(
-            processor, training.Config(), processor_config, track_history=True
+            processor,
+            training.Config(),
+            processor.config(),
+            params_init,
+            track_history=True,
         )
         for i in range(steps):
             X = Xs[i % Xs.shape[0]]

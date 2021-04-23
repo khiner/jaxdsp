@@ -1,5 +1,4 @@
 from jaxdsp.processors import (
-    base,
     allpass_filter,
     clip,
     delay_line,
@@ -26,6 +25,16 @@ processor_by_name = {processor.NAME: processor for processor in all_processors}
 empty_carry = {"state": None, "params": None}
 
 
+def default_param_values(processor, processor_state=None):
+    # Check if this is a processor that contains other processors
+    if processor_state and set(processor_state.keys()) & set(processor_by_name.keys()):
+        return {
+            processor_name: default_param_values(processor_by_name[processor_name])
+            for processor_name in processor_state.keys()
+        }
+    return {param.name: param.default_value for param in processor.PARAMS}
+
+
 def serialize_processor(processor, params=None):
     if not processor:
         return None
@@ -34,7 +43,7 @@ def serialize_processor(processor, params=None):
         "name": processor.NAME,
         "param_definitions": [param.serialize() for param in processor.PARAMS],
         "presets": processor.PRESETS,
-        "params": params or base.default_param_values(processor.PARAMS),
+        "params": params or default_param_values(processor),
     }
 
 

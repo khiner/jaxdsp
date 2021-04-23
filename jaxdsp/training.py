@@ -2,7 +2,7 @@ import numpy as np
 from jax import grad, value_and_grad, jit
 from jax.tree_util import tree_map, tree_multimap
 
-from jaxdsp.processors import serial_processors, params_to_unit_scale, params_from_unit_scale
+from jaxdsp.processors import serial_processors, params_to_unit_scale, params_from_unit_scale, default_param_values
 from jaxdsp.loss import LossOptions, loss_fn
 from jaxdsp.optimizers import create_optimizer
 
@@ -58,7 +58,7 @@ class IterativeTrainer:
         self.processor = processor
         if processor:
             self.processor_config = config or processor.config()
-            self.current_params = params or self.processor_config.params_init
+            self.current_params = params or default_param_values(processor, self.processor_config.state_init)
             self.step_evaluator = LossHistoryAccumulator(self.current_params)
             self.opt_state = self.optimizer.init(
                 params_to_unit_scale(self.current_params, processor.NAME)

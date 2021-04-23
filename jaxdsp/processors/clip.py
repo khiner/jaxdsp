@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax import jit
 
-from jaxdsp.processors.base import Config, default_param_values
+from jaxdsp.processors.base import Config
 from jaxdsp.param import Param
 
 NAME = "Clip"
@@ -10,7 +10,7 @@ PRESETS = {}
 
 
 def config():
-    return Config({}, default_param_values(PARAMS))
+    return Config({})
 
 
 @jit

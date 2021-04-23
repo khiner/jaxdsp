@@ -16,7 +16,7 @@ from jax import jit, lax
 from jax.ops import index, index_update
 
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config, default_param_values
+from jaxdsp.processors.base import Config
 
 MAX_DELAY_LENGTH_SAMPLES = 44100
 
@@ -34,8 +34,7 @@ def config():
             "delay_line": jnp.zeros(MAX_DELAY_LENGTH_SAMPLES),
             "read_sample": 0.0,
             "write_sample": 0.0,
-        },
-        default_param_values(PARAMS),
+        }
     )
 
 

@@ -7,16 +7,8 @@ PRESETS = {}
 
 
 def config(processors):
-    configs = {processor.NAME: processor.config() for processor in processors}
     return Config(
-        {
-            processor.NAME: configs[processor.NAME].state_init
-            for processor in processors
-        },
-        {
-            processor.NAME: configs[processor.NAME].params_init
-            for processor in processors
-        },
+        {processor.NAME: processor.config().state_init for processor in processors},
         " + ".join(processor.NAME for processor in processors),
     )
 
