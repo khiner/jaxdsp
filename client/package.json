@@ -1,7 +1,7 @@
 {
   "name": "jaxdsp-client",
   "version": "0.1.0",
-  "description": "Monitor and graph editor for JAXdsp",
+  "description": "Interactive editor and monitor for JAXdsp",
   "main": "dist/jaxdsp-client.js",
   "scripts": {
     "build:dev": "rm -rf dist && webpack --mode development --watch",
