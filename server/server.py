@@ -205,11 +205,11 @@ async def offer(request):
                 channel.send(
                     json.dumps(
                         {
-                            "processors": [
+                            "processor_definitions": [
                                 serialize_processor(processor)
                                 for processor in ALL_PROCESSORS
                             ],
-                            "optimizers": [
+                            "optimizer_definitions": [
                                 create_optimizer(definition.NAME).serialize()
                                 for definition in all_optimizer_definitions
                             ],

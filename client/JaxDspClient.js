@@ -143,13 +143,13 @@ export default function JaxDspClient({ testSample }) {
       dataChannel.onopen = () => dataChannel.send('get_state')
       dataChannel.onmessage = event => {
         const message = JSON.parse(event.data)
-        const { processors, processor, optimizers, optimizer, loss_options: lossOptions } = message
+        const { processor_definitions, processor, optimizer_definitions, optimizer, loss_options } = message
 
-        if (processors) setProcessors(processors)
+        if (processor_definitions) setProcessors(processor_definitions)
         if (processor) setProcessor(processor)
-        if (optimizers) setOptimizers(optimizers)
+        if (optimizer_definitions) setOptimizers(optimizer_definitions)
         if (optimizer) setOptimizer(optimizer)
-        if (lossOptions) setLossOptions(lossOptions)
+        if (lossOptions) setLossOptions(loss_options)
       }
     }
 
