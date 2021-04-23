@@ -17,8 +17,7 @@ def deep_merge(source, destination):
 
 
 class Config:
-    def __init__(self, state_init, params_init, params_target, title=None):
+    def __init__(self, state_init, params_init, title=None):
         self.state_init = state_init
         self.params_init = params_init
-        self.params_target = params_target
         self.title = title

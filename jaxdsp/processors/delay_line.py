@@ -36,7 +36,6 @@ def config():
             "write_sample": 0.0,
         },
         default_param_values(PARAMS),
-        {"wet": 0.5, "delay_samples": 10.0},
     )
 
 

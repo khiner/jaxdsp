@@ -18,7 +18,6 @@ def config(buffer_size=20):
             "filter_store": 0.0,
         },
         default_param_values(PARAMS),
-        {"feedback": 0.5},
     )
 
 

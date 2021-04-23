@@ -22,10 +22,6 @@ def config(length=5):
             "outputs": jnp.zeros(length - 1),
         },
         default_param_values(PARAMS),
-        {
-            "B": B_target,
-            "A": A_target,
-        },
     )
 
 

@@ -14,7 +14,6 @@ def config(length=4):
     return Config(
         {"inputs": jnp.zeros(length)},
         default_param_values(PARAMS),
-        {"B": jnp.array([0.1, 0.7, 0.5, 0.6])},
     )
 
 

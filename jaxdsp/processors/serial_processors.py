@@ -17,10 +17,6 @@ def config(processors):
             processor.NAME: configs[processor.NAME].params_init
             for processor in processors
         },
-        {
-            processor.NAME: configs[processor.NAME].params_target
-            for processor in processors
-        },
         " + ".join(processor.NAME for processor in processors),
     )
 

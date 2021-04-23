@@ -21,7 +21,6 @@ def config():
     return Config(
         {},
         default_param_values(PARAMS),
-        {"wet": 0.5, "delay_samples": 6.0},
     )
 
 

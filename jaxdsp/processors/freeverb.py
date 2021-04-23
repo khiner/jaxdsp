@@ -79,13 +79,6 @@ def config():
             ],
         },
         default_param_values(PARAMS),
-        {
-            "wet": 0.3,
-            "dry": 0.0,
-            "width": 1.0,
-            "damp": 0.5,
-            "room_size": 0.5,
-        },
     )
 
 

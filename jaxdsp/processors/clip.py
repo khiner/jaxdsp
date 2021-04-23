@@ -10,7 +10,7 @@ PRESETS = {}
 
 
 def config():
-    return Config({}, default_param_values(PARAMS), {"min": -0.5, "max": 0.5})
+    return Config({}, default_param_values(PARAMS))
 
 
 @jit

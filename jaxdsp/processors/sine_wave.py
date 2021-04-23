@@ -15,7 +15,6 @@ def config():
     return Config(
         {"phase_radians": 0.0, "sample_rate": 44100},
         default_param_values(PARAMS),
-        {"frequency_hz": 400.0},
     )
 
 
