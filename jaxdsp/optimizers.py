@@ -1,3 +1,4 @@
+import jax.numpy as jnp
 from jax.experimental import optimizers
 from jax.experimental.optimizers import optimizer
 from jax.tree_util import tree_map
@@ -13,7 +14,7 @@ def param_clipping_optimizer(init, update, get_params):
     # Note that these are the params being optimized, NOT the optimizer params :)
     def get_clipped_params(state):
         params = get_params(state)
-        return tree_map(lambda param: max(0.0, min(param, 1.0)), params)
+        return tree_map(lambda param: jnp.clip(param, 0.0, 1.0), params)
 
     return init, update, get_clipped_params
 

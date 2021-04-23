@@ -22,17 +22,3 @@ class Param:
         if isinstance(self.default_value, jnp.DeviceArray):
             serialized["default_value"] = self.default_value.tolist()
         return serialized
-
-
-def params_to_unit_scale(params, param_for_name):
-    return {
-        name: param_for_name[name].to_unit_scale(value)
-        for name, value in params.items()
-    }
-
-
-def params_from_unit_scale(params, param_for_name):
-    return {
-        name: param_for_name[name].from_unit_scale(value)
-        for name, value in params.items()
-    }

@@ -36,3 +36,26 @@ def serialize_processor(processor, params=None):
         "presets": processor.PRESETS,
         "params": params or base.default_param_values(processor.PARAMS),
     }
+
+
+def param_by_name(processor_name):
+    processor = processor_by_name.get(processor_name)
+    return {param.name: param for param in processor.PARAMS} if processor else {}
+
+
+def params_to_unit_scale(params, processor_name):
+    return {
+        name: params_to_unit_scale(value, name)
+        if name in processor_by_name
+        else param_by_name(processor_name)[name].to_unit_scale(value)
+        for name, value in params.items()
+    }
+
+
+def params_from_unit_scale(params, processor_name):
+    return {
+        name: params_from_unit_scale(value, name)
+        if name in processor_by_name
+        else param_by_name(processor_name)[name].from_unit_scale(value)
+        for name, value in params.items()
+    }
