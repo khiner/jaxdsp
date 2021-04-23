@@ -1,4 +1,3 @@
-from jaxdsp.processors.base import Config
 from jaxdsp.processors import processor_by_name
 
 NAME = "Serial Processors"
@@ -6,11 +5,8 @@ PARAMS = []
 PRESETS = {}
 
 
-def config(processors):
-    return Config(
-        {processor.NAME: processor.config().state_init for processor in processors},
-        " + ".join(processor.NAME for processor in processors),
-    )
+def state_init(processors):
+    return {processor.NAME: processor.state_init() for processor in processors}
 
 
 def tick_buffer(carry, X):

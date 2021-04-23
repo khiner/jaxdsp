@@ -4,7 +4,6 @@ from jax import jit, lax
 from jaxdsp.processors import lowpass_feedback_comb_filter as comb
 from jaxdsp.processors import allpass_filter as allpass
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config
 
 NAME = "Freeverb"
 PARAMS = [
@@ -48,37 +47,33 @@ stereo_spread = 23
 
 def create_comb_carry(buffer_size):
     return {
-        "state": comb.config(buffer_size=buffer_size).state_init,
+        "state": comb.state_init(buffer_size=buffer_size),
         "params": {"feedback": 0.5, "damp": 0.0},
     }
 
 
 def create_allpass_carry(buffer_size):
     return {
-        "state": allpass.config(buffer_size=buffer_size).state_init,
+        "state": allpass.state_init(buffer_size=buffer_size),
         "params": {"feedback": 0.5},
     }
 
 
-def config():
-    return Config(
-        {
-            "combs_l": [
-                create_comb_carry(buffer_size) for buffer_size in comb_tunings_l
-            ],
-            "combs_r": [
-                create_comb_carry(buffer_size + stereo_spread)
-                for buffer_size in comb_tunings_l
-            ],
-            "allpasses_l": [
-                create_allpass_carry(buffer_size) for buffer_size in allpass_tunings_l
-            ],
-            "allpasses_r": [
-                create_allpass_carry(buffer_size + stereo_spread)
-                for buffer_size in allpass_tunings_l
-            ],
-        }
-    )
+def state_init():
+    return {
+        "combs_l": [create_comb_carry(buffer_size) for buffer_size in comb_tunings_l],
+        "combs_r": [
+            create_comb_carry(buffer_size + stereo_spread)
+            for buffer_size in comb_tunings_l
+        ],
+        "allpasses_l": [
+            create_allpass_carry(buffer_size) for buffer_size in allpass_tunings_l
+        ],
+        "allpasses_r": [
+            create_allpass_carry(buffer_size + stereo_spread)
+            for buffer_size in allpass_tunings_l
+        ],
+    }
 
 
 @jit

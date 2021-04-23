@@ -3,21 +3,18 @@ from jax import jit, lax
 from jax.ops import index_update
 
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config
 
 NAME = "Allpass Filter"
 PARAMS = [Param("feedback", 0.0)]
 PRESETS = {}
 
 
-def config(buffer_size=20):
-    return Config(
-        {
-            "buffer": jnp.zeros(buffer_size),
-            "buffer_index": 0,
-            "filter_store": 0.0,
-        }
-    )
+def state_init(buffer_size=20):
+    return {
+        "buffer": jnp.zeros(buffer_size),
+        "buffer_index": 0,
+        "filter_store": 0.0,
+    }
 
 
 @jit

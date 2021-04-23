@@ -85,7 +85,7 @@ class AudioTransformTrack(MediaStreamTrack):
             processor and self.processor and self.processor.NAME != processor.NAME
         ):
             self.processor = processor
-            self.processor_state = processor.config().state_init if processor else None
+            self.processor_state = processor.state_init() if processor else None
             self.trainer.set_processor(self.processor)
         self.processor_params = params or (
             default_param_values(processor, self.processor_state) if processor else None

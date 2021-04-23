@@ -41,35 +41,33 @@ class IterativeTrainer:
         processor,
         loss_options=None,
         optimizer_options=None,
-        processor_config=None,
+        processor_state=None,
         processor_params=None,
         track_history=False,
     ):
         self.step_num = 0
         self.loss = 0.0
         self.track_history = track_history
-        self.current_params = None
-        self.processor_config = None
+        self.processor = processor
+        self.current_params = processor_params
         self.set_optimizer_options(optimizer_options)
-        self.set_processor(processor, processor_params, processor_config)
+        self.set_processor(processor, processor_params, processor_state)
         self.set_loss_options(loss_options)
 
-    def set_processor(self, processor, params=None, config=None):
+    def set_processor(self, processor, params=None, state=None):
         self.processor = processor
         if processor:
-            self.processor_config = config or processor.config()
-            self.current_params = params or default_param_values(processor, self.processor_config.state_init)
+            self.processor_state = state or processor.state_init()
+            self.current_params = params or default_param_values(processor, self.processor_state)
             self.step_evaluator = LossHistoryAccumulator(self.current_params)
             self.opt_state = self.optimizer.init(
                 params_to_unit_scale(self.current_params, processor.NAME)
             )
-            self.processor_state = self.processor_config.state_init
         else:
-            self.processor_config = None
+            self.processor_state = None
             self.current_params = None
             self.step_evaluator = None
             self.opt_state = None
-            self.processor_state = None
 
     def set_optimizer_options(self, optimizer_options):
         self.optimizer = (
@@ -83,8 +81,8 @@ class IterativeTrainer:
             self.opt_state = self.optimizer.init(
                 params_to_unit_scale(self.current_params, self.processor.NAME)
             )
-        if self.processor_config:
-            self.processor_state = self.processor_config.state_init
+        if self.processor:
+            self.processor_state = self.processor.state_init
 
     def set_loss_options(self, loss_options):
         self.loss_options = loss_options or LossOptions()

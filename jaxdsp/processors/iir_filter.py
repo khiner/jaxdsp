@@ -2,7 +2,6 @@ import jax.numpy as jnp
 from jax import jit, lax
 
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config
 
 NAME = "IIR Filter"
 # TODO how to handle array params in UI?
@@ -13,13 +12,11 @@ PARAMS = [
 PRESETS = {}
 
 
-def config(length=5):
-    return Config(
-        {
-            "inputs": jnp.zeros(length),
-            "outputs": jnp.zeros(length - 1),
-        }
-    )
+def state_init(length=5):
+    return {
+        "inputs": jnp.zeros(length),
+        "outputs": jnp.zeros(length - 1),
+    }
 
 
 @jit

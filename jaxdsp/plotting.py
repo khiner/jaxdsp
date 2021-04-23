@@ -117,7 +117,7 @@ def plot_optimization(
         trainer = training.IterativeTrainer(
             processor,
             training.Config(),
-            processor.config(),
+            processor.state_init(),
             params_init,
             track_history=True,
         )

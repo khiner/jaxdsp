@@ -1,7 +1,6 @@
 import jax.numpy as jnp
 from jax import jit
 
-from jaxdsp.processors.base import Config
 from jaxdsp.param import Param
 
 NAME = "Clip"
@@ -9,8 +8,8 @@ PARAMS = [Param("min", -1.0, -1.0, 1.0), Param("max", 1.0, -1.0, 1.0)]
 PRESETS = {}
 
 
-def config():
-    return Config({})
+def state_init():
+    return {}
 
 
 @jit

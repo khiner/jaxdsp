@@ -5,7 +5,6 @@ import jax.numpy as jnp
 from jax import jit
 
 from jaxdsp.param import Param
-from jaxdsp.processors.base import Config
 
 MAX_DELAY_SIZE_SAMPLES = 44100
 
@@ -17,8 +16,8 @@ PARAMS = [
 PRESETS = {}
 
 
-def config():
-    return Config({})
+def state_init():
+    return {}
 
 
 def tick(carry, x):

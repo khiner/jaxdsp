@@ -10,9 +10,3 @@ def deep_merge(source, destination):
             destination[key] = value
 
     return destination
-
-
-class Config:
-    def __init__(self, state_init, title=None):
-        self.state_init = state_init
-        self.title = title
