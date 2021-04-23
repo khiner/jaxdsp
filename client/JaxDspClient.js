@@ -3,9 +3,6 @@ import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
 import { negotiatePeerConnection, sdpFilterCodec } from './WebRtcHelper'
 
-// Starting point for this code from:
-// https://webrtc.github.io/samples/src/content/peerconnection/webaudio-input/
-
 let peerConnection = null
 let dataChannel = null
 
@@ -19,6 +16,11 @@ const AUDIO_INPUT_SOURCES = {
 }
 
 const NO_PROCESSOR_LABEL = 'None'
+
+// E.g. long_parameter_name => Long Parameter Name
+function snakeCaseToSentence(name) {
+  return name?.split('_').join(' ').replace(/^(.)/, (firstLetter) => firstLetter.toUpperCase())
+}
 
 function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
   // `position` vars correspond to slider position. (e.g. 0-1)
@@ -270,7 +272,7 @@ export default function JaxDspClient({ testSample }) {
               >
                 {[NO_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
                   <option key={name} value={name}>
-                    {name}
+                    {snakeCaseToSentence(name)}
                   </option>
                 ))}
               </select>
@@ -292,7 +294,7 @@ export default function JaxDspClient({ testSample }) {
                     ({ name, default_value, min_value, max_value, log_scale }) => (
                       <Slider
                         key={name}
-                        name={name}
+                        name={snakeCaseToSentence(name)}
                         value={processor.params[name] || default_value || 0.0}
                         minValue={min_value}
                         maxValue={max_value}
@@ -313,7 +315,7 @@ export default function JaxDspClient({ testSample }) {
                         !isNaN(trainState.params[name]) && (
                           <Slider
                             key={name}
-                            name={name}
+                            name={snakeCaseToSentence(name)}
                             value={trainState.params[name]}
                             minValue={min_value}
                             maxValue={max_value}
@@ -348,7 +350,7 @@ export default function JaxDspClient({ testSample }) {
                       <li key={key} style={{ listStyle: 'none' }}>
                         <Slider
                           key={key}
-                          name={key}
+                          name={snakeCaseToSentence(key)}
                           value={value}
                           minValue={0.0}
                           maxValue={1.0}
@@ -416,7 +418,7 @@ export default function JaxDspClient({ testSample }) {
                           !isNaN(optimizer.params[name]) && (
                             <Slider
                               key={name}
-                              name={name}
+                              name={snakeCaseToSentence(name)}
                               value={optimizer.params[name]}
                               minValue={min_value}
                               maxValue={max_value}
