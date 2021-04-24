@@ -463,7 +463,7 @@ export default function JaxDspClient({ testSample }) {
                 source.droppableId === 'processors' &&
                 destination.droppableId === 'selectedProcessors'
               ) {
-                const item = {...processors[source.index]}
+                const item = { ...processors[source.index] }
                 const newSelectedProcessors = [...selectedProcessors]
                 newSelectedProcessors.splice(destination.index, 0, item)
                 setSelectedProcessors(newSelectedProcessors)
@@ -471,17 +471,34 @@ export default function JaxDspClient({ testSample }) {
             }
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'row' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div
+              style={{
+                width: 'fit-content',
+                display: 'flex',
+                flexDirection: 'row',
+                background: '#e0e0e0',
+                borderRadius: '4px',
+                margin: '4px',
+                alignItems: 'center',
+              }}
+            >
+              <label style={{ fontSize: '17px', fontWeight: 'bold', margin: '0px 8px' }}>Processors</label>
+              <DragDropList
+                itemDraggingStyle={{ background: 'white' }}
+                droppableId="processors"
+                direction="horizontal"
+                items={processors.map(({ name }) => ({ id: name, content: name }))}
+                isStatic
+              />
+            </div>
             <DragDropList
-              droppableId="processors"
-              direction="vertical"
-              items={processors.map(({ name }) => ({ id: name, content: name }))}
-              isStatic
-            />
-            <DragDropList
+              style={{ height: 'fit-content', background: '#e0e0e0', borderRadius: '4px', width: 'fit-content' }}
+              draggingStyle={{ outline: '1px dashed black', background: '#e0e0e0' }}
               droppableId="selectedProcessors"
               direction="horizontal"
               items={selectedProcessors.map(({ name }, i) => ({ id: `${i}`, content: name }))}
+              emptyContent={<i style={{ margin: '8px' }}>Drop processors here</i>}
             />
           </div>
         </DragDropContext>

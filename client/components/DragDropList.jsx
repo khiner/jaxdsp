@@ -8,13 +8,45 @@ export default function DragDropList({
   direction = 'horizontal',
   isStatic = false,
   items = [{ id: '1', content: 'item 1' }],
+  style = {},
+  draggingStyle = {},
+  itemStyle = {},
+  itemDraggingStyle = {},
+  emptyContent = <div>Drop items here</div>,
 }) {
   const isHorizontal = direction === 'horizontal'
 
-  const itemStyle = {
-    userSelect: 'none',
-    padding: 16,
-    margin: isHorizontal ? '0 8px 0 0' : '0 0 8px 0',
+  style = {
+    ...{
+      display: 'flex',
+      flexDirection: isHorizontal ? 'row' : 'column',
+      padding: 8,
+      overflow: 'auto',
+    },
+    ...style,
+  }
+  draggingStyle = {
+    ...{
+      background: 'lightblue',
+    },
+    ...draggingStyle,
+  }
+
+  itemStyle = {
+    ...{
+      background: 'white',
+      border: '1px solid black',
+      borderRadius: '4px',
+      userSelect: 'none',
+      padding: 8,
+      margin: isHorizontal ? '0 8px 0 0' : '0 0 8px 0',
+    },
+    ...itemStyle,
+  }
+  itemDraggingStyle = {
+    border: '1px dashed black',
+    background: 'lightgreen',
+    ...itemDraggingStyle,
   }
 
   return (
@@ -22,14 +54,7 @@ export default function DragDropList({
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
-          style={{
-            background: !isStatic && snapshot.isDraggingOver ? 'lightblue' : 'lightgrey',
-            display: 'flex',
-            flexDirection: isHorizontal ? 'row' : 'column',
-            padding: 8,
-            overflow: 'auto',
-            ...(isHorizontal ? {} : { width: 250 }),
-          }}
+          style={{ ...style, ...(!isStatic && snapshot.isDraggingOver ? draggingStyle : {}) }}
           {...provided.droppableProps}
         >
           {items.map((item, index) => (
@@ -43,7 +68,6 @@ export default function DragDropList({
                     style={{
                       ...provided.draggableProps.style, // needed on all draggable items
                       ...itemStyle,
-                      background: snapshot.isDragging ? 'lightgreen' : 'grey',
                       ...(isStatic
                         ? {
                             transform: snapshot.isDragging
@@ -51,20 +75,20 @@ export default function DragDropList({
                               : 'translate(0px, 0px)',
                           }
                         : {}),
+                      ...(snapshot.isDragging ? itemDraggingStyle : {}),
                     }}
                   >
                     {item.content}
                   </div>
                   {isStatic && snapshot.isDragging && (
-                    <div style={{ ...itemStyle, background: 'grey', transform: 'none !important' }}>
-                      {item.content}
-                    </div>
+                    <div style={{ ...itemStyle, transform: 'none !important' }}>{item.content}</div>
                   )}
                 </>
               )}
             </Draggable>
           ))}
           <span style={isStatic ? { display: 'none' } : {}}>{provided.placeholder}</span>
+          {items?.length === 0 && !snapshot.isDraggingOver && emptyContent}
         </div>
       )}
     </Droppable>
