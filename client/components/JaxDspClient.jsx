@@ -463,27 +463,27 @@ export default function JaxDspClient({ testSample }) {
                 source.droppableId === 'processors' &&
                 destination.droppableId === 'selectedProcessors'
               ) {
-                const sourceClone = [...processors]
-                const destinationClone = [...selectedProcessors]
-                const [removed] = sourceClone.splice(source.index, 1)
-                destinationClone.splice(destination.index, 0, removed)
-
-                setProcessors(sourceClone)
-                setSelectedProcessors(destinationClone)
+                const item = {...processors[source.index]}
+                const newSelectedProcessors = [...selectedProcessors]
+                newSelectedProcessors.splice(destination.index, 0, item)
+                setSelectedProcessors(newSelectedProcessors)
               }
             }
           }}
         >
-          <DragDropList
-            droppableId="processors"
-            direction="vertical"
-            items={processors.map(({ name }) => ({ id: name, content: name }))}
-          />
-          <DragDropList
-            droppableId="selectedProcessors"
-            direction="vertical"
-            items={selectedProcessors.map(({ name }) => ({ id: name, content: name }))}
-          />
+          <div style={{ display: 'flex', flexDirection: 'row' }}>
+            <DragDropList
+              droppableId="processors"
+              direction="vertical"
+              items={processors.map(({ name }) => ({ id: name, content: name }))}
+              isStatic
+            />
+            <DragDropList
+              droppableId="selectedProcessors"
+              direction="horizontal"
+              items={selectedProcessors.map(({ name }, i) => ({ id: `${i}`, content: name }))}
+            />
+          </div>
         </DragDropContext>
       )}
     </div>
