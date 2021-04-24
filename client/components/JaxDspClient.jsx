@@ -85,7 +85,7 @@ export default function JaxDspClient({ testSample }) {
   const audioRef = useRef(null)
 
   const processorByName = Object.fromEntries(processors?.map(processor => [processor.name, processor]) || [])
-  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor }))
+  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor: [processor] }))
   const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
 

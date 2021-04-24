@@ -83,13 +83,15 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processed_packets = []
 
     def set_processor(self, processor, params=None, state=None):
+        candidate_state = state or (
+            processor.state_init() if processor else None
+        )
+
         if (bool(processor) != bool(self.processor)) or (
-            processor and self.processor and self.processor.NAME != processor.NAME
+            processor and self.processor and ((self.processor.NAME != processor.NAME) or (candidate_state.keys() != self.processor_state.keys()))
         ):
             self.processor = processor
-            self.processor_state = state or (
-                processor.state_init() if processor else None
-            )
+            self.processor_state = candidate_state
             self.trainer.set_processor(self.processor, None, self.processor_state)
         self.processor_params = params or (
             default_param_values(processor, self.processor_state) if processor else None
@@ -258,7 +260,7 @@ async def offer(request):
                             processor_by_name.get(processor_config["name"]),
                             processor_config["params"],
                         )
-                if "loss_options" in loss_options:
+                if "loss_options" in message_dict:
                     loss_options = message_dict["loss_options"]
                     audio_transform_track.set_loss_options(
                         LossOptions(
