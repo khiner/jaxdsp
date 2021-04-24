@@ -23,7 +23,7 @@ export default function DragDropList({
         <div
           ref={provided.innerRef}
           style={{
-            background: snapshot.isDraggingOver ? 'lightblue' : 'lightgrey',
+            background: !isStatic && snapshot.isDraggingOver ? 'lightblue' : 'lightgrey',
             display: 'flex',
             flexDirection: isHorizontal ? 'row' : 'column',
             padding: 8,
@@ -64,7 +64,7 @@ export default function DragDropList({
               )}
             </Draggable>
           ))}
-          {provided.placeholder}
+          <span style={isStatic ? { display: 'none' } : {}}>{provided.placeholder}</span>
         </div>
       )}
     </Droppable>
