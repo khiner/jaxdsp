@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { DragDropContext } from 'react-beautiful-dnd'
 import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
-import DraggableList from './DraggableList'
+import DragDropList from './DragDropList'
 
 import { negotiatePeerConnection } from '../helpers/WebRtcHelper'
 
@@ -82,9 +83,10 @@ export default function JaxDspClient({ testSample }) {
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
 
+  const [selectedProcessors, setSelectedProcessors] = useState([])
+
   const audioRef = useRef(null)
 
-  const processorByName = Object.fromEntries(processors?.map(processor => [processor.name, processor]) || [])
   const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor: [processor] }))
   const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
@@ -446,11 +448,43 @@ export default function JaxDspClient({ testSample }) {
       </div>
       <audio controls autoPlay ref={audioRef} hidden></audio>
       {processors && (
-        <DraggableList
-          direction="vertical"
-          items={processors.map(({ name }) => ({ id: name, content: name }))}
-          onChange={items => setProcessors(items.map(({ id }) => processorByName[id]))}
-        />
+        <DragDropContext
+          onDragEnd={({ source, destination }) => {
+            if (destination) {
+              if (
+                source.droppableId === 'selectedProcessors' &&
+                destination.droppableId === 'selectedProcessors'
+              ) {
+                const reorderedProcessors = [...selectedProcessors]
+                const [removed] = reorderedProcessors.splice(source.index, 1)
+                reorderedProcessors.splice(destination.index, 0, removed)
+                setSelectedProcessors(reorderedProcessors)
+              } else if (
+                source.droppableId === 'processors' &&
+                destination.droppableId === 'selectedProcessors'
+              ) {
+                const sourceClone = [...processors]
+                const destinationClone = [...selectedProcessors]
+                const [removed] = sourceClone.splice(source.index, 1)
+                destinationClone.splice(destination.index, 0, removed)
+
+                setProcessors(sourceClone)
+                setSelectedProcessors(destinationClone)
+              }
+            }
+          }}
+        >
+          <DragDropList
+            droppableId="processors"
+            direction="vertical"
+            items={processors.map(({ name }) => ({ id: name, content: name }))}
+          />
+          <DragDropList
+            droppableId="selectedProcessors"
+            direction="vertical"
+            items={selectedProcessors.map(({ name }) => ({ id: name, content: name }))}
+          />
+        </DragDropContext>
       )}
     </div>
   )
