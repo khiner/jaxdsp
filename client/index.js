@@ -1,1 +1,1 @@
-export { default as JaxDspClient } from './JaxDspClient'
+export { default as JaxDspClient } from './components/JaxDspClient'

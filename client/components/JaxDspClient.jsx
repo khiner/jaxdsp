@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
-import { negotiatePeerConnection } from './WebRtcHelper'
+import HorizontalDraggableList from './HorizontalDraggableList'
+
+import { negotiatePeerConnection } from '../helpers/WebRtcHelper'
 
 let peerConnection = null
 let dataChannel = null
@@ -19,7 +21,10 @@ const NO_PROCESSOR_LABEL = 'None'
 
 // E.g. long_parameter_name => Long Parameter Name
 function snakeCaseToSentence(name) {
-  return name?.split('_').join(' ').replace(/^(.)/, (firstLetter) => firstLetter.toUpperCase())
+  return name
+    ?.split('_')
+    .join(' ')
+    .replace(/^(.)/, firstLetter => firstLetter.toUpperCase())
 }
 
 function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
@@ -439,6 +444,7 @@ export default function JaxDspClient({ testSample }) {
         )}
       </div>
       <audio controls autoPlay ref={audioRef} hidden></audio>
+      <HorizontalDraggableList />
     </div>
   )
 }
