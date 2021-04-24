@@ -84,6 +84,7 @@ export default function JaxDspClient({ testSample }) {
 
   const audioRef = useRef(null)
 
+  const processorByName = Object.fromEntries(processors?.map(processor => [processor.name, processor]) || [])
   const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor }))
   const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
@@ -444,7 +445,13 @@ export default function JaxDspClient({ testSample }) {
         )}
       </div>
       <audio controls autoPlay ref={audioRef} hidden></audio>
-      <DraggableList direction="vertical" />
+      {processors && (
+        <DraggableList
+          direction="vertical"
+          items={processors.map(({ name }) => ({ id: name, content: name }))}
+          onChange={items => setProcessors(items.map(({ id }) => processorByName[id]))}
+        />
+      )}
     </div>
   )
 }

@@ -1,14 +1,11 @@
 import React, { useState } from 'react'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 
-export default function DraggableList({ direction = 'horizontal', numItems = 6 }) {
-  const [items, setItems] = useState(
-    [...Array(numItems).keys()].map(k => ({
-      id: `item-${k}`,
-      content: `item ${k}`,
-    }))
-  )
-
+export default function DraggableList({
+  direction = 'horizontal',
+  items = [{ id: '1', content: 'item 1' }],
+  onChange,
+}) {
   const isHorizontal = direction === 'horizontal'
 
   return (
@@ -18,7 +15,7 @@ export default function DraggableList({ direction = 'horizontal', numItems = 6 }
           const reorderedItems = [...items]
           const [removed] = reorderedItems.splice(result.source.index, 1)
           reorderedItems.splice(result.destination.index, 0, removed)
-          setItems(reorderedItems)
+          onChange?.(reorderedItems)
         }
       }}
     >
