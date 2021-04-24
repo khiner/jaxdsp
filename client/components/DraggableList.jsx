@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 
-export default function HorizontalDraggableList({ numItems = 6 }) {
+export default function DraggableList({ direction = 'horizontal', numItems = 6 }) {
   const [items, setItems] = useState(
     [...Array(numItems).keys()].map(k => ({
       id: `item-${k}`,
       content: `item ${k}`,
     }))
   )
+
+  const isHorizontal = direction === 'horizontal'
 
   return (
     <DragDropContext
@@ -20,15 +22,17 @@ export default function HorizontalDraggableList({ numItems = 6 }) {
         }
       }}
     >
-      <Droppable droppableId="droppable" direction="horizontal">
+      <Droppable droppableId="droppable">
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             style={{
               background: snapshot.isDraggingOver ? 'lightblue' : 'lightgrey',
               display: 'flex',
+              flexDirection: isHorizontal ? 'row' : 'column',
               padding: 8,
               overflow: 'auto',
+              ...(isHorizontal ? {} : { width: 250 }),
             }}
             {...provided.droppableProps}
           >
@@ -42,7 +46,7 @@ export default function HorizontalDraggableList({ numItems = 6 }) {
                     style={{
                       userSelect: 'none',
                       padding: 16,
-                      margin: '0 8px 0 0',
+                      margin: isHorizontal ? '0 8px 0 0' : '0 0 8px 0',
                       background: snapshot.isDragging ? 'lightgreen' : 'grey',
                       ...provided.draggableProps.style, // needed on all draggable items
                     }}

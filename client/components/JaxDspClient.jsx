@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
-import HorizontalDraggableList from './HorizontalDraggableList'
+import DraggableList from './DraggableList'
 
 import { negotiatePeerConnection } from '../helpers/WebRtcHelper'
 
@@ -444,7 +444,7 @@ export default function JaxDspClient({ testSample }) {
         )}
       </div>
       <audio controls autoPlay ref={audioRef} hidden></audio>
-      <HorizontalDraggableList />
+      <DraggableList direction="vertical" />
     </div>
   )
 }
