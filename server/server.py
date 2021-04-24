@@ -186,7 +186,6 @@ async def offer(request):
 
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
-
     peer_connection = RTCPeerConnection()
     peer_connections.add(peer_connection)
 

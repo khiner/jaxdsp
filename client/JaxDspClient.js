@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
-import { negotiatePeerConnection, sdpFilterCodec } from './WebRtcHelper'
+import { negotiatePeerConnection } from './WebRtcHelper'
 
 let peerConnection = null
 let dataChannel = null
@@ -192,8 +192,7 @@ export default function JaxDspClient({ testSample }) {
           audio: { echoCancellation: false },
           video: false,
         })
-        const microphoneTrack = stream.getTracks()[0]
-        addOrReplaceTrack(microphoneTrack)
+        addOrReplaceTrack(stream.getTracks()[0])
       } catch (error) {
         onAudioStreamError('Could not acquire media', error)
       }
@@ -204,17 +203,8 @@ export default function JaxDspClient({ testSample }) {
       const audioContext = new AudioContext()
       const sampleSource = audioContext.createMediaElementSource(sampleAudio)
       const sampleDestination = audioContext.createMediaStreamDestination()
-      // TODO somewhere in the chain from here to the server,
-      // the stream is getting mixed to mono and split back into identical
-      // L/R channels. It seems an awful lot like
-      // [this bug](https://bugs.chromium.org/p/webrtc/issues/detail?id=8133),
-      // which should be resolved in Chrome v89 (currently v88 - Feb 4).
-      // ALSO, the returned track seems to be downmixed from an interleaved
-      // stereo channel back to mono... so maybe it's a transport/sdp thing?
       sampleSource.connect(sampleDestination)
-
-      const sampleTrack = sampleDestination.stream.getAudioTracks()[0]
-      addOrReplaceTrack(sampleTrack)
+      addOrReplaceTrack(sampleDestination.stream.getAudioTracks()[0])
 
       sampleAudio.loop = true
       sampleAudio.currentTime = 0
