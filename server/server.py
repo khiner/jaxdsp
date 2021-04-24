@@ -103,12 +103,13 @@ class AudioTransformTrack(MediaStreamTrack):
     def stop_estimating_params(self):
         self.is_estimating_params = False
 
-    def process(self, X_deinterleaved, sample_rate):
-        X_left = X_deinterleaved[0]  # TODO handle stereo in
+    # Takes a 2d array and returns a processed 2d array
+    def process(self, X, sample_rate):
+        X_left = X[0]  # TODO handle stereo in
 
         if self.processor:
             self.processor_state["sample_rate"] = sample_rate
-            carry, Y_deinterleaved = self.processor.tick_buffer(
+            carry, Y = self.processor.tick_buffer(
                 {
                     "params": self.processor_params,
                     "state": self.processor_state,
@@ -116,20 +117,14 @@ class AudioTransformTrack(MediaStreamTrack):
                 X_left,
             )
         else:
-            carry, Y_deinterleaved = (empty_carry, X_left)
+            carry, Y = (empty_carry, X_left)
 
         self.processor_state = carry["state"]
-        Y_deinterleaved = np.asarray(Y_deinterleaved)
-        if Y_deinterleaved.ndim == 1:
-            Y_deinterleaved = np.array([Y_deinterleaved, Y_deinterleaved])
-        else:
-            assert Y_deinterleaved.ndim == 2
-            # Transposing to conform to processors with stereo output.
-            # Stereo processing is done that way to support the same
-            # array-of-ticks processing for both stereo and mono.
-            Y_deinterleaved = Y_deinterleaved.T
 
-        return Y_deinterleaved
+        # Transposing to conform to processors with stereo output.
+        # Stereo processing is done that way to support the same
+        # array-of-ticks processing for both stereo and mono.
+        return np.array([Y, Y]) if Y.ndim == 1 else np.asarray(Y).T
 
     async def recv(self):
         frame = await self.track.recv()
@@ -164,10 +159,13 @@ class AudioTransformTrack(MediaStreamTrack):
             Y_interleaved[0::2] = Y_deinterleaved[0]
             Y_interleaved[1::2] = Y_deinterleaved[1]
 
-            frame.planes[0].update((Y_interleaved * int_max).astype(np.int16))
+            out_samples = (Y_interleaved * int_max).astype(np.int16)
         else:
-            frame.planes[0].update(np.zeros(X_interleaved.size, dtype="int16"))
+            # Fill with silence while waiting to receive enough packets to process.
+            # Should only hit this case for the first `packets_per_buffer - 1` packets.
+            out_samples = np.zeros(X_interleaved.size, dtype="int16")
 
+        frame.planes[0].update(out_samples)
         return frame
 
 
