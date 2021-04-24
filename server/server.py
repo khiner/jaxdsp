@@ -17,6 +17,7 @@ import aiohttp_cors
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 
 from jaxdsp.processors import (
+    serial_processors,
     allpass_filter,
     clip,
     lowpass_feedback_comb_filter,
@@ -25,6 +26,7 @@ from jaxdsp.processors import (
     empty_carry,
     serialize_processor,
     default_param_values,
+    is_nested_processor,
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
@@ -53,7 +55,7 @@ class AudioTransformTrack(MediaStreamTrack):
         self.is_estimating_params = False
         self.processor_params = None
         self.trainer = IterativeTrainer(
-            self.processor,
+            None,
             loss_options=None,
             optimizer_options=None,
             processor_params=None,
@@ -80,13 +82,15 @@ class AudioTransformTrack(MediaStreamTrack):
         self.accumulated_packets = []
         self.processed_packets = []
 
-    def set_processor(self, processor, params=None):
+    def set_processor(self, processor, params=None, state=None):
         if (bool(processor) != bool(self.processor)) or (
             processor and self.processor and self.processor.NAME != processor.NAME
         ):
             self.processor = processor
-            self.processor_state = processor.state_init() if processor else None
-            self.trainer.set_processor(self.processor)
+            self.processor_state = state or (
+                processor.state_init() if processor else None
+            )
+            self.trainer.set_processor(self.processor, None, self.processor_state)
         self.processor_params = params or (
             default_param_values(processor, self.processor_state) if processor else None
         )
@@ -108,7 +112,12 @@ class AudioTransformTrack(MediaStreamTrack):
         X_left = X[0]  # TODO handle stereo in
 
         if self.processor:
-            self.processor_state["sample_rate"] = sample_rate
+            if is_nested_processor(self.processor):
+                for inner_processor_state in self.processor_state.values():
+                    inner_processor_state["sample_rate"] = sample_rate
+            else:
+                self.processor_state["sample_rate"] = sample_rate
+
             carry, Y = self.processor.tick_buffer(
                 {
                     "params": self.processor_params,
@@ -227,15 +236,30 @@ async def offer(request):
             else:
                 message_dict = json.loads(message)
                 if "processor" in message_dict:
-                    processor = message_dict["processor"]
-                    processor_name = processor and processor["name"]
-                    processor_params = processor and processor["params"]
-                    audio_transform_track.set_processor(
-                        processor_by_name.get(processor_name),
-                        processor_params,
-                    )
-                loss_options = message_dict.get("loss_options")
-                if loss_options:
+                    processor_config = message_dict["processor"]
+                    if not processor_config:
+                        audio_transform_track.set_processor(None)
+                    elif isinstance(processor_config, list):
+                        audio_transform_track.set_processor(
+                            serial_processors,
+                            {
+                                processor["name"]: processor["params"]
+                                for processor in processor_config
+                            },
+                            serial_processors.state_init(
+                                [
+                                    processor_by_name[processor["name"]]
+                                    for processor in processor_config
+                                ]
+                            ),
+                        )
+                    else:
+                        audio_transform_track.set_processor(
+                            processor_by_name.get(processor_config["name"]),
+                            processor_config["params"],
+                        )
+                if "loss_options" in loss_options:
+                    loss_options = message_dict["loss_options"]
                     audio_transform_track.set_loss_options(
                         LossOptions(
                             weights=loss_options.get("weights"),

@@ -25,9 +25,12 @@ processor_by_name = {processor.NAME: processor for processor in all_processors}
 empty_carry = {"state": None, "params": None}
 
 
+def is_nested_processor(processor):
+    return processor.NAME == "Serial Processors"
+
+
 def default_param_values(processor, processor_state=None):
-    # Check if this is a processor that contains other processors
-    if processor_state and set(processor_state.keys()) & set(processor_by_name.keys()):
+    if is_nested_processor(processor):
         return {
             processor_name: default_param_values(processor_by_name[processor_name])
             for processor_name in processor_state.keys()
@@ -38,6 +41,9 @@ def default_param_values(processor, processor_state=None):
 def serialize_processor(processor, params=None):
     if not processor:
         return None
+
+    if is_nested_processor(processor) and params:
+        return [serialize_processor(processor_by_name[inner_name], inner_params) for inner_name, inner_params in params.items()]
 
     return {
         "name": processor.NAME,
