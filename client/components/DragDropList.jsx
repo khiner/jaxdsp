@@ -13,6 +13,7 @@ export default function DragDropList({
   itemStyle = {},
   itemDraggingStyle = {},
   emptyContent = <div>Drop items here</div>,
+  isDragDisabled = false,
 }) {
   const isHorizontal = direction === 'horizontal'
 
@@ -58,7 +59,7 @@ export default function DragDropList({
           {...provided.droppableProps}
         >
           {items.map((item, index) => (
-            <Draggable key={item.id} draggableId={item.id} index={index}>
+            <Draggable key={item.id} draggableId={item.id} index={index} isDragDisabled={item.isDragDisabled}>
               {(provided, snapshot) => (
                 <>
                   <div

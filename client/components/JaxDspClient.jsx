@@ -74,20 +74,18 @@ export default function JaxDspClient({ testSample }) {
   const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.testSample.label)
   const [isStreamingAudio, setIsStreamingAudio] = useState(false)
   const [isEstimatingParams, setIsEstimatingParams] = useState(false)
-  const [processors, setProcessors] = useState(null)
+  const [processorDefinitions, setProcessorDefinitions] = useState(null)
   const [optimizers, setOptimizers] = useState(null)
-  const [processor, setProcessor] = useState(null)
   const [lossOptions, setLossOptions] = useState(null)
   const [optimizer, setOptimizer] = useState(null)
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
-
   const [selectedProcessors, setSelectedProcessors] = useState([])
 
   const audioRef = useRef(null)
 
-  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor: [processor] }))
+  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor: selectedProcessors }))
   const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
 
@@ -100,7 +98,7 @@ export default function JaxDspClient({ testSample }) {
 
   useEffect(() => {
     sendProcessor()
-  }, [processor])
+  }, [selectedProcessors])
 
   useEffect(() => {
     if (clientUid === null) return
@@ -153,8 +151,8 @@ export default function JaxDspClient({ testSample }) {
         const message = JSON.parse(event.data)
         const { processor_definitions, processor, optimizer_definitions, optimizer, loss_options } = message
 
-        if (processor_definitions) setProcessors(processor_definitions)
-        if (processor) setProcessor(processor)
+        if (processor_definitions) setProcessorDefinitions(processor_definitions)
+        if (processor) setSelectedProcessors(processor)
         if (optimizer_definitions) setOptimizers(optimizer_definitions)
         if (optimizer) setOptimizer(optimizer)
         if (lossOptions) setLossOptions(loss_options)
@@ -170,8 +168,8 @@ export default function JaxDspClient({ testSample }) {
       peerConnection.getTransceivers()?.forEach(transceiver => transceiver.stop())
       peerConnection.close()
       peerConnection = null
-      setProcessor(null)
-      setProcessors(null)
+      setSelectedProcessors([])
+      setProcessorDefinitions(null)
       setOptimizer(null)
       setOptimizers(null)
       setIsEstimatingParams(false)
@@ -243,6 +241,49 @@ export default function JaxDspClient({ testSample }) {
     if (dataChannel) dataChannel.send('stop_estimating_params')
   }
 
+  const Processor = ({ processor }) => {
+    return (
+      <>
+        <label>{processor.name}</label>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+          <div>
+            {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
+              <Slider
+                key={name}
+                name={snakeCaseToSentence(name)}
+                value={processor.params[name] || default_value || 0.0}
+                minValue={min_value}
+                maxValue={max_value}
+                logScale={log_scale}
+                onChange={newValue => {
+                  const newSelectedProcessors = [...selectedProcessors]
+                  const newProcessor = newSelectedProcessors.find(p => p.name === processor.name)
+                  newProcessor.params[name] = newValue
+                  setSelectedProcessors(newSelectedProcessors)
+                } } />
+            ))}
+          </div>
+          {isEstimatingParams && trainState?.params && (
+            <div>
+              {processor.param_definitions.map(
+                ({ name, min_value, max_value, log_scale }) => !isNaN(trainState.params[name]) && (
+                  <Slider
+                    key={name}
+                    name={snakeCaseToSentence(name)}
+                    value={trainState.params[name]}
+                    minValue={min_value}
+                    maxValue={max_value}
+                    logScale={log_scale}
+                    onChange={null} />
+                )
+              )}
+            </div>
+          )}
+        </div>
+      </>
+    )
+  }
+
   return (
     <div>
       <div>
@@ -259,81 +300,90 @@ export default function JaxDspClient({ testSample }) {
         </select>
       </div>
       {isStreamingAudio && (
-        <>
-          {processors && (
-            <div>
-              <select
-                value={processor?.name}
-                onChange={event =>
-                  setProcessor(processors?.find(({ name }) => name === event.target.value) || null)
+        <div>
+          {processorDefinitions && (
+            <DragDropContext
+              onDragEnd={({ source, destination }) => {
+                if (destination) {
+                  if (
+                    source.droppableId === 'selectedProcessors' &&
+                    destination.droppableId === 'selectedProcessors'
+                  ) {
+                    const reorderedProcessors = [...selectedProcessors]
+                    const [removed] = reorderedProcessors.splice(source.index, 1)
+                    reorderedProcessors.splice(destination.index, 0, removed)
+                    setSelectedProcessors(reorderedProcessors)
+                  } else if (
+                    source.droppableId === 'processors' &&
+                    destination.droppableId === 'selectedProcessors'
+                  ) {
+                    const item = { ...processorDefinitions[source.index] }
+                    const newSelectedProcessors = [...selectedProcessors]
+                    newSelectedProcessors.splice(destination.index, 0, item)
+                    setSelectedProcessors(newSelectedProcessors)
+                  }
                 }
-              >
-                {[NO_PROCESSOR_LABEL, ...processors.map(({ name }) => name)].map(name => (
-                  <option key={name} value={name}>
-                    {snakeCaseToSentence(name)}
-                  </option>
-                ))}
-              </select>
-            </div>
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div
+                  style={{
+                    width: 'fit-content',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    background: '#e0e0e0',
+                    borderRadius: '4px',
+                    margin: '4px',
+                    alignItems: 'center',
+                  }}
+                >
+                  <label style={{ fontSize: '17px', fontWeight: 'bold', margin: '0px 8px' }}>
+                    Processors
+                  </label>
+                  <DragDropList
+                    itemDraggingStyle={{ background: 'white' }}
+                    droppableId="processors"
+                    direction="horizontal"
+                    items={processorDefinitions.map(({ name }) => ({ id: name, content: name }))}
+                    isStatic
+                  />
+                </div>
+                <DragDropList
+                  style={{
+                    height: 'fit-content',
+                    background: '#e0e0e0',
+                    borderRadius: '4px',
+                    width: 'fit-content',
+                  }}
+                  draggingStyle={{ outline: '1px dashed black', background: '#e0e0e0' }}
+                  droppableId="selectedProcessors"
+                  direction="horizontal"
+                  items={selectedProcessors.map((processor, i) => ({
+                    id: `${i}`,
+                    content: <Processor processor={processor} />,
+                    // TODO fix slider drag not triggering onChange
+                    // isDragDisabled: true,
+                  }))}
+                  emptyContent={<i style={{ margin: '8px' }}>Drop processors here</i>}
+                />
+              </div>
+            </DragDropContext>
           )}
-          {processor && (
+          <div>
+            <button disabled={isEstimatingParams} onClick={startEstimatingParams}>
+              Start estimating
+            </button>
+            <button disabled={!isEstimatingParams} onClick={stopEstimatingParams}>
+              Stop estimating
+            </button>
+          </div>
+          {trainState?.loss !== undefined && (
             <div>
-              <div>
-                <button disabled={isEstimatingParams} onClick={startEstimatingParams}>
-                  Start estimating
-                </button>
-                <button disabled={!isEstimatingParams} onClick={stopEstimatingParams}>
-                  Stop estimating
-                </button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'row' }}>
-                <div>
-                  {processor.param_definitions.map(
-                    ({ name, default_value, min_value, max_value, log_scale }) => (
-                      <Slider
-                        key={name}
-                        name={snakeCaseToSentence(name)}
-                        value={processor.params[name] || default_value || 0.0}
-                        minValue={min_value}
-                        maxValue={max_value}
-                        logScale={log_scale}
-                        onChange={newValue => {
-                          const newProcessor = { ...processor }
-                          newProcessor.params[name] = newValue
-                          setProcessor(newProcessor)
-                        }}
-                      />
-                    )
-                  )}
-                </div>
-                {isEstimatingParams && trainState?.params && (
-                  <div>
-                    {processor.param_definitions.map(
-                      ({ name, min_value, max_value, log_scale }) =>
-                        !isNaN(trainState.params[name]) && (
-                          <Slider
-                            key={name}
-                            name={snakeCaseToSentence(name)}
-                            value={trainState.params[name]}
-                            minValue={min_value}
-                            maxValue={max_value}
-                            logScale={log_scale}
-                            onChange={null}
-                          />
-                        )
-                    )}
-                  </div>
-                )}
-              </div>
-              {trainState?.loss !== undefined && (
-                <div>
-                  <span>Loss: </span>
-                  {trainState.loss}
-                </div>
-              )}
+              <span>Loss: </span>
+              {trainState.loss}
             </div>
           )}
-        </>
+        </div>
       )}
       {isEstimatingParams && (
         <>
@@ -447,62 +497,6 @@ export default function JaxDspClient({ testSample }) {
         )}
       </div>
       <audio controls autoPlay ref={audioRef} hidden></audio>
-      {processors && (
-        <DragDropContext
-          onDragEnd={({ source, destination }) => {
-            if (destination) {
-              if (
-                source.droppableId === 'selectedProcessors' &&
-                destination.droppableId === 'selectedProcessors'
-              ) {
-                const reorderedProcessors = [...selectedProcessors]
-                const [removed] = reorderedProcessors.splice(source.index, 1)
-                reorderedProcessors.splice(destination.index, 0, removed)
-                setSelectedProcessors(reorderedProcessors)
-              } else if (
-                source.droppableId === 'processors' &&
-                destination.droppableId === 'selectedProcessors'
-              ) {
-                const item = { ...processors[source.index] }
-                const newSelectedProcessors = [...selectedProcessors]
-                newSelectedProcessors.splice(destination.index, 0, item)
-                setSelectedProcessors(newSelectedProcessors)
-              }
-            }
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                width: 'fit-content',
-                display: 'flex',
-                flexDirection: 'row',
-                background: '#e0e0e0',
-                borderRadius: '4px',
-                margin: '4px',
-                alignItems: 'center',
-              }}
-            >
-              <label style={{ fontSize: '17px', fontWeight: 'bold', margin: '0px 8px' }}>Processors</label>
-              <DragDropList
-                itemDraggingStyle={{ background: 'white' }}
-                droppableId="processors"
-                direction="horizontal"
-                items={processors.map(({ name }) => ({ id: name, content: name }))}
-                isStatic
-              />
-            </div>
-            <DragDropList
-              style={{ height: 'fit-content', background: '#e0e0e0', borderRadius: '4px', width: 'fit-content' }}
-              draggingStyle={{ outline: '1px dashed black', background: '#e0e0e0' }}
-              droppableId="selectedProcessors"
-              direction="horizontal"
-              items={selectedProcessors.map(({ name }, i) => ({ id: `${i}`, content: name }))}
-              emptyContent={<i style={{ margin: '8px' }}>Drop processors here</i>}
-            />
-          </div>
-        </DragDropContext>
-      )}
     </div>
   )
 }
