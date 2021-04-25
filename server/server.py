@@ -83,19 +83,21 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processed_packets = []
 
     def set_processor(self, processor, params=None, state=None):
-        candidate_state = state or (
-            processor.state_init() if processor else None
-        )
+        if not processor:
+            self.processor = None
+            self.processor_params = params
+            self.processor_state = None
+            return
 
-        if (bool(processor) != bool(self.processor)) or (
-            processor and self.processor and ((self.processor.NAME != processor.NAME) or (candidate_state.keys() != self.processor_state.keys()))
-        ):
+        state = state or processor.state_init()
+        if not self.processor or self.processor.NAME != processor.NAME or state.keys() != self.processor_state.keys():
             self.processor = processor
-            self.processor_state = candidate_state
+            self.processor_state = state
+            # Don't pass any params to the trainer - that would be cheating ;)
             self.trainer.set_processor(self.processor, None, self.processor_state)
-        self.processor_params = params or (
-            default_param_values(processor, self.processor_state) if processor else None
-        )
+
+        # This is also the path to update processor params, regardless of whether the processor has changed.
+        self.processor_params = params or default_param_values(processor, self.processor_state)
 
     def set_loss_options(self, loss_options):
         self.trainer.set_loss_options(loss_options)
@@ -206,6 +208,30 @@ async def offer(request):
 
     log_info("Created for %s", request.remote)
 
+    # Returns (processor_definition, processor_params, processor_state)
+    def processor_for_config(processor_config):
+        if not processor_config:
+            return None, None, None
+
+        if isinstance(processor_config, list):
+            if len(processor_config) == 0:
+                return None, None, None
+
+            params = {
+                processor["name"]: processor["params"]
+                for processor in processor_config
+            }
+            state = serial_processors.state_init(
+                [
+                    processor_by_name[processor["name"]]
+                    for processor in processor_config
+                ]
+            )
+            return serial_processors, params, state
+
+        processor = processor_by_name.get(processor_config["name"])
+        return processor, processor_config["params"], processor.state_init()
+
     @peer_connection.on("datachannel")
     def on_datachannel(channel):
         @channel.on("message")
@@ -238,28 +264,8 @@ async def offer(request):
             else:
                 message_dict = json.loads(message)
                 if "processor" in message_dict:
-                    processor_config = message_dict["processor"]
-                    if not processor_config:
-                        audio_transform_track.set_processor(None)
-                    elif isinstance(processor_config, list):
-                        audio_transform_track.set_processor(
-                            serial_processors,
-                            {
-                                processor["name"]: processor["params"]
-                                for processor in processor_config
-                            },
-                            serial_processors.state_init(
-                                [
-                                    processor_by_name[processor["name"]]
-                                    for processor in processor_config
-                                ]
-                            ),
-                        )
-                    else:
-                        audio_transform_track.set_processor(
-                            processor_by_name.get(processor_config["name"]),
-                            processor_config["params"],
-                        )
+                    processor, params, state = processor_for_config(message_dict["processor"])
+                    audio_transform_track.set_processor(processor, params, state)
                 if "loss_options" in message_dict:
                     loss_options = message_dict["loss_options"]
                     audio_transform_track.set_loss_options(
