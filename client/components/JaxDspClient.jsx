@@ -18,8 +18,6 @@ const AUDIO_INPUT_SOURCES = {
   },
 }
 
-const NO_PROCESSOR_LABEL = 'None'
-
 // E.g. long_parameter_name => Long Parameter Name
 function snakeCaseToSentence(name) {
   return name
@@ -28,7 +26,7 @@ function snakeCaseToSentence(name) {
     .replace(/^(.)/, firstLetter => firstLetter.toUpperCase())
 }
 
-function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
+function Slider({ name, value, minValue, maxValue, logScale, onChange, mouseX }) {
   // `position` vars correspond to slider position. (e.g. 0-1)
   // `value` vars correspond to scaled parameter values (e.g. frequency in Hz)
   const minPosition = 0.0
@@ -43,9 +41,28 @@ function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
     position = (value - minValue) / scale + minPosition
   }
 
+  const [isMouseDown, setIsMouseDown] = useState(false)
+  const sliderRef = useRef()
+
+  useEffect(() => {
+    if (!isMouseDown || !onChange || !sliderRef.current || !mouseX) return
+
+    const sliderRect = sliderRef.current.getBoundingClientRect()
+    const sliderX = mouseX - sliderRect.left
+    const position = Math.max(0.0, Math.min(sliderX / sliderRect.width, 1.0))
+    const newValue = logScale
+      ? Math.exp(Math.log(minValue) + scale * (position - minPosition))
+      : minValue + scale * (position - minPosition)
+    return onChange(newValue)
+  }, [mouseX, isMouseDown, sliderRef]);
+
+  useEffect(() => {
+    console.log('slider mounting')
+  }, []);
+
   const isPreview = !onChange
   return (
-    <div key={name} style={{ display: 'flex', alignItems: 'center', margin: '5px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', margin: '5px' }}>
       {!isPreview && <label htmlFor={name}>{name}</label>}
       <input
         type="range"
@@ -53,20 +70,59 @@ function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
         value={position}
         min={minPosition}
         max={maxPosition}
-        step={(maxPosition - minPosition) / 100_000.0} // as continuous as possible
-        onChange={event => {
-          if (!onChange) return
-
-          const position = +event.target.value
-          const newValue = logScale
-            ? Math.exp(Math.log(minValue) + scale * (position - minPosition))
-            : minValue + scale * (position - minPosition)
-          return onChange(newValue)
-        }}
+        step={(maxPosition - minPosition) / 10_000.0} // as continuous as possible
         disabled={isPreview}
+        ref={sliderRef}
+        onChange={event => {}}
+        onMouseDown={() => {
+          setIsMouseDown(true)
+        }}
+        onMouseUp={() => setIsMouseDown(false)}
       />
       <span style={{ color: isPreview ? '#aaa' : '#000', marginLeft: '4px' }}>{value.toFixed(3)}</span>
     </div>
+  )
+}
+
+function Processor({ processor, isEstimatingParams, trainState, mouseX, onChange }) {
+  return (
+  <>
+    <label>{processor.name}</label>
+    <div style={{ display: 'flex', flexDirection: 'row' }}>
+      <div>
+        {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
+          <Slider
+            key={name}
+            name={snakeCaseToSentence(name)}
+            value={processor.params[name] || default_value || 0.0}
+            minValue={min_value}
+            maxValue={max_value}
+            logScale={log_scale}
+            onChange={newValue => onChange(name, newValue)}
+            mouseX={mouseX}
+          />
+        ))}
+      </div>
+      {isEstimatingParams && trainState?.params && (
+        <div>
+          {processor.param_definitions.map(
+            ({ name, min_value, max_value, log_scale }) => !isNaN(trainState.params[name]) && (
+              <Slider
+                key={name}
+                name={snakeCaseToSentence(name)}
+                value={trainState.params[name]}
+                minValue={min_value}
+                maxValue={max_value}
+                logScale={log_scale}
+                onChange={null}
+                mouseX={mouseX}
+              />
+            )
+          )}
+        </div>
+      )}
+    </div>
+  </>
   )
 }
 
@@ -82,6 +138,7 @@ export default function JaxDspClient({ testSample }) {
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
   const [selectedProcessors, setSelectedProcessors] = useState([])
+  const [mouseX, setMouseX] = useState(undefined)
 
   const audioRef = useRef(null)
 
@@ -95,6 +152,12 @@ export default function JaxDspClient({ testSample }) {
     const errorMessage = error ? `${displayMessage}: ${error}` : displayMessage
     console.error(errorMessage)
   }
+
+  useEffect(() => {
+    const onMouseMove = (event) => setMouseX(event.pageX)
+    window.addEventListener('mousemove', onMouseMove);
+    return () => window.removeEventListener('mousemove', onMouseMove);
+  }, []);
 
   useEffect(() => {
     sendProcessor()
@@ -241,49 +304,6 @@ export default function JaxDspClient({ testSample }) {
     if (dataChannel) dataChannel.send('stop_estimating_params')
   }
 
-  const Processor = ({ processor }) => {
-    return (
-      <>
-        <label>{processor.name}</label>
-        <div style={{ display: 'flex', flexDirection: 'row' }}>
-          <div>
-            {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
-              <Slider
-                key={name}
-                name={snakeCaseToSentence(name)}
-                value={processor.params[name] || default_value || 0.0}
-                minValue={min_value}
-                maxValue={max_value}
-                logScale={log_scale}
-                onChange={newValue => {
-                  const newSelectedProcessors = [...selectedProcessors]
-                  const newProcessor = newSelectedProcessors.find(p => p.name === processor.name)
-                  newProcessor.params[name] = newValue
-                  setSelectedProcessors(newSelectedProcessors)
-                } } />
-            ))}
-          </div>
-          {isEstimatingParams && trainState?.params && (
-            <div>
-              {processor.param_definitions.map(
-                ({ name, min_value, max_value, log_scale }) => !isNaN(trainState.params[name]) && (
-                  <Slider
-                    key={name}
-                    name={snakeCaseToSentence(name)}
-                    value={trainState.params[name]}
-                    minValue={min_value}
-                    maxValue={max_value}
-                    logScale={log_scale}
-                    onChange={null} />
-                )
-              )}
-            </div>
-          )}
-        </div>
-      </>
-    )
-  }
-
   return (
     <div>
       <div>
@@ -344,9 +364,10 @@ export default function JaxDspClient({ testSample }) {
                     itemDraggingStyle={{ background: 'white' }}
                     droppableId="processors"
                     direction="horizontal"
-                    items={processorDefinitions.map(({ name }) => ({ id: name, content: name }))}
                     isStatic
-                  />
+                  >
+                    {processorDefinitions.map(({ name }) => <div key={name}>{name}</div>)}
+                  </DragDropList>
                 </div>
                 <DragDropList
                   style={{
@@ -358,14 +379,15 @@ export default function JaxDspClient({ testSample }) {
                   draggingStyle={{ outline: '1px dashed black', background: '#e0e0e0' }}
                   droppableId="selectedProcessors"
                   direction="horizontal"
-                  items={selectedProcessors.map((processor, i) => ({
-                    id: `${i}`,
-                    content: <Processor processor={processor} />,
-                    // TODO fix slider drag not triggering onChange
-                    // isDragDisabled: true,
-                  }))}
                   emptyContent={<i style={{ margin: '8px' }}>Drop processors here</i>}
-                />
+                >
+                  {selectedProcessors.map((processor, i) => <Processor key={i} processor={processor} isEstimatingParams={isEstimatingParams} trainState={trainState} mouseX={mouseX} onChange={(paramName, newValue) => {
+                    const newSelectedProcessors = [...selectedProcessors]
+                    const newProcessor = newSelectedProcessors.find(p => p.name === processor.name)
+                    newProcessor.params[paramName] = newValue
+                    setSelectedProcessors(newSelectedProcessors)
+                  }} />)}
+                </DragDropList>
               </div>
             </DragDropContext>
           )}
