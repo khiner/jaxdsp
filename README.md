@@ -29,5 +29,3 @@ $ cd app
 $ npm ci
 $ npm start
 ```
-
-### [Trello](https://trello.com/b/HftUVYY5/jaxdsp)
