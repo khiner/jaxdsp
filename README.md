@@ -1,7 +1,9 @@
 # JAXdsp
 
-Fast, differentiable audio processors on the CPU or GPU.
-Built with [JAX](https://github.com/google/jax).
+**Still working on this and will make a blog post soon!**
+
+Fast, differentiable audio processors on the CPU or GPU, controlled from the browser.
+Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets and React.
 
 ```shell
 pip install git+https://github.com/cifkao/jax-spectral.git@main#egg=jax-spectral
