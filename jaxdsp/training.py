@@ -1,4 +1,4 @@
-from jaxdsp.processors import default_param_values, serial_processors
+from jaxdsp.processors import default_param_values, serial_processors, processor_by_name
 from jaxdsp.processors.base import processor_config_to_carry
 import numpy as np
 from jax import value_and_grad, jit
@@ -48,7 +48,6 @@ class IterativeTrainer:
         self.step_num = 0
         self.loss = 0.0
         self.track_history = track_history
-        self.processor_config = None
         self.params = None
         self.processor_names = None
         self.set_optimizer_options(optimizer_options)
@@ -56,7 +55,6 @@ class IterativeTrainer:
         self.set_loss_options(loss_options)
 
     def set_processor_config(self, processor_config):
-        self.processor_config = processor_config
         self.processor_names = (
             [processor["name"] for processor in processor_config]
             if processor_config
@@ -67,7 +65,14 @@ class IterativeTrainer:
     def set_carry(self, carry):
         if carry:
             params, self.state = carry
-            self.params = params or default_param_values(None, self.processor_names)
+            self.params = params or (
+                [
+                    default_param_values(processor_by_name[processor_name])
+                    for processor_name in self.processor_names
+                ]
+                if self.processor_names
+                else None
+            )
             self.step_evaluator = LossHistoryAccumulator(self.params)
         else:
             self.params, self.state = None, None
@@ -84,8 +89,11 @@ class IterativeTrainer:
             else create_optimizer()
         )
 
-        if self.processor_config:
-            _, self.state = processor_config_to_carry(self.set_processor_config)
+        if self.processor_names:
+            self.state = [
+                processor_by_name[processor_name].init_state()
+                for processor_name in self.processor_names
+            ]
 
         self.update_opt_state()
 
@@ -99,7 +107,7 @@ class IterativeTrainer:
                     )
                 ]
             )
-            if self.params and self.processor_config
+            if self.params and self.processor_names
             else None
         )
 
@@ -156,7 +164,7 @@ class IterativeTrainer:
 
     def params_and_loss(self):
         return {
-            "params": self.params(),
+            "params": self.float_params(),
             "loss": float(self.loss),
         }
 

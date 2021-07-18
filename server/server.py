@@ -73,6 +73,7 @@ class AudioTransformTrack(MediaStreamTrack):
     def set_processor_config(self, processor_config):
         if not processor_config:
             self.params, self.state = None, None
+            self.trainer.set_processor_config(None)
             return
 
         processor_names = [processor["name"] for processor in processor_config]
