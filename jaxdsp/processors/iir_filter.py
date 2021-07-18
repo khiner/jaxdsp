@@ -12,7 +12,7 @@ PARAMS = [
 PRESETS = {}
 
 
-def state_init(length=5):
+def init_state(length=5):
     return {
         "inputs": jnp.zeros(length),
         "outputs": jnp.zeros(length - 1),

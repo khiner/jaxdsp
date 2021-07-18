@@ -89,17 +89,17 @@ def plot_params_single(processor_name, params_target, params_history):
     plt.tight_layout()
 
 
-def plot_params(params_target, params_history):
-    for processor_name in params_target.keys():
+def plot_params(params_targets, params_histories, processor_names):
+    for processor_name, params_target, params_history in zip(processor_names, params_targets, params_histories):
         plot_params_single(
             processor_name,
-            params_target[processor_name],
-            params_history[processor_name],
+            params_target,
+            params_history,
         )
 
 
 def plot_optimization(
-    processor, Xs, params_inits, params_target, varying_param_name, steps=50
+    processor_config, Xs, params_inits, params_target, varying_param_name, steps=50
 ):
     """Used to investigate the shape of the gradient curve for a single target value across
     a range of different initial values.
@@ -115,15 +115,14 @@ def plot_optimization(
     ]  # TODO only pass in one to vary
     for params_init in params_inits:
         trainer = training.IterativeTrainer(
-            processor,
+            processor_config,
             training.Config(),
-            processor.state_init(),
             params_init,
             track_history=True,
         )
         for i in range(steps):
             X = Xs[i % Xs.shape[0]]
-            carry_target, Y_target = processor.tick_buffer(carry_target, X)
+            carry_target, Y_target = trainer.processor.tick_buffer(carry_target, X)
             trainer.step(X, Y_target)
         for key, param_estimated in params_estimated_i[processor.NAME].items():
             params_estimated[key].append(param_estimated)

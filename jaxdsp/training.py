@@ -1,8 +1,9 @@
+from jaxdsp.processors.base import processor_triplet_for_config
 import numpy as np
 from jax import grad, value_and_grad, jit
 from jax.tree_util import tree_map, tree_multimap
 
-from jaxdsp.processors import serial_processors, params_to_unit_scale, params_from_unit_scale, default_param_values
+from jaxdsp.processors import params_to_unit_scale, params_from_unit_scale, default_param_values
 from jaxdsp.loss import LossOptions, loss_fn
 from jaxdsp.optimizers import create_optimizer
 
@@ -38,36 +39,37 @@ def float_params(params):
 class IterativeTrainer:
     def __init__(
         self,
-        processor,
+        processor_config=None,
         loss_options=None,
         optimizer_options=None,
-        processor_state=None,
-        processor_params=None,
         track_history=False,
     ):
         self.step_num = 0
         self.loss = 0.0
         self.track_history = track_history
-        self.processor = processor
-        self.current_params = processor_params
+        self.processor = None
+        self.current_params = None
+        self.processor_names = None
         self.set_optimizer_options(optimizer_options)
-        self.set_processor(processor, processor_params, processor_state)
+        self.set_processor_config(processor_config)
         self.set_loss_options(loss_options)
+
+    def set_processor_config(self, processor_config):
+        self.processor_names = [processor["name"] for processor in processor_config] if processor_config else None
+        self.set_processor(*processor_triplet_for_config(processor_config))
 
     def set_processor(self, processor, params=None, state=None):
         self.processor = processor
         if processor:
-            self.processor_state = state or processor.state_init()
-            self.current_params = params or default_param_values(processor, self.processor_state)
+            self.processor_state = state or processor.init_state()
+            self.current_params = params or default_param_values(processor, self.processor_names)
             self.step_evaluator = LossHistoryAccumulator(self.current_params)
-            self.opt_state = self.optimizer.init(
-                params_to_unit_scale(self.current_params, processor.NAME)
-            )
         else:
             self.processor_state = None
             self.current_params = None
             self.step_evaluator = None
-            self.opt_state = None
+
+        self.update_opt_state()
 
     def set_optimizer_options(self, optimizer_options):
         self.optimizer = (
@@ -77,20 +79,22 @@ class IterativeTrainer:
             if optimizer_options
             else create_optimizer()
         )
-        if self.current_params and self.processor:
-            self.opt_state = self.optimizer.init(
-                params_to_unit_scale(self.current_params, self.processor.NAME)
-            )
+
         if self.processor:
-            self.processor_state = self.processor.state_init
+            self.processor_state = self.processor.init_state()
+
+        self.update_opt_state()
+
+    def update_opt_state(self):
+        self.opt_state = self.optimizer.init(params_to_unit_scale(self.current_params, self.processor_names)) if self.current_params and self.processor else None
 
     def set_loss_options(self, loss_options):
         self.loss_options = loss_options or LossOptions()
 
         def processor_loss(unit_scale_params, state, X, Y_target):
-            params = params_from_unit_scale(unit_scale_params, self.processor.NAME)
+            params = params_from_unit_scale(unit_scale_params, self.processor_names)
             carry, Y_estimated = self.processor.tick_buffer(
-                {"params": params, "state": state}, X
+                {"params": params, "state": state}, X, self.processor_names
             )
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
@@ -99,13 +103,12 @@ class IterativeTrainer:
                 carry["state"],
             )
 
-        # jit(vmap(value_and_grad(processor_loss), in_axes=(None, 0), out_axes=0))
         self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))
 
     def step(self, X, Y_target):
-        # loss, grads = mean_loss_and_grads(*grad_fn(get_params(opt_state), Xs_batch))
+        params_unit = params_to_unit_scale(self.current_params, self.processor_names)
         (self.loss, self.processor_state), self.grads = self.grad_fn(
-            params_to_unit_scale(self.current_params, self.processor.NAME),
+            params_unit,
             self.processor_state,
             X,
             Y_target,
@@ -115,7 +118,7 @@ class IterativeTrainer:
         )
         self.step_num += 1
         self.current_params = params_from_unit_scale(
-            self.optimizer.get_params(self.opt_state), self.processor.NAME
+            self.optimizer.get_params(self.opt_state), self.processor_names
         )
         if self.step_evaluator:
             self.step_evaluator.after_step(self.loss, self.current_params)

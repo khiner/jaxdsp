@@ -56,10 +56,6 @@ function Slider({ name, value, minValue, maxValue, logScale, onChange, mouseX })
     return onChange(newValue)
   }, [mouseX, isMouseDown, sliderRef]);
 
-  useEffect(() => {
-    console.log('slider mounting')
-  }, []);
-
   const isPreview = !onChange
   return (
     <div style={{ display: 'flex', alignItems: 'center', margin: '5px' }}>

@@ -16,7 +16,7 @@ PARAMS = [
 PRESETS = {}
 
 
-def state_init():
+def init_state():
     return {}
 
 

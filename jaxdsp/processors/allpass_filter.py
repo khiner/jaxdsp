@@ -9,7 +9,7 @@ PARAMS = [Param("feedback", 0.0)]
 PRESETS = {}
 
 
-def state_init(buffer_size=20):
+def init_state(buffer_size=20):
     return {
         "buffer": jnp.zeros(buffer_size),
         "buffer_index": 0,

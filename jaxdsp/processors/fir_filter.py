@@ -9,7 +9,7 @@ PARAMS = [Param("B", jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)]))]
 PRESETS = {}
 
 
-def state_init(length=4):
+def init_state(length=4):
     return {"inputs": jnp.zeros(length)}
 
 

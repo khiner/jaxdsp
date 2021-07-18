@@ -10,7 +10,7 @@ PARAMS = [
 PRESETS = {}
 
 
-def state_init():
+def init_state():
     return {"phase_radians": 0.0, "sample_rate": 44100}
 
 

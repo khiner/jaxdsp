@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from jaxdsp.processors.base import processor_triplet_for_config
 import websockets
 import uuid
 import json
@@ -26,7 +27,6 @@ from jaxdsp.processors import (
     empty_carry,
     serialize_processor,
     default_param_values,
-    is_nested_processor,
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
@@ -52,14 +52,10 @@ class AudioTransformTrack(MediaStreamTrack):
         self.track = track
         self.processor = None
         self.processor_state = None
+        self.processor_names = None
         self.is_estimating_params = False
         self.processor_params = None
-        self.trainer = IterativeTrainer(
-            None,
-            loss_options=None,
-            optimizer_options=None,
-            processor_params=None,
-        )
+        self.trainer = IterativeTrainer()
         self.train_stack = train_stack
         self.previous_frame = None
 
@@ -82,22 +78,25 @@ class AudioTransformTrack(MediaStreamTrack):
         self.accumulated_packets = []
         self.processed_packets = []
 
-    def set_processor(self, processor, params=None, state=None):
+    def set_processor_config(self, processor_config):
+        processor, processor_params, processor_state = processor_triplet_for_config(processor_config)
         if not processor:
             self.processor = None
-            self.processor_params = params
+            self.processor_params = processor_params
             self.processor_state = None
             return
 
-        state = state or processor.state_init()
-        if not self.processor or self.processor.NAME != processor.NAME or state.keys() != self.processor_state.keys():
+        processor_names = [processor["name"] for processor in processor_config] if processor_config else None
+        if not self.processor or self.processor.NAME != processor.NAME or processor_names != self.processor_names:
+            self.processor_names = processor_names
             self.processor = processor
-            self.processor_state = state
+            self.processor_state = processor_state or processor.init_state()
             # Don't pass any params to the trainer - that would be cheating ;)
+            self.trainer.processor_names = processor_names
             self.trainer.set_processor(self.processor, None, self.processor_state)
 
         # This is also the path to update processor params, regardless of whether the processor has changed.
-        self.processor_params = params or default_param_values(processor, self.processor_state)
+        self.processor_params = processor_params or default_param_values(processor, self.processor_state)
 
     def set_loss_options(self, loss_options):
         self.trainer.set_loss_options(loss_options)
@@ -116,8 +115,10 @@ class AudioTransformTrack(MediaStreamTrack):
         X_left = X[0]  # TODO handle stereo in
 
         if self.processor:
-            if is_nested_processor(self.processor):
-                for inner_processor_state in self.processor_state.values():
+            # TODO can this be done once on negotiate/processor change, instead of each frame?
+            #  or, maybe it can be passed as another arg to tick_buffer
+            if isinstance(self.processor_state, list):
+                for inner_processor_state in self.processor_state:
                     inner_processor_state["sample_rate"] = sample_rate
             else:
                 self.processor_state["sample_rate"] = sample_rate
@@ -128,6 +129,7 @@ class AudioTransformTrack(MediaStreamTrack):
                     "state": self.processor_state,
                 },
                 X_left,
+                self.processor_names
             )
         else:
             carry, Y = (empty_carry, X_left)
@@ -208,30 +210,6 @@ async def offer(request):
 
     log_info("Created for %s", request.remote)
 
-    # Returns (processor_definition, processor_params, processor_state)
-    def processor_for_config(processor_config):
-        if not processor_config:
-            return None, None, None
-
-        if isinstance(processor_config, list):
-            if len(processor_config) == 0:
-                return None, None, None
-
-            params = {
-                processor["name"]: processor["params"]
-                for processor in processor_config
-            }
-            state = serial_processors.state_init(
-                [
-                    processor_by_name[processor["name"]]
-                    for processor in processor_config
-                ]
-            )
-            return serial_processors, params, state
-
-        processor = processor_by_name.get(processor_config["name"])
-        return processor, processor_config["params"], processor.state_init()
-
     @peer_connection.on("datachannel")
     def on_datachannel(channel):
         @channel.on("message")
@@ -252,6 +230,7 @@ async def offer(request):
                             "processor": serialize_processor(
                                 audio_transform_track.trainer.processor,
                                 audio_transform_track.trainer.current_params,
+                                audio_transform_track.processor_names
                             ),
                             "loss_options": audio_transform_track.trainer.loss_options.serialize(),
                         }
@@ -264,8 +243,7 @@ async def offer(request):
             else:
                 message_dict = json.loads(message)
                 if "processor" in message_dict:
-                    processor, params, state = processor_for_config(message_dict["processor"])
-                    audio_transform_track.set_processor(processor, params, state)
+                    audio_transform_track.set_processor_config(message_dict["processor"])
                 if "loss_options" in message_dict:
                     loss_options = message_dict["loss_options"]
                     audio_transform_track.set_loss_options(

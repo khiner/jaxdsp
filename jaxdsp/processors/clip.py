@@ -8,7 +8,7 @@ PARAMS = [Param("min", -1.0, -1.0, 1.0), Param("max", 1.0, -1.0, 1.0)]
 PRESETS = {}
 
 
-def state_init():
+def init_state():
     return {}
 
 

@@ -27,7 +27,7 @@ PARAMS = [
 PRESETS = {}
 
 
-def state_init():
+def init_state():
     return {
         "delay_line": jnp.zeros(MAX_DELAY_LENGTH_SAMPLES),
         "read_sample": 0.0,
