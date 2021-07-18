@@ -44,10 +44,9 @@ class AudioTransformTrack(MediaStreamTrack):
     def __init__(self, track, train_stack):
         super().__init__()
         self.track = track
-        self.processor_state = None
+        self.params, self.state = None, None
         self.processor_names = None
         self.is_estimating_params = False
-        self.processor_params = None
         self.trainer = IterativeTrainer()
         self.train_stack = train_stack
         self.previous_frame = None
@@ -73,21 +72,18 @@ class AudioTransformTrack(MediaStreamTrack):
 
     def set_processor_config(self, processor_config):
         if not processor_config:
-            self.processor_params = None
-            self.processor_state = None
+            self.params, self.state = None, None
             return
 
         processor_names = [processor["name"] for processor in processor_config]
         # This is also the path to update processor params, regardless of whether the processor has changed.
-        self.processor_params, processor_state = processor_config_to_carry(
-            processor_config
-        )
+        self.params, state = processor_config_to_carry(processor_config)
         if self.processor_names != processor_names:
             self.processor_names = processor_names
-            self.processor_state = processor_state
+            self.state = state
             # Don't pass any params to the trainer - that would be cheating ;)
             self.trainer.processor_names = processor_names
-            self.trainer.set_carry((None, self.processor_state))
+            self.trainer.set_carry((None, self.state))
 
     def set_loss_options(self, loss_options):
         self.trainer.set_loss_options(loss_options)
@@ -105,24 +101,22 @@ class AudioTransformTrack(MediaStreamTrack):
     def process(self, X, sample_rate):
         X_left = X[0]  # TODO handle stereo in
 
-        if self.processor_params and self.processor_state:
+        if self.params and self.state:
             # TODO can this be done once on negotiate/processor change, instead of each frame?
             #  or, maybe it can be passed as another arg to tick_buffer
-            if isinstance(self.processor_state, list):
-                for inner_processor_state in self.processor_state:
+            if isinstance(self.state, list):
+                for inner_processor_state in self.state:
                     inner_processor_state["sample_rate"] = sample_rate
             else:
-                self.processor_state["sample_rate"] = sample_rate
+                self.state["sample_rate"] = sample_rate
 
             carry, Y = serial_processors.tick_buffer_serial(
-                (self.processor_params, self.processor_state),
-                X_left,
-                self.processor_names,
+                (self.params, self.state), X_left, self.processor_names
             )
         else:
             carry, Y = (None, None), X_left
 
-        self.processor_state = carry[1]
+        self.state = carry[1]
 
         # Transposing to conform to processors with stereo output.
         # Stereo processing is done that way to support the same
