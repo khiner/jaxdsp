@@ -1,9 +1,5 @@
 from jaxdsp.processors import processor_by_name
 
-NAME = "Serial Processors"
-PARAMS = []
-PRESETS = {}
-
 def tick_buffer(carry, X, processor_names):
     params, state = carry
     assert len(state) == len(params)

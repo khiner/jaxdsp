@@ -81,7 +81,7 @@ class AudioTransformTrack(MediaStreamTrack):
             return
 
         processor_names = [processor["name"] for processor in processor_config] if processor_config else None
-        if not self.processor or self.processor.NAME != processor.NAME or processor_names != self.processor_names:
+        if not self.processor or processor_names != self.processor_names:
             self.processor_names = processor_names
             self.processor = processor
             self.processor_state = processor_state or processor.init_state()
