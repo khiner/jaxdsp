@@ -57,7 +57,11 @@ class IterativeTrainer:
 
     def set_processor_config(self, processor_config):
         self.processor_config = processor_config
-        self.processor_names = [processor["name"] for processor in processor_config] if processor_config else None
+        self.processor_names = (
+            [processor["name"] for processor in processor_config]
+            if processor_config
+            else None
+        )
         self.set_carry(processor_config_to_carry(processor_config))
 
     def set_carry(self, carry):
@@ -89,25 +93,48 @@ class IterativeTrainer:
         self.update_opt_state()
 
     def update_opt_state(self):
-        self.opt_state = self.optimizer.init([params_to_unit_scale(processor_params, processor_name) for processor_params, processor_name in zip(self.current_params, self.processor_names)]) if self.current_params and self.processor_config else None
+        self.opt_state = (
+            self.optimizer.init(
+                [
+                    params_to_unit_scale(processor_params, processor_name)
+                    for processor_params, processor_name in zip(
+                        self.current_params, self.processor_names
+                    )
+                ]
+            )
+            if self.current_params and self.processor_config
+            else None
+        )
 
     def set_loss_options(self, loss_options):
         self.loss_options = loss_options or LossOptions()
 
         def processor_loss(unit_scale_params, state, X, Y_target):
-            params = [params_from_unit_scale(processor_params, processor_name) for processor_params, processor_name in zip(unit_scale_params, self.processor_names)]
-            carry, Y_estimated = serial_processors.tick_buffer_serial((params, state), X, self.processor_names)
+            params = [
+                params_from_unit_scale(processor_params, processor_name)
+                for processor_params, processor_name in zip(
+                    unit_scale_params, self.processor_names
+                )
+            ]
+            carry, Y_estimated = serial_processors.tick_buffer_serial(
+                (params, state), X, self.processor_names
+            )
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
             return (
                 loss_fn(Y_estimated, Y_target, self.loss_options),
-                carry[1], # return state as aux
+                carry[1],  # return state as aux
             )
 
         self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))
 
     def step(self, X, Y_target):
-        params_unit = [params_to_unit_scale(processor_params, processor_name) for processor_params, processor_name in zip(self.current_params, self.processor_names)]
+        params_unit = [
+            params_to_unit_scale(processor_params, processor_name)
+            for processor_params, processor_name in zip(
+                self.current_params, self.processor_names
+            )
+        ]
         (self.loss, self.processor_state), self.grads = self.grad_fn(
             params_unit,
             self.processor_state,
@@ -118,7 +145,12 @@ class IterativeTrainer:
             self.step_num, self.grads, self.opt_state
         )
         self.step_num += 1
-        self.current_params = [params_from_unit_scale(processor_params, processor_name) for processor_params, processor_name in zip(self.optimizer.get_params(self.opt_state), self.processor_names)]
+        self.current_params = [
+            params_from_unit_scale(processor_params, processor_name)
+            for processor_params, processor_name in zip(
+                self.optimizer.get_params(self.opt_state), self.processor_names
+            )
+        ]
         if self.step_evaluator:
             self.step_evaluator.after_step(self.loss, self.current_params)
 

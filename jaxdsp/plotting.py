@@ -90,7 +90,9 @@ def plot_params_single(processor_name, params_target, params_history):
 
 
 def plot_params(params_targets, params_histories, processor_names):
-    for processor_name, params_target, params_history in zip(processor_names, params_targets, params_histories):
+    for processor_name, params_target, params_history in zip(
+        processor_names, params_targets, params_histories
+    ):
         plot_params_single(
             processor_name,
             params_target,

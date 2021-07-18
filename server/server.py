@@ -79,7 +79,9 @@ class AudioTransformTrack(MediaStreamTrack):
 
         processor_names = [processor["name"] for processor in processor_config]
         # This is also the path to update processor params, regardless of whether the processor has changed.
-        self.processor_params, processor_state = processor_config_to_carry(processor_config)
+        self.processor_params, processor_state = processor_config_to_carry(
+            processor_config
+        )
         if self.processor_names != processor_names:
             self.processor_names = processor_names
             self.processor_state = processor_state
@@ -115,7 +117,7 @@ class AudioTransformTrack(MediaStreamTrack):
             carry, Y = serial_processors.tick_buffer_serial(
                 (self.processor_params, self.processor_state),
                 X_left,
-                self.processor_names
+                self.processor_names,
             )
         else:
             carry, Y = (None, None), X_left
@@ -213,7 +215,18 @@ async def offer(request):
                                 for definition in all_optimizer_definitions
                             ],
                             "optimizer": audio_transform_track.trainer.optimizer.serialize(),
-                            "processor": [serialize_processor(processor_by_name[processor_name], processor_params) for processor_name, processor_params in zip(audio_transform_track.trainer.processor_names, audio_transform_track.trainer.current_params)] if audio_transform_track.trainer.processor_names and audio_transform_track.trainer.current_params else None,
+                            "processor": [
+                                serialize_processor(
+                                    processor_by_name[processor_name], processor_params
+                                )
+                                for processor_name, processor_params in zip(
+                                    audio_transform_track.trainer.processor_names,
+                                    audio_transform_track.trainer.current_params,
+                                )
+                            ]
+                            if audio_transform_track.trainer.processor_names
+                            and audio_transform_track.trainer.current_params
+                            else None,
                             "loss_options": audio_transform_track.trainer.loss_options.serialize(),
                         }
                     )
@@ -225,7 +238,9 @@ async def offer(request):
             else:
                 message_dict = json.loads(message)
                 if "processor" in message_dict:
-                    audio_transform_track.set_processor_config(message_dict["processor"])
+                    audio_transform_track.set_processor_config(
+                        message_dict["processor"]
+                    )
                 if "loss_options" in message_dict:
                     loss_options = message_dict["loss_options"]
                     audio_transform_track.set_loss_options(

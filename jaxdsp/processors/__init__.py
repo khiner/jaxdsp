@@ -23,6 +23,7 @@ all_processors = [
 ]
 processor_by_name = {processor.NAME: processor for processor in all_processors}
 
+
 def default_param_values(processor, processor_names=None):
     if processor_names:
         return [
@@ -35,6 +36,7 @@ def default_param_values(processor, processor_names=None):
 def id_for_processor(processor):
     return all_processors.index(processor)
 
+
 def serialize_processor(processor, params=None):
     if not processor:
         return None
@@ -46,11 +48,26 @@ def serialize_processor(processor, params=None):
         "params": params or default_param_values(processor),
     }
 
+
 def params_to_unit_scale(params, processor_name):
     processor = processor_by_name[processor_name]
-    return {param.name: param.to_unit_scale(params[param.name]) for param in processor.PARAMS} if processor else {}
+    return (
+        {
+            param.name: param.to_unit_scale(params[param.name])
+            for param in processor.PARAMS
+        }
+        if processor
+        else {}
+    )
 
 
 def params_from_unit_scale(params, processor_name):
     processor = processor_by_name[processor_name]
-    return {param.name: param.from_unit_scale(params[param.name]) for param in processor.PARAMS} if processor else {}
+    return (
+        {
+            param.name: param.from_unit_scale(params[param.name])
+            for param in processor.PARAMS
+        }
+        if processor
+        else {}
+    )
