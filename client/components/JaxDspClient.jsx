@@ -3,8 +3,12 @@ import { DragDropContext } from 'react-beautiful-dnd'
 import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
 import DragDropList from './DragDropList'
+import Slider from './Slider'
+import Processor from './Processor'
 
-import { negotiatePeerConnection } from '../helpers/WebRtcHelper'
+import { negotiatePeerConnection } from '../util/WebRtc'
+import { clone } from '../util/object'
+import { snakeCaseToSentence } from '../util/string'
 
 let peerConnection = null
 let dataChannel = null
@@ -16,115 +20,6 @@ const AUDIO_INPUT_SOURCES = {
   testSample: {
     label: 'Test sample',
   },
-}
-
-// E.g. long_parameter_name => Long Parameter Name
-function snakeCaseToSentence(name) {
-  return name
-    ?.split('_')
-    .join(' ')
-    .replace(/^(.)/, firstLetter => firstLetter.toUpperCase())
-}
-
-// Deep-copy object
-function clone(object) {
-  return JSON.parse(JSON.stringify(object))
-}
-
-function Slider({ name, value, minValue, maxValue, logScale, onChange, mouseX }) {
-  // `position` vars correspond to slider position. (e.g. 0-1)
-  // `value` vars correspond to scaled parameter values (e.g. frequency in Hz)
-  const minPosition = 0.0
-  const maxPosition = 1.0
-  let scale
-  let position
-  if (logScale) {
-    scale = (Math.log(maxValue) - Math.log(minValue)) / (maxPosition - minPosition)
-    position = (Math.log(value) - Math.log(minValue)) / scale + minPosition
-  } else {
-    scale = (maxValue - minValue) / (maxPosition - minPosition)
-    position = (value - minValue) / scale + minPosition
-  }
-
-  const [isMouseDown, setIsMouseDown] = useState(false)
-  const sliderRef = useRef()
-
-  useEffect(() => {
-    if (!isMouseDown || !onChange || !sliderRef.current || !mouseX) return
-
-    const sliderRect = sliderRef.current.getBoundingClientRect()
-    const sliderX = mouseX - sliderRect.left
-    const position = Math.max(0.0, Math.min(sliderX / sliderRect.width, 1.0))
-    const newValue = logScale
-      ? Math.exp(Math.log(minValue) + scale * (position - minPosition))
-      : minValue + scale * (position - minPosition)
-    return onChange(newValue)
-  }, [mouseX, isMouseDown, sliderRef]);
-
-  const isPreview = !onChange
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', margin: '5px' }}>
-      {!isPreview && <label htmlFor={name}>{name}</label>}
-      <input
-        type="range"
-        name={name}
-        value={position}
-        min={minPosition}
-        max={maxPosition}
-        step={(maxPosition - minPosition) / 10_000.0} // as continuous as possible
-        disabled={isPreview}
-        ref={sliderRef}
-        onChange={event => {}}
-        onMouseDown={() => {
-          setIsMouseDown(true)
-        }}
-        onMouseUp={() => setIsMouseDown(false)}
-      />
-      <span style={{ color: isPreview ? '#aaa' : '#000', marginLeft: '4px' }}>{value.toFixed(3)}</span>
-    </div>
-  )
-}
-
-function Processor({ processor, isEstimatingParams, trainState, mouseX, onChange }) {
-  return (
-  <>
-    <label>{processor.name}</label>
-    <div style={{ display: 'flex', flexDirection: 'row' }}>
-      <div>
-        {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
-          <Slider
-            key={name}
-            name={snakeCaseToSentence(name)}
-            value={processor.params[name] || default_value || 0.0}
-            minValue={min_value}
-            maxValue={max_value}
-            logScale={log_scale}
-            onChange={newValue => onChange(name, newValue)}
-            mouseX={mouseX}
-          />
-        ))}
-      </div>
-      {isEstimatingParams && trainState?.params && (
-        <div>
-          {processor.param_definitions.map(
-            ({ name, min_value, max_value, log_scale }) => !isNaN(trainState.params[name]) && (
-              <Slider
-                key={name}
-                name={snakeCaseToSentence(name)}
-                value={trainState.params[name]}
-                minValue={min_value}
-                maxValue={max_value}
-                logScale={log_scale}
-                onChange={null}
-                mouseX={mouseX}
-              />
-            )
-          )}
-        </div>
-      )}
-    </div>
-  </>
-  )
 }
 
 export default function JaxDspClient({ testSample }) {
