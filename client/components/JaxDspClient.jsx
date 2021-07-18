@@ -26,6 +26,11 @@ function snakeCaseToSentence(name) {
     .replace(/^(.)/, firstLetter => firstLetter.toUpperCase())
 }
 
+// Deep-copy object
+function clone(object) {
+  return JSON.parse(JSON.stringify(object))
+}
+
 function Slider({ name, value, minValue, maxValue, logScale, onChange, mouseX }) {
   // `position` vars correspond to slider position. (e.g. 0-1)
   // `value` vars correspond to scaled parameter values (e.g. frequency in Hz)
@@ -333,7 +338,7 @@ export default function JaxDspClient({ testSample }) {
                     source.droppableId === 'processors' &&
                     destination.droppableId === 'selectedProcessors'
                   ) {
-                    const item = { ...processorDefinitions[source.index] }
+                    const item = clone(processorDefinitions[source.index])
                     const newSelectedProcessors = [...selectedProcessors]
                     newSelectedProcessors.splice(destination.index, 0, item)
                     setSelectedProcessors(newSelectedProcessors)
@@ -378,9 +383,8 @@ export default function JaxDspClient({ testSample }) {
                   emptyContent={<i style={{ margin: '8px' }}>Drop processors here</i>}
                 >
                   {selectedProcessors.map((processor, i) => <Processor key={i} processor={processor} isEstimatingParams={isEstimatingParams} trainState={trainState} mouseX={mouseX} onChange={(paramName, newValue) => {
-                    const newSelectedProcessors = [...selectedProcessors]
-                    const newProcessor = newSelectedProcessors.find(p => p.name === processor.name)
-                    newProcessor.params[paramName] = newValue
+                    const newSelectedProcessors = clone(selectedProcessors)
+                    newSelectedProcessors[i].params[paramName] = newValue
                     setSelectedProcessors(newSelectedProcessors)
                   }} />)}
                 </DragDropList>
