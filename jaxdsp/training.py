@@ -93,14 +93,12 @@ class IterativeTrainer:
 
         def processor_loss(unit_scale_params, state, X, Y_target):
             params = params_from_unit_scale(unit_scale_params, self.processor_names)
-            carry, Y_estimated = self.processor.tick_buffer(
-                {"params": params, "state": state}, X, self.processor_names
-            )
+            carry, Y_estimated = self.processor.tick_buffer((params, state), X, self.processor_names)
             if Y_estimated.shape == Y_target.shape[::-1]:
                 Y_estimated = Y_estimated.T  # TODO should eventually remove this check
             return (
                 loss_fn(Y_estimated, Y_target, self.loss_options),
-                carry["state"],
+                carry[1], # return state as aux
             )
 
         self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))

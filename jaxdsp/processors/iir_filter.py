@@ -21,8 +21,7 @@ def init_state(length=5):
 
 @jit
 def tick(carry, x):
-    params = carry["params"]
-    state = carry["state"]
+    params, state = carry
     B = params["B"]
     A = params["A"]
     state["inputs"] = jnp.concatenate([jnp.array([x]), state["inputs"][0:-1]])

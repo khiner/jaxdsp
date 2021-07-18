@@ -5,12 +5,9 @@ import websockets
 import uuid
 import json
 import logging
-import os
 import ssl
 import uuid
-import time
 import numpy as np
-import jax.numpy as jnp
 from collections import deque
 
 from aiohttp import web
@@ -18,13 +15,10 @@ import aiohttp_cors
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 
 from jaxdsp.processors import (
-    serial_processors,
     allpass_filter,
     clip,
     lowpass_feedback_comb_filter,
     sine_wave,
-    processor_by_name,
-    empty_carry,
     serialize_processor,
     default_param_values,
 )
@@ -124,17 +118,14 @@ class AudioTransformTrack(MediaStreamTrack):
                 self.processor_state["sample_rate"] = sample_rate
 
             carry, Y = self.processor.tick_buffer(
-                {
-                    "params": self.processor_params,
-                    "state": self.processor_state,
-                },
+                (self.processor_params, self.processor_state),
                 X_left,
                 self.processor_names
             )
         else:
-            carry, Y = (empty_carry, X_left)
+            carry, Y = (None, None), X_left
 
-        self.processor_state = carry["state"]
+        self.processor_state = carry[1]
 
         # Transposing to conform to processors with stereo output.
         # Stereo processing is done that way to support the same

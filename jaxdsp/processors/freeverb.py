@@ -81,8 +81,7 @@ def tick(carry, x):
     x_r, x_l = jnp.broadcast_to(x, (2,))  # handle stereo or mono in
     x_combined = (x_l + x_r) * fixed_gain
 
-    state = carry["state"]
-    params = carry["params"]
+    params, state = carry
 
     out_l = 0.0
     out_r = 0.0
@@ -110,8 +109,7 @@ def tick(carry, x):
 
 @jit
 def tick_buffer(carry, X):
-    state = carry["state"]
-    params = carry["params"]
+    params, state = carry
 
     room_size = (params["room_size"] * scale_room) + offset_room
     damp = params["damp"] * scale_damp

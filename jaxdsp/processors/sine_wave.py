@@ -21,8 +21,7 @@ def tick(carry, x):
 
 @jit
 def tick_buffer(carry, X):
-    params = carry["params"]
-    state = carry["state"]
+    params, state = carry
     # Add an extra sample to determine phase for start of next buffer.
     t = jnp.arange(X.size + 1) / state["sample_rate"]
     x = params["frequency_hz"] * 2 * jnp.pi * t + state["phase_radians"]

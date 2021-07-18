@@ -14,7 +14,7 @@ def init_state():
 
 @jit
 def tick(carry, x):
-    params = carry["params"]
+    params, _ = carry
     return carry, jnp.clip(x, params["min"], params["max"])
 
 

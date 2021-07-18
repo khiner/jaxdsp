@@ -37,8 +37,7 @@ def init_state():
 
 @jit
 def tick(carry, x):
-    params = carry["params"]
-    state = carry["state"]
+    params, state = carry
 
     write_sample = state["write_sample"]
     read_sample = state["read_sample"]
@@ -65,8 +64,7 @@ def tick(carry, x):
 
 @jit
 def tick_buffer(carry, X):
-    state = carry["state"]
-    params = carry["params"]
+    params, state = carry
     state["read_sample"] = (
         state["write_sample"]
         - jnp.clip(params["delay_samples"], 0, MAX_DELAY_LENGTH_SAMPLES)

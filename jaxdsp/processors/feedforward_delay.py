@@ -26,7 +26,7 @@ def tick(carry, x):
 
 @jit
 def tick_buffer(carry, X):
-    params = carry["params"]
+    params, _ = carry
     delay_samples = params["delay_samples"]
     remainder = delay_samples - jnp.floor(delay_samples)
     X_linear_interp = (1 - remainder) * X + remainder * jnp.concatenate(

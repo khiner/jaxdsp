@@ -5,8 +5,7 @@ PARAMS = []
 PRESETS = {}
 
 def tick_buffer(carry, X, processor_names):
-    state = carry["state"]
-    params = carry["params"]
+    params, state = carry
     assert len(state) == len(params)
 
     Y = X
@@ -14,8 +13,7 @@ def tick_buffer(carry, X, processor_names):
         processor_state = state[i]
         processor_params = params[i]
         processor = processor_by_name[processor_names[i]]
-        processor_carry = {"state": processor_state, "params": processor_params}
-        processor_carry, Y = processor.tick_buffer(processor_carry, Y)
-        state[i] = processor_carry["state"]
-        params[i] = processor_carry["params"]
+        processor_carry, Y = processor.tick_buffer((processor_params, processor_state), Y)
+        carry[0][i] = processor_carry[0]
+        carry[1][i] = processor_carry[1]
     return carry, Y

@@ -19,9 +19,7 @@ def init_state(buffer_size=20):
 
 @jit
 def tick(carry, x):
-    params = carry["params"]
-    state = carry["state"]
-
+    params, state = carry
     buffer_out = state["buffer"][state["buffer_index"]]
     state["buffer"] = index_update(
         state["buffer"], state["buffer_index"], x + buffer_out * params["feedback"]
