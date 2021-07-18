@@ -1,6 +1,7 @@
 import argparse
 import asyncio
-from jaxdsp.processors.base import processor_triplet_for_config
+from jaxdsp.processors import serial_processors, processor_by_name
+from jaxdsp.processors.base import processor_config_to_carry
 import websockets
 import uuid
 import json
@@ -20,7 +21,6 @@ from jaxdsp.processors import (
     lowpass_feedback_comb_filter,
     sine_wave,
     serialize_processor,
-    default_param_values,
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
@@ -44,7 +44,6 @@ class AudioTransformTrack(MediaStreamTrack):
     def __init__(self, track, train_stack):
         super().__init__()
         self.track = track
-        self.processor = None
         self.processor_state = None
         self.processor_names = None
         self.is_estimating_params = False
@@ -73,24 +72,20 @@ class AudioTransformTrack(MediaStreamTrack):
         self.processed_packets = []
 
     def set_processor_config(self, processor_config):
-        processor, processor_params, processor_state = processor_triplet_for_config(processor_config)
-        if not processor:
-            self.processor = None
-            self.processor_params = processor_params
+        if not processor_config:
+            self.processor_params = None
             self.processor_state = None
             return
 
-        processor_names = [processor["name"] for processor in processor_config] if processor_config else None
-        if not self.processor or processor_names != self.processor_names:
+        processor_names = [processor["name"] for processor in processor_config]
+        # This is also the path to update processor params, regardless of whether the processor has changed.
+        self.processor_params, processor_state = processor_config_to_carry(processor_config)
+        if self.processor_names != processor_names:
             self.processor_names = processor_names
-            self.processor = processor
-            self.processor_state = processor_state or processor.init_state()
+            self.processor_state = processor_state
             # Don't pass any params to the trainer - that would be cheating ;)
             self.trainer.processor_names = processor_names
-            self.trainer.set_processor(self.processor, None, self.processor_state)
-
-        # This is also the path to update processor params, regardless of whether the processor has changed.
-        self.processor_params = processor_params or default_param_values(processor, self.processor_state)
+            self.trainer.set_carry((None, self.processor_state))
 
     def set_loss_options(self, loss_options):
         self.trainer.set_loss_options(loss_options)
@@ -108,7 +103,7 @@ class AudioTransformTrack(MediaStreamTrack):
     def process(self, X, sample_rate):
         X_left = X[0]  # TODO handle stereo in
 
-        if self.processor:
+        if self.processor_params and self.processor_state:
             # TODO can this be done once on negotiate/processor change, instead of each frame?
             #  or, maybe it can be passed as another arg to tick_buffer
             if isinstance(self.processor_state, list):
@@ -117,7 +112,7 @@ class AudioTransformTrack(MediaStreamTrack):
             else:
                 self.processor_state["sample_rate"] = sample_rate
 
-            carry, Y = self.processor.tick_buffer(
+            carry, Y = serial_processors.tick_buffer_serial(
                 (self.processor_params, self.processor_state),
                 X_left,
                 self.processor_names
@@ -218,11 +213,7 @@ async def offer(request):
                                 for definition in all_optimizer_definitions
                             ],
                             "optimizer": audio_transform_track.trainer.optimizer.serialize(),
-                            "processor": serialize_processor(
-                                audio_transform_track.trainer.processor,
-                                audio_transform_track.trainer.current_params,
-                                audio_transform_track.processor_names
-                            ),
+                            "processor": [serialize_processor(processor_by_name[processor_name], processor_params) for processor_name, processor_params in zip(audio_transform_track.trainer.processor_names, audio_transform_track.trainer.current_params)] if audio_transform_track.trainer.processor_names and audio_transform_track.trainer.current_params else None,
                             "loss_options": audio_transform_track.trainer.loss_options.serialize(),
                         }
                     )

@@ -35,12 +35,9 @@ def default_param_values(processor, processor_names=None):
 def id_for_processor(processor):
     return all_processors.index(processor)
 
-def serialize_processor(processor, params=None, processor_names=None):
+def serialize_processor(processor, params=None):
     if not processor:
         return None
-
-    if processor_names and params:
-        return [serialize_processor(processor_by_name[processor_name], processor_params) for processor_name, processor_params in zip(processor_names, params)]
 
     return {
         "name": processor.NAME,
@@ -49,17 +46,11 @@ def serialize_processor(processor, params=None, processor_names=None):
         "params": params or default_param_values(processor),
     }
 
-def params_to_unit_scale(params, processor_name_or_names):
-    if isinstance(processor_name_or_names, list):
-        return [params_to_unit_scale(processor_params, processor_name) for processor_params, processor_name in zip(params, processor_name_or_names)]
-
-    processor = processor_by_name[processor_name_or_names]
+def params_to_unit_scale(params, processor_name):
+    processor = processor_by_name[processor_name]
     return {param.name: param.to_unit_scale(params[param.name]) for param in processor.PARAMS} if processor else {}
 
 
-def params_from_unit_scale(params, processor_name_or_names):
-    if isinstance(processor_name_or_names, list):
-        return [params_from_unit_scale(processor_params, processor_name) for processor_params, processor_name in zip(params, processor_name_or_names)]
-
-    processor = processor_by_name[processor_name_or_names]
+def params_from_unit_scale(params, processor_name):
+    processor = processor_by_name[processor_name]
     return {param.name: param.from_unit_scale(params[param.name]) for param in processor.PARAMS} if processor else {}
