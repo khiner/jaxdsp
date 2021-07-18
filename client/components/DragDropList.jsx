@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Droppable, Draggable } from 'react-beautiful-dnd'
 
 // Static lists can be copied from but not into.
@@ -58,7 +58,7 @@ export default function DragDropList({
           {...provided.droppableProps}
         >
           {children.map((child, index) => (
-            <Draggable key={index} draggableId={`${index}`} index={index}>
+            <Draggable key={`${droppableId}-${index}`} draggableId={`${droppableId}-${index}`} index={index}>
               {(provided, snapshot) => (
                 <>
                   <div
