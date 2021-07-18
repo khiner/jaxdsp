@@ -25,6 +25,9 @@ processor_by_name = {processor.NAME: processor for processor in all_processors}
 
 
 def default_param_values(processor, processor_names=None):
+    if not processor and not processor_names:
+        return None
+
     if processor_names:
         return [
             default_param_values(processor_by_name[processor_name])

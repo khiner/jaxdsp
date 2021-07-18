@@ -215,11 +215,11 @@ async def offer(request):
                                 )
                                 for processor_name, processor_params in zip(
                                     audio_transform_track.trainer.processor_names,
-                                    audio_transform_track.trainer.current_params,
+                                    audio_transform_track.trainer.params,
                                 )
                             ]
                             if audio_transform_track.trainer.processor_names
-                            and audio_transform_track.trainer.current_params
+                            and audio_transform_track.trainer.params
                             else None,
                             "loss_options": audio_transform_track.trainer.loss_options.serialize(),
                         }
