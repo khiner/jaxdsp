@@ -50,10 +50,10 @@ export default function JaxDspClient({ testSample }) {
   }
 
   useEffect(() => {
-    const onMouseMove = (event) => setMouseX(event.pageX)
-    window.addEventListener('mousemove', onMouseMove);
-    return () => window.removeEventListener('mousemove', onMouseMove);
-  }, []);
+    const onMouseMove = event => setMouseX(event.pageX)
+    window.addEventListener('mousemove', onMouseMove)
+    return () => window.removeEventListener('mousemove', onMouseMove)
+  }, [])
 
   useEffect(() => {
     sendProcessor()
@@ -262,7 +262,9 @@ export default function JaxDspClient({ testSample }) {
                     direction="horizontal"
                     isStatic
                   >
-                    {processorDefinitions.map(({ name }) => <div key={name}>{name}</div>)}
+                    {processorDefinitions.map(({ name }) => (
+                      <div key={name}>{name}</div>
+                    ))}
                   </DragDropList>
                 </div>
                 <DragDropList
@@ -277,11 +279,19 @@ export default function JaxDspClient({ testSample }) {
                   direction="horizontal"
                   emptyContent={<i style={{ margin: '8px' }}>Drop processors here</i>}
                 >
-                  {selectedProcessors.map((processor, i) => <Processor key={i} processor={processor} estimatedParams={trainState?.['params']?.[i]} mouseX={mouseX} onChange={(paramName, newValue) => {
-                    const newSelectedProcessors = clone(selectedProcessors)
-                    newSelectedProcessors[i].params[paramName] = newValue
-                    setSelectedProcessors(newSelectedProcessors)
-                  }} />)}
+                  {selectedProcessors.map((processor, i) => (
+                    <Processor
+                      key={i}
+                      processor={processor}
+                      estimatedParams={trainState?.['params']?.[i]}
+                      mouseX={mouseX}
+                      onChange={(paramName, newValue) => {
+                        const newSelectedProcessors = clone(selectedProcessors)
+                        newSelectedProcessors[i].params[paramName] = newValue
+                        setSelectedProcessors(newSelectedProcessors)
+                      }}
+                    />
+                  ))}
                 </DragDropList>
               </div>
             </DragDropContext>
@@ -319,6 +329,7 @@ export default function JaxDspClient({ testSample }) {
                           value={value}
                           minValue={0.0}
                           maxValue={1.0}
+                          mouseX={mouseX}
                           onChange={newValue => {
                             const newLossOptions = { ...lossOptions }
                             newLossOptions.weights[key] = newValue
@@ -388,8 +399,9 @@ export default function JaxDspClient({ testSample }) {
                               minValue={min_value}
                               maxValue={max_value}
                               logScale={log_scale}
+                              mouseX={mouseX}
                               onChange={newValue => {
-                                const newOptimizer = { ...optimizer }
+                                const newOptimizer = clone(optimizer)
                                 newOptimizer.params[name] = newValue
                                 setOptimizer(newOptimizer)
                               }}
