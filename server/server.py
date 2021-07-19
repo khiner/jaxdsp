@@ -210,7 +210,7 @@ async def offer(request):
                                 for definition in all_optimizer_definitions
                             ],
                             "optimizer": audio_transform_track.trainer.optimizer.serialize(),
-                            "processor": [
+                            "processors": [
                                 serialize_processor(
                                     processor_by_name[processor_name], processor_params
                                 )
@@ -232,9 +232,9 @@ async def offer(request):
                 audio_transform_track.stop_estimating_params()
             else:
                 message_dict = json.loads(message)
-                if "processor" in message_dict:
+                if "processors" in message_dict:
                     audio_transform_track.set_processor_config(
-                        message_dict["processor"]
+                        message_dict["processors"]
                     )
                 if "loss_options" in message_dict:
                     loss_options = message_dict["loss_options"]

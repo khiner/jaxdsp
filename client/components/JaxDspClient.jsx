@@ -38,7 +38,7 @@ export default function JaxDspClient({ testSample }) {
 
   const audioRef = useRef(null)
 
-  const sendProcessor = () => dataChannel?.send(JSON.stringify({ processor: selectedProcessors }))
+  const sendProcessors = () => dataChannel?.send(JSON.stringify({ processors: selectedProcessors }))
   const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
 
@@ -56,7 +56,7 @@ export default function JaxDspClient({ testSample }) {
   }, [])
 
   useEffect(() => {
-    sendProcessor()
+    sendProcessors()
   }, [selectedProcessors])
 
   useEffect(() => {
@@ -108,10 +108,10 @@ export default function JaxDspClient({ testSample }) {
       dataChannel.onopen = () => dataChannel.send('get_state')
       dataChannel.onmessage = event => {
         const message = JSON.parse(event.data)
-        const { processor_definitions, processor, optimizer_definitions, optimizer, loss_options } = message
+        const { processor_definitions, processors, optimizer_definitions, optimizer, loss_options } = message
 
         if (processor_definitions) setProcessorDefinitions(processor_definitions)
-        if (processor) setSelectedProcessors(processor)
+        if (processors) setSelectedProcessors(processors)
         if (optimizer_definitions) setOptimizers(optimizer_definitions)
         if (optimizer) setOptimizer(optimizer)
         if (lossOptions) setLossOptions(loss_options)
