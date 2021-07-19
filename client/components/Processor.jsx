@@ -3,7 +3,7 @@ import React from 'react'
 import Slider from './Slider'
 import { snakeCaseToSentence } from '../util/string'
 
-export default function Processor({ processor, isEstimatingParams, trainState, mouseX, onChange }) {
+export default function Processor({ processor, estimatedParams, mouseX, onChange }) {
   return (
     <>
       <label>{processor.name}</label>
@@ -22,15 +22,15 @@ export default function Processor({ processor, isEstimatingParams, trainState, m
             />
           ))}
         </div>
-        {isEstimatingParams && trainState?.params && (
+        {estimatedParams && (
           <div>
             {processor.param_definitions.map(
               ({ name, min_value, max_value, log_scale }) =>
-                !isNaN(trainState.params[name]) && (
+                !isNaN(estimatedParams[name]) && (
                   <Slider
                     key={name}
                     name={snakeCaseToSentence(name)}
-                    value={trainState.params[name]}
+                    value={estimatedParams[name]}
                     minValue={min_value}
                     maxValue={max_value}
                     logScale={log_scale}
