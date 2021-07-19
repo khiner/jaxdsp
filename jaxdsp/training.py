@@ -134,6 +134,9 @@ class IterativeTrainer:
         self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))
 
     def step(self, X, Y_target):
+        if not self.processor_names:
+            return
+
         params_unit = [
             params_to_unit_scale(processor_params, processor_name)
             for processor_params, processor_name in zip(

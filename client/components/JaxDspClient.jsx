@@ -297,7 +297,7 @@ export default function JaxDspClient({ testSample }) {
             </DragDropContext>
           )}
           <div>
-            <button disabled={isEstimatingParams} onClick={startEstimatingParams}>
+            <button disabled={isEstimatingParams || !selectedProcessors?.length} onClick={startEstimatingParams}>
               Start estimating
             </button>
             <button disabled={!isEstimatingParams} onClick={stopEstimatingParams}>
