@@ -7,7 +7,7 @@ import Slider from './Slider'
 import Processor from './Processor'
 
 import { negotiatePeerConnection } from '../util/WebRtc'
-import { clone } from '../util/object'
+import { clone, deepEquals } from '../util/object'
 import { snakeCaseToSentence } from '../util/string'
 
 let peerConnection = null
@@ -29,6 +29,7 @@ export default function JaxDspClient({ testSample }) {
   const [processorDefinitions, setProcessorDefinitions] = useState(null)
   const [optimizers, setOptimizers] = useState(null)
   const [lossOptions, setLossOptions] = useState(null)
+  const [editingOptimizer, setEditingOptimizer] = useState(null)
   const [optimizer, setOptimizer] = useState(null)
   const [trainState, setTrainState] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
@@ -39,7 +40,10 @@ export default function JaxDspClient({ testSample }) {
   const audioRef = useRef(null)
 
   const sendProcessors = () => dataChannel?.send(JSON.stringify({ processors: selectedProcessors }))
-  const sendOptimizer = () => dataChannel?.send(JSON.stringify({ optimizer }))
+  const sendOptimizer = () => {
+    setOptimizer(editingOptimizer)
+    return dataChannel?.send(JSON.stringify({ optimizer: editingOptimizer }))
+  }
   const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
 
   const onAudioStreamError = (displayMessage, error) => {
@@ -113,7 +117,10 @@ export default function JaxDspClient({ testSample }) {
         if (processor_definitions) setProcessorDefinitions(processor_definitions)
         if (processors) setSelectedProcessors(processors)
         if (optimizer_definitions) setOptimizers(optimizer_definitions)
-        if (optimizer) setOptimizer(optimizer)
+        if (optimizer) {
+          setEditingOptimizer(optimizer)
+          setOptimizer(optimizer)
+        }
         if (lossOptions) setLossOptions(loss_options)
       }
     }
@@ -129,7 +136,7 @@ export default function JaxDspClient({ testSample }) {
       peerConnection = null
       setSelectedProcessors([])
       setProcessorDefinitions(null)
-      setOptimizer(null)
+      setEditingOptimizer(null)
       setOptimizers(null)
       setIsEstimatingParams(false)
       setTrainState({})
@@ -373,9 +380,9 @@ export default function JaxDspClient({ testSample }) {
                 <li>
                   <div>
                     <select
-                      value={optimizer?.name}
+                      value={editingOptimizer?.name}
                       onChange={event =>
-                        setOptimizer(optimizers.find(({ name }) => name === event.target.value))
+                        setEditingOptimizer(optimizers.find(({ name }) => name === event.target.value))
                       }
                     >
                       {optimizers.map(({ name }) => (
@@ -386,24 +393,24 @@ export default function JaxDspClient({ testSample }) {
                     </select>
                   </div>
                 </li>
-                {optimizer && (
+                {editingOptimizer && (
                   <li>
                     <ul>
-                      {optimizer.param_definitions.map(
+                      {editingOptimizer.param_definitions.map(
                         ({ name, min_value, max_value, log_scale }) =>
-                          !isNaN(optimizer.params[name]) && (
+                          !isNaN(editingOptimizer.params[name]) && (
                             <Slider
                               key={name}
                               name={snakeCaseToSentence(name)}
-                              value={optimizer.params[name]}
+                              value={editingOptimizer.params[name]}
                               minValue={min_value}
                               maxValue={max_value}
                               logScale={log_scale}
                               mouseX={mouseX}
                               onChange={newValue => {
-                                const newOptimizer = clone(optimizer)
+                                const newOptimizer = clone(editingOptimizer)
                                 newOptimizer.params[name] = newValue
-                                setOptimizer(newOptimizer)
+                                setEditingOptimizer(newOptimizer)
                               }}
                             />
                           )
@@ -412,7 +419,7 @@ export default function JaxDspClient({ testSample }) {
                   </li>
                 )}
               </ul>
-              <button onClick={sendOptimizer}>Set optimization options</button>
+              <button disabled={deepEquals(optimizer, editingOptimizer)} onClick={sendOptimizer}>Set optimization options</button>
             </div>
           )}
         </>
