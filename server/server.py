@@ -21,7 +21,7 @@ from jaxdsp.processors import (
     sine_wave,
     serialize_processor,
     processor_by_name,
-    processor_config_to_carry
+    processor_config_to_carry,
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions

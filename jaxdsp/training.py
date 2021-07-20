@@ -3,7 +3,13 @@ from jax import value_and_grad, jit
 from jax.tree_util import tree_map, tree_multimap
 
 from jaxdsp import processor_graph
-from jaxdsp.processors import default_param_values, processor_by_name, processor_config_to_carry, params_to_unit_scale, params_from_unit_scale
+from jaxdsp.processors import (
+    default_param_values,
+    processor_by_name,
+    processor_config_to_carry,
+    params_to_unit_scale,
+    params_from_unit_scale,
+)
 from jaxdsp.loss import LossOptions, loss_fn
 from jaxdsp.optimizers import create_optimizer
 
@@ -120,7 +126,7 @@ class IterativeTrainer:
                     unit_scale_params, self.processor_names
                 )
             ]
-            carry, Y_estimated = processor_graph.tick_buffer_series(
+            carry, Y_estimated = processor_graph.tick_buffer(
                 (params, state), X, self.processor_names
             )
             if Y_estimated.shape == Y_target.shape[::-1]:
