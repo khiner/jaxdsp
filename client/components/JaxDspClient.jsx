@@ -304,14 +304,11 @@ export default function JaxDspClient({ testSample }) {
             </DragDropContext>
           )}
           <div>
-            <button disabled={isEstimatingParams || !selectedProcessors?.length} onClick={startEstimatingParams}>
-              Start estimating
-            </button>
-            <button disabled={!isEstimatingParams} onClick={stopEstimatingParams}>
-              Stop estimating
+            <button disabled={!isEstimatingParams && !selectedProcessors?.length} onClick={isEstimatingParams ? stopEstimatingParams : startEstimatingParams}>
+              {`${isEstimatingParams ? 'Stop' : 'Start'} estimating params`}
             </button>
           </div>
-          {trainState?.loss !== undefined && (
+          {isEstimatingParams && trainState?.loss !== undefined && (
             <div>
               <span>Loss: </span>
               {trainState.loss}
