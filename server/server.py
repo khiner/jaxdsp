@@ -1,6 +1,6 @@
 import argparse
 import asyncio
-from jaxdsp.processors import serial_processors, processor_by_name
+from jaxdsp.processors import processor_graph, processor_by_name
 from jaxdsp.processors.base import processor_config_to_carry
 import websockets
 import uuid
@@ -111,7 +111,7 @@ class AudioTransformTrack(MediaStreamTrack):
             else:
                 self.state["sample_rate"] = sample_rate
 
-            carry, Y = serial_processors.tick_buffer_serial(
+            carry, Y = processor_graph.tick_buffer_series(
                 (self.params, self.state), X_left, self.processor_names
             )
         else:

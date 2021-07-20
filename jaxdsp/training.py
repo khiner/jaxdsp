@@ -1,4 +1,4 @@
-from jaxdsp.processors import default_param_values, serial_processors, processor_by_name
+from jaxdsp.processors import default_param_values, processor_graph, processor_by_name
 from jaxdsp.processors.base import processor_config_to_carry
 import numpy as np
 from jax import value_and_grad, jit
@@ -121,7 +121,7 @@ class IterativeTrainer:
                     unit_scale_params, self.processor_names
                 )
             ]
-            carry, Y_estimated = serial_processors.tick_buffer_serial(
+            carry, Y_estimated = processor_graph.tick_buffer_series(
                 (params, state), X, self.processor_names
             )
             if Y_estimated.shape == Y_target.shape[::-1]:
