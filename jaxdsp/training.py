@@ -1,10 +1,9 @@
-from jaxdsp.processors import default_param_values, processor_graph, processor_by_name
-from jaxdsp.processors.base import processor_config_to_carry
 import numpy as np
 from jax import value_and_grad, jit
 from jax.tree_util import tree_map, tree_multimap
 
-from jaxdsp.processors import params_to_unit_scale, params_from_unit_scale
+from jaxdsp import processor_graph
+from jaxdsp.processors import default_param_values, processor_by_name, processor_config_to_carry, params_to_unit_scale, params_from_unit_scale
 from jaxdsp.loss import LossOptions, loss_fn
 from jaxdsp.optimizers import create_optimizer
 

@@ -1,7 +1,5 @@
 import argparse
 import asyncio
-from jaxdsp.processors import processor_graph, processor_by_name
-from jaxdsp.processors.base import processor_config_to_carry
 import websockets
 import uuid
 import json
@@ -15,16 +13,18 @@ from aiohttp import web
 import aiohttp_cors
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 
+from jaxdsp import processor_graph
 from jaxdsp.processors import (
     allpass_filter,
     clip,
     lowpass_feedback_comb_filter,
     sine_wave,
     serialize_processor,
+    processor_by_name,
+    processor_config_to_carry
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
-
 from jaxdsp.loss import LossOptions
 
 ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
