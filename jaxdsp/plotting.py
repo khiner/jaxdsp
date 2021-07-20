@@ -5,7 +5,7 @@ import numpy as np
 from jaxdsp import training
 
 
-def plot_filter(X, Y, Y_reference, Y_estimated, title):
+def plot_filter(fig, X, Y, Y_estimated, Y_reference, title):
     column_titles = (
         ["Target", "Reference Implementation", "Estimated"]
         if Y_reference is not None
@@ -13,8 +13,8 @@ def plot_filter(X, Y, Y_reference, Y_estimated, title):
     )
     row_titles = ["Input", "Output"]
     Ys = [Y, Y_reference, Y_estimated] if Y_reference is not None else [Y, Y_estimated]
-    _, axes = plt.subplots(2, len(column_titles), figsize=(14, 6))
-    plt.suptitle(title, size=16)
+    axes = fig.subplots(2, len(column_titles))
+    fig.suptitle(title, size=16)
     for ax, column_title in zip(axes[0], column_titles):
         ax.set_title(column_title)
     for ax, row_title in zip(axes[:, 0], row_titles):
@@ -29,11 +29,10 @@ def plot_filter(X, Y, Y_reference, Y_estimated, title):
         # out_plot.stem(Ys[i], basefmt=' ')
         out_plot.plot(Ys[i])
         out_plot.set_ylim([Ys[i].min() - 0.1, Ys[i].max() + 0.1])
-    plt.tight_layout()
 
 
-def plot_loss(loss_history):
-    _, (plot) = plt.subplots(1, 1, figsize=(14, 3))
+def plot_loss(fig, loss_history):
+    plot = fig.subplots(1, 1)
     plot.plot(loss_history)
     plot.set_xlabel("Batch")
     plot.set_ylabel("Loss")
@@ -42,7 +41,7 @@ def plot_loss(loss_history):
     plot.autoscale(tight=True)
 
 
-def plot_params_single(processor_name, params_target, params_history):
+def plot_params_single(fig, processor_name, params_target, params_history):
     param_groups = []  # list of lists of (key, label, scalar_param_value)
     # All non-list params go into the first (and potentially only) param group (column).
     single_params = [
@@ -61,15 +60,15 @@ def plot_params_single(processor_name, params_target, params_history):
         param_groups.append(
             [(key, "${}_{}$".format(key, i), param) for i, param in enumerate(params)]
         )
-    num_rows, num_cols = max([len(param_group) for param_group in param_groups]), len(
+    num_rows, num_cols = max([len(param_group) for param_group in param_groups]),len(
         param_groups
     )
-    _, axes = plt.subplots(num_rows, num_cols, figsize=(14, num_rows * 2))
+    axes = fig.subplots(num_rows, num_cols)
     if num_rows == 1 and num_cols == 1:
         axes = np.expand_dims(axes, axis=0)
     if len(axes.shape) == 1:
         axes = np.expand_dims(axes, axis=1)
-    plt.suptitle("Estimated parameters for {}".format(processor_name), size=16)
+    fig.suptitle("{}: Estimated Params".format(processor_name), fontsize='x-large')
     for param_group_i, param_group in enumerate(param_groups):
         for param_i, (key, label, param) in enumerate(param_group):
             plot = axes[param_i][param_group_i]
@@ -86,18 +85,46 @@ def plot_params_single(processor_name, params_target, params_history):
             if param_i == len(param_group) - 1:
                 plot.set_xlabel("Batch")
             plot.autoscale()
-    plt.tight_layout()
 
 
-def plot_params(params_targets, params_histories, processor_names):
-    for processor_name, params_target, params_history in zip(
-        processor_names, params_targets, params_histories
+def plot_params(fig, params_targets, params_histories, processor_names):
+    subfigs = fig.subfigures(1, len(processor_names), wspace=0.07)
+
+    if len(processor_names) == 1:
+        subfigs = [subfigs]
+
+    for subfig, processor_name, params_target, params_history in zip(
+        subfigs, processor_names, params_targets, params_histories
     ):
         plot_params_single(
+            subfig,
             processor_name,
             params_target,
             params_history,
         )
+
+
+def plot_train(trainer, params, X, Y, Y_estimated, Y_reference, title=None, plot_loss_history=True, plot_params_history=True):
+    num_rows = 1
+    if plot_loss_history:
+        num_rows += 1
+    if plot_params_history:
+        num_rows += 1
+
+    fig = plt.figure(constrained_layout=True, figsize=(16, num_rows * 3))
+    subfigs = fig.subfigures(num_rows, 1, wspace=0.07)
+    subfig_i = 0
+
+    plot_filter(subfigs[subfig_i], X, Y, Y_estimated, Y_reference, title)
+    subfig_i += 1
+
+    if plot_loss_history:
+        plot_loss(subfigs[subfig_i], trainer.step_evaluator.loss_history)
+        subfig_i += 1
+
+    if plot_params_history:
+        plot_params(subfigs[subfig_i], training.float_params(params), trainer.step_evaluator.params_history, trainer.processor_names)
+        subfig_i += 1
 
 
 def plot_optimization(
