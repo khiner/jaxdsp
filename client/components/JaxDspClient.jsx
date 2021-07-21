@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Button, Row, Select, Space, Typography } from 'antd'
 import { DragDropContext } from 'react-beautiful-dnd'
 import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
@@ -9,6 +10,10 @@ import Processor from './Processor'
 import { negotiatePeerConnection } from '../util/WebRtc'
 import { clone, deepEquals } from '../util/object'
 import { snakeCaseToSentence } from '../util/string'
+
+import 'antd/dist/antd.css'
+
+const { Title } = Typography
 
 let peerConnection = null
 let dataChannel = null
@@ -121,7 +126,7 @@ export default function JaxDspClient({ testSample }) {
           setEditingOptimizer(optimizer)
           setOptimizer(optimizer)
         }
-        if (lossOptions) setLossOptions(loss_options)
+        if (loss_options) setLossOptions(loss_options)
       }
     }
 
@@ -208,19 +213,18 @@ export default function JaxDspClient({ testSample }) {
   }
 
   return (
-    <div>
+    <div style={{ margin: 10 }}>
+      <Title level={2}>JAXdsp client</Title>
+      <Title level={3} style={{ marginTop: 0 }}>Controlling remote differentiable audio graphs</Title>
       <div>
         <span>Audio input source:</span>{' '}
-        <select
-          value={audioInputSourceLabel}
-          onChange={event => setAudioInputSourceLabel(event.target.value)}
-        >
+        <Select value={audioInputSourceLabel} onChange={value => setAudioInputSourceLabel(value)}>
           {Object.values(AUDIO_INPUT_SOURCES).map(({ label }) => (
-            <option key={label} value={label}>
+            <Select.Option key={label} value={label}>
               {label}
-            </option>
+            </Select.Option>
           ))}
-        </select>
+        </Select>
       </div>
       {isStreamingAudio && (
         <div>
@@ -303,11 +307,6 @@ export default function JaxDspClient({ testSample }) {
               </div>
             </DragDropContext>
           )}
-          <div>
-            <button disabled={!isEstimatingParams && !selectedProcessors?.length} onClick={isEstimatingParams ? stopEstimatingParams : startEstimatingParams}>
-              {`${isEstimatingParams ? 'Stop' : 'Start'} estimating params`}
-            </button>
-          </div>
           {isEstimatingParams && trainState?.loss !== undefined && (
             <div>
               <span>Loss: </span>
@@ -350,24 +349,24 @@ export default function JaxDspClient({ testSample }) {
                     {Object.entries(lossOptions.distance_types).map(([key, value]) => (
                       <li id={key} key={key} style={{ listStyle: 'none' }}>
                         <label htmlFor={key}>{key}: </label>
-                        <select
+                        <Select
                           id={key}
                           value={value}
-                          onChange={event => {
+                          onChange={value => {
                             const newLossOptions = { ...lossOptions }
-                            newLossOptions.distance_types[key] = event.target.value
+                            newLossOptions.distance_types[key] = value
                             setLossOptions(newLossOptions)
                           }}
                         >
-                          <option value="L1">L1</option>
-                          <option value="L2">L2</option>
-                        </select>
+                          <Select.Option value="L1">L1</Select.Option>
+                          <Select.Option value="L2">L2</Select.Option>
+                        </Select>
                       </li>
                     ))}
                   </ul>
                 </li>
               </ul>
-              <button onClick={sendLossOptions}>Set loss options</button>
+              <Button onClick={sendLossOptions}>Set loss options</Button>
             </div>
           )}
           {optimizers && (
@@ -376,18 +375,16 @@ export default function JaxDspClient({ testSample }) {
               <ul style={{ listStyle: 'none' }}>
                 <li>
                   <div>
-                    <select
+                    <Select
                       value={editingOptimizer?.name}
-                      onChange={event =>
-                        setEditingOptimizer(optimizers.find(({ name }) => name === event.target.value))
-                      }
+                      onChange={value => setEditingOptimizer(optimizers.find(({ name }) => name === value))}
                     >
                       {optimizers.map(({ name }) => (
-                        <option key={name} value={name}>
+                        <Select.Option key={name} value={name}>
                           {name}
-                        </option>
+                        </Select.Option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 </li>
                 {editingOptimizer && (
@@ -416,15 +413,29 @@ export default function JaxDspClient({ testSample }) {
                   </li>
                 )}
               </ul>
-              <button disabled={deepEquals(optimizer, editingOptimizer)} onClick={sendOptimizer}>Set optimization options</button>
+              <Button disabled={deepEquals(optimizer, editingOptimizer)} onClick={sendOptimizer}>
+                Set optimization options
+              </Button>
             </div>
           )}
         </>
       )}
       <div>
-        <button onClick={() => setIsStreamingAudio(!isStreamingAudio)}>
-          {isStreamingAudio ? 'Stop sending' : 'Start sending'}
-        </button>
+        <Row style={{ margin: '5px 0' }}>
+          <Space>
+            <Button type="primary" onClick={() => setIsStreamingAudio(!isStreamingAudio)}>
+              {isStreamingAudio ? 'Stop streaming audio' : 'Start streaming audio'}
+            </Button>
+            {isStreamingAudio && (
+              <Button
+                disabled={!isEstimatingParams && !selectedProcessors?.length}
+                onClick={isEstimatingParams ? stopEstimatingParams : startEstimatingParams}
+              >
+                {`${isEstimatingParams ? 'Stop' : 'Start'} estimating params`}
+              </Button>
+            )}
+          </Space>
+        </Row>
         {audioStreamErrorMessage && (
           <div style={{ color: '#B33A3A', fontSize: '12px' }}>{audioStreamErrorMessage}.</div>
         )}

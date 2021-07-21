@@ -22,9 +22,12 @@
   "author": "Karl Hiner",
   "license": "MIT",
   "dependencies": {
+    "antd": "^4.16.8",
+    "css-loader": "^6.2.0",
     "react": "^17.0.2",
     "react-beautiful-dnd": "^13.1.0",
     "react-dom": "^17.0.2",
+    "style-loader": "^3.2.1",
     "webrtc-adapter": "^7.7.1"
   },
   "devDependencies": {

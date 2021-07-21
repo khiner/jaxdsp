@@ -6,7 +6,7 @@ import { snakeCaseToSentence } from '../util/string'
 export default function Processor({ processor, estimatedParams, mouseX, onChange }) {
   return (
     <>
-      <label>{processor.name}</label>
+      <label style={{ fontSize: 16, fontWeight: 'bold', marginRight: 4 }}>{processor.name}</label>
       <div style={{ display: 'flex', flexDirection: 'row' }}>
         <div>
           {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
