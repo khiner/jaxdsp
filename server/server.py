@@ -17,6 +17,7 @@ from jaxdsp import processor_graph
 from jaxdsp.processors import (
     allpass_filter,
     clip,
+    delay_line,
     lowpass_feedback_comb_filter,
     sine_wave,
     serialize_processor,
@@ -27,7 +28,7 @@ from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
 from jaxdsp.loss import LossOptions
 
-ALL_PROCESSORS = [allpass_filter, clip, lowpass_feedback_comb_filter, sine_wave]
+ALL_PROCESSORS = [allpass_filter, clip, delay_line, lowpass_feedback_comb_filter, sine_wave]
 # Training frame pairs are queued up for each client, limited to this cap:
 MAX_TRAIN_FRAMES_PER_CLIENT = 100
 

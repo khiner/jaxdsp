@@ -2,7 +2,6 @@ from jaxdsp.processors import (
     allpass_filter,
     clip,
     delay_line,
-    feedforward_delay,
     fir_filter,
     freeverb,
     iir_filter,
@@ -14,7 +13,6 @@ all_processors = [
     allpass_filter,
     clip,
     delay_line,
-    feedforward_delay,
     fir_filter,
     freeverb,
     iir_filter,
@@ -22,7 +20,6 @@ all_processors = [
     sine_wave,
 ]
 processor_by_name = {processor.NAME: processor for processor in all_processors}
-
 
 def default_param_values(processor):
     return (
