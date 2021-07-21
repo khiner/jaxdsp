@@ -6,7 +6,7 @@ from jax import jit, lax
 from jaxdsp.param import Param
 
 NAME = "BiQuad Lowpass Filter"
-PARAMS = [Param("resonance", 0.7), Param("cutoff", 0.5, 0.0, 0.4)]
+PARAMS = [Param("resonance", 0.7), Param("cutoff", 0.49, 0.0, 0.49)]
 PRESETS = {}
 
 

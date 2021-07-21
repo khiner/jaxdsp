@@ -301,6 +301,11 @@ export default function JaxDspClient({ testSample }) {
                         newSelectedProcessors[i].params[paramName] = newValue
                         setSelectedProcessors(newSelectedProcessors)
                       }}
+                      onClose={() => {
+                        const newSelectedProcessors = clone(selectedProcessors)
+                        newSelectedProcessors.splice(i, 1)
+                        setSelectedProcessors(newSelectedProcessors)
+                      }}
                     />
                   ))}
                 </DragDropList>

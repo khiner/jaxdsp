@@ -1,12 +1,17 @@
 import React from 'react'
+import { Button } from 'antd'
+import { CloseOutlined } from '@ant-design/icons'
 
 import Slider from './Slider'
 import { snakeCaseToSentence } from '../util/string'
 
-export default function Processor({ processor, estimatedParams, mouseX, onChange }) {
+export default function Processor({ processor, estimatedParams, mouseX, onChange, onClose }) {
   return (
     <>
-      <label style={{ fontSize: 16, fontWeight: 'bold', marginRight: 4 }}>{processor.name}</label>
+      <div>
+        <label style={{ fontSize: 16, fontWeight: 'bold', marginRight: 4 }}>{processor.name}</label>
+        <Button style={{ float: 'right', marginTop: -5 }} type="link" icon={<CloseOutlined />} onClick={onClose} />
+      </div>
       <div style={{ display: 'flex', flexDirection: 'row' }}>
         <div>
           {processor.param_definitions.map(({ name, default_value, min_value, max_value, log_scale }) => (
