@@ -13,7 +13,7 @@ def plot_filter(fig, X, Y, Y_estimated, Y_reference, title):
     )
     row_titles = ["Input", "Output"]
     Ys = [Y, Y_reference, Y_estimated] if Y_reference is not None else [Y, Y_estimated]
-    axes = fig.subplots(2, len(column_titles))
+    axes = fig.subplots(2, len(column_titles), sharex=True)
     fig.suptitle(title, size=16)
     for ax, column_title in zip(axes[0], column_titles):
         ax.set_title(column_title)
@@ -41,7 +41,7 @@ def plot_loss(fig, loss_history):
     plot.autoscale(tight=True)
 
 
-def plot_params_single(fig, processor_name, params_target, params_history):
+def plot_processor(fig, processor_name, params_target, params_history):
     param_groups = []  # list of lists of (key, label, scalar_param_value)
     # All non-list params go into the first (and potentially only) param group (column).
     single_params = [
@@ -60,15 +60,15 @@ def plot_params_single(fig, processor_name, params_target, params_history):
         param_groups.append(
             [(key, "${}_{}$".format(key, i), param) for i, param in enumerate(params)]
         )
-    num_rows, num_cols = max([len(param_group) for param_group in param_groups]),len(
+    num_rows, num_cols = max([len(param_group) for param_group in param_groups]), len(
         param_groups
     )
-    axes = fig.subplots(num_rows, num_cols)
+    axes = fig.subplots(num_rows, num_cols, sharex=True)
     if num_rows == 1 and num_cols == 1:
         axes = np.expand_dims(axes, axis=0)
     if len(axes.shape) == 1:
         axes = np.expand_dims(axes, axis=1)
-    fig.suptitle("{}: Estimated Params".format(processor_name), fontsize='x-large')
+    fig.suptitle(processor_name, fontsize="x-large")
     for param_group_i, param_group in enumerate(param_groups):
         for param_i, (key, label, param) in enumerate(param_group):
             plot = axes[param_i][param_group_i]
@@ -87,8 +87,8 @@ def plot_params_single(fig, processor_name, params_target, params_history):
             plot.autoscale()
 
 
-def plot_params(fig, params_targets, params_histories, processor_names):
-    subfigs = fig.subfigures(1, len(processor_names), wspace=0.07)
+def plot_processors(fig, params_targets, params_histories, processor_names, is_row=True):
+    subfigs = fig.subfigures(1 if is_row else len(processor_names), len(processor_names) if is_row else 1, wspace=0.07)
 
     if len(processor_names) == 1:
         subfigs = [subfigs]
@@ -96,15 +96,29 @@ def plot_params(fig, params_targets, params_histories, processor_names):
     for subfig, processor_name, params_target, params_history in zip(
         subfigs, processor_names, params_targets, params_histories
     ):
-        plot_params_single(
-            subfig,
-            processor_name,
-            params_target,
-            params_history,
-        )
+        if isinstance(processor_name, list):
+            # Nested processors are processoed in parallel, so display in nested column
+            plot_processors(subfig, params_target, params_history, processor_name, not is_row)
+        else:
+            plot_processor(
+                subfig,
+                processor_name,
+                params_target,
+                params_history,
+            )
 
 
-def plot_train(trainer, params, X, Y, Y_estimated, Y_reference, title=None, plot_loss_history=True, plot_params_history=True):
+def plot_train(
+    trainer,
+    params,
+    X,
+    Y,
+    Y_estimated,
+    Y_reference,
+    title=None,
+    plot_loss_history=True,
+    plot_params_history=True,
+):
     num_rows = 1
     if plot_loss_history:
         num_rows += 1
@@ -112,7 +126,10 @@ def plot_train(trainer, params, X, Y, Y_estimated, Y_reference, title=None, plot
         num_rows += 1
 
     fig = plt.figure(constrained_layout=True, figsize=(16, num_rows * 3))
-    subfigs = fig.subfigures(num_rows, 1, wspace=0.07)
+    height_ratios=None
+    if plot_loss_history:
+        height_ratios = [0.75, 0.5, 1] if num_rows == 3 else [0.25, 1]
+    subfigs = fig.subfigures(num_rows, 1, wspace=0.07, height_ratios=height_ratios)
     subfig_i = 0
 
     plot_filter(subfigs[subfig_i], X, Y, Y_estimated, Y_reference, title)
@@ -123,7 +140,12 @@ def plot_train(trainer, params, X, Y, Y_estimated, Y_reference, title=None, plot
         subfig_i += 1
 
     if plot_params_history:
-        plot_params(subfigs[subfig_i], training.float_params(params), trainer.step_evaluator.params_history, trainer.processor_names)
+        plot_processors(
+            subfigs[subfig_i],
+            training.float_params(params),
+            trainer.step_evaluator.params_history,
+            trainer.processor_names,
+        )
         subfig_i += 1
 
 

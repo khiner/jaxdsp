@@ -5,8 +5,9 @@ from jax.tree_util import tree_map, tree_multimap
 from jaxdsp import processor_graph
 from jaxdsp.processors import (
     default_param_values,
+    get_graph_processor_names,
     processor_by_name,
-    processor_config_to_carry,
+    graph_config_to_carry,
     params_to_unit_scale,
     params_from_unit_scale,
 )
@@ -45,7 +46,7 @@ def float_params(params):
 class IterativeTrainer:
     def __init__(
         self,
-        processor_config=None,
+        graph_config=None,
         loss_options=None,
         optimizer_options=None,
         track_history=False,
@@ -56,16 +57,12 @@ class IterativeTrainer:
         self.params = None
         self.processor_names = None
         self.set_optimizer_options(optimizer_options)
-        self.set_processor_config(processor_config)
+        self.set_graph_config(graph_config)
         self.set_loss_options(loss_options)
 
-    def set_processor_config(self, processor_config):
-        self.processor_names = (
-            [processor["name"] for processor in processor_config]
-            if processor_config
-            else None
-        )
-        self.set_carry(processor_config_to_carry(processor_config))
+    def set_graph_config(self, graph_config):
+        self.processor_names = get_graph_processor_names(graph_config)
+        self.set_carry(graph_config_to_carry(graph_config))
 
     def set_carry(self, carry):
         if carry:
@@ -103,29 +100,15 @@ class IterativeTrainer:
         self.update_opt_state()
 
     def update_opt_state(self):
-        self.opt_state = (
-            self.optimizer.init(
-                [
-                    params_to_unit_scale(processor_params, processor_name)
-                    for processor_params, processor_name in zip(
-                        self.params, self.processor_names
-                    )
-                ]
-            )
-            if self.params and self.processor_names
-            else None
+        self.opt_state = self.optimizer.init(
+            params_to_unit_scale(self.params, self.processor_names)
         )
 
     def set_loss_options(self, loss_options):
         self.loss_options = loss_options or LossOptions()
 
         def processor_loss(unit_scale_params, state, X, Y_target):
-            params = [
-                params_from_unit_scale(processor_params, processor_name)
-                for processor_params, processor_name in zip(
-                    unit_scale_params, self.processor_names
-                )
-            ]
+            params = params_from_unit_scale(unit_scale_params, self.processor_names)
             carry, Y_estimated = processor_graph.tick_buffer(
                 (params, state), X, self.processor_names
             )
@@ -142,12 +125,7 @@ class IterativeTrainer:
         if not self.processor_names:
             return
 
-        params_unit = [
-            params_to_unit_scale(processor_params, processor_name)
-            for processor_params, processor_name in zip(
-                self.params, self.processor_names
-            )
-        ]
+        params_unit = params_to_unit_scale(self.params, self.processor_names)
         (self.loss, self.state), self.grads = self.grad_fn(
             params_unit,
             self.state,
@@ -158,12 +136,9 @@ class IterativeTrainer:
             self.step_num, self.grads, self.opt_state
         )
         self.step_num += 1
-        self.params = [
-            params_from_unit_scale(processor_params, processor_name)
-            for processor_params, processor_name in zip(
-                self.optimizer.get_params(self.opt_state), self.processor_names
-            )
-        ]
+        self.params = params_from_unit_scale(
+            self.optimizer.get_params(self.opt_state), self.processor_names
+        )
         if self.step_evaluator:
             self.step_evaluator.after_step(self.loss, self.params)
 

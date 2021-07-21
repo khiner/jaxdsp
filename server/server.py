@@ -21,7 +21,7 @@ from jaxdsp.processors import (
     sine_wave,
     serialize_processor,
     processor_by_name,
-    processor_config_to_carry,
+    graph_config_to_carry,
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
@@ -70,15 +70,15 @@ class AudioTransformTrack(MediaStreamTrack):
         self.accumulated_packets = []
         self.processed_packets = []
 
-    def set_processor_config(self, processor_config):
-        if not processor_config:
+    def set_graph_config(self, graph_config):
+        if not graph_config:
             self.params, self.state = None, None
-            self.trainer.set_processor_config(None)
+            self.trainer.set_graph_config(None)
             return
 
-        processor_names = [processor["name"] for processor in processor_config]
+        processor_names = [processor["name"] for processor in graph_config]
         # This is also the path to update processor params, regardless of whether the processor has changed.
-        self.params, state = processor_config_to_carry(processor_config)
+        self.params, state = graph_config_to_carry(graph_config)
         if self.processor_names != processor_names:
             self.processor_names = processor_names
             self.state = state
@@ -233,9 +233,7 @@ async def offer(request):
             else:
                 message_dict = json.loads(message)
                 if "processors" in message_dict:
-                    audio_transform_track.set_processor_config(
-                        message_dict["processors"]
-                    )
+                    audio_transform_track.set_graph_config(message_dict["processors"])
                 if "loss_options" in message_dict:
                     loss_options = message_dict["loss_options"]
                     audio_transform_track.set_loss_options(
