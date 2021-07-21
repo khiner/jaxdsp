@@ -125,7 +125,7 @@ def plot_train(
     if plot_params_history:
         num_rows += 1
 
-    fig = plt.figure(constrained_layout=True, figsize=(16, num_rows * 3))
+    fig = plt.figure(constrained_layout=True, figsize=(16, num_rows * 4))
     height_ratios=None
     if plot_loss_history:
         height_ratios = [0.75, 0.5, 1] if num_rows == 3 else [0.25, 1]
