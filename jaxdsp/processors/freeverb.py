@@ -45,32 +45,26 @@ stereo_spread = 23
 # allpass_tunings_l = [2, 3, 4, 5]
 
 
-def create_comb_carry(buffer_size):
-    return {
-        "state": comb.init_state(buffer_size=buffer_size),
-        "params": {"feedback": 0.5, "damp": 0.0},
-    }
+def init_comb_carry(buffer_size):
+    return ({"feedback": 0.5, "damp": 0.0}, comb.init_state(buffer_size=buffer_size))
 
 
-def create_allpass_carry(buffer_size):
-    return {
-        "state": allpass.init_state(buffer_size=buffer_size),
-        "params": {"feedback": 0.5},
-    }
+def init_allpass_carry(buffer_size):
+    return ({"feedback": 0.5}, allpass.init_state(buffer_size=buffer_size))
 
 
 def init_state():
     return {
-        "combs_l": [create_comb_carry(buffer_size) for buffer_size in comb_tunings_l],
+        "combs_l": [init_comb_carry(buffer_size) for buffer_size in comb_tunings_l],
         "combs_r": [
-            create_comb_carry(buffer_size + stereo_spread)
+            init_comb_carry(buffer_size + stereo_spread)
             for buffer_size in comb_tunings_l
         ],
         "allpasses_l": [
-            create_allpass_carry(buffer_size) for buffer_size in allpass_tunings_l
+            init_allpass_carry(buffer_size) for buffer_size in allpass_tunings_l
         ],
         "allpasses_r": [
-            create_allpass_carry(buffer_size + stereo_spread)
+            init_allpass_carry(buffer_size + stereo_spread)
             for buffer_size in allpass_tunings_l
         ],
     }
@@ -78,10 +72,10 @@ def init_state():
 
 @jit
 def tick(carry, x):
+    params, state = carry
+
     x_r, x_l = jnp.broadcast_to(x, (2,))  # handle stereo or mono in
     x_combined = (x_l + x_r) * fixed_gain
-
-    params, state = carry
 
     out_l = 0.0
     out_r = 0.0
@@ -114,10 +108,10 @@ def tick_buffer(carry, X):
     room_size = (params["room_size"] * scale_room) + offset_room
     damp = params["damp"] * scale_damp
     for comb_l in state["combs_l"]:
-        comb_l["params"]["feedback"] = room_size
-        comb_l["params"]["damp"] = damp
+        comb_l[0]["feedback"] = room_size
+        comb_l[0]["damp"] = damp
     for comb_r in state["combs_r"]:
-        comb_r["params"]["feedback"] = room_size
-        comb_r["params"]["damp"] = damp
+        comb_r[0]["feedback"] = room_size
+        comb_r[0]["damp"] = damp
 
     return lax.scan(tick, carry, X)

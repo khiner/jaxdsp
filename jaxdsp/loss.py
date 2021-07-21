@@ -108,7 +108,7 @@ class LossOptions:
         # in the loss curve for a sine wave with a target frequency param.
         # Also, removing 2048 size since it's just so darn slow.
         # fft_sizes=(2048, 1024, 512, 256, 128, 64),
-        fft_sizes=(1024, 512, 256, 128),
+        fft_sizes=(1024, 512, 256),
     ):
         """Args:
         weights: Dict of loss labels to relative weighting of that loss.
@@ -120,7 +120,7 @@ class LossOptions:
         """
         self.weights_options = weights or {}
         distance_types = distance_types or {}
-        self.fft_sizes = fft_sizes or ()
+        self.fft_sizes = fft_sizes or (1024, 512, 256)
         self.sample_distance_type = distance_types.get("sample") or "L1"
         self.frequency_distance_type = distance_types.get("frequency") or "L1"
         self.sample_weights = [
