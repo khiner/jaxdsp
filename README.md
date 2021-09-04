@@ -4,7 +4,7 @@
 
 Fast, differentiable audio processors on the CPU or GPU, controlled from the browser.
 
-The goal is to parameterize audio graphs in real-time to resemble incoming audio streams.
+The goal is to parameterize audio graphs, in real-time, to produce an audio stream resembling incoming audio.
 
 Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets and React.
 
