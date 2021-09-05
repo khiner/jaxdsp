@@ -1,17 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Button, Row, Select, Space, Typography } from 'antd'
-import { DragDropContext } from 'react-beautiful-dnd'
 import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 
-import DragDropList from './DragDropList'
 import Slider from './Slider'
-import Processor from './Processor'
 
 import { negotiatePeerConnection } from '../util/WebRtc'
 import { clone, deepEquals } from '../util/object'
 import { snakeCaseToSentence } from '../util/string'
 
 import 'antd/dist/antd.css'
+import ProcessorGraphBuilder from './ProcessorGraphBuilder'
 
 const { Title } = Typography
 
@@ -215,7 +213,9 @@ export default function JaxDspClient({ testSample }) {
   return (
     <div style={{ margin: 10 }}>
       <Title level={2}>JAXdsp client</Title>
-      <Title level={3} style={{ marginTop: 0 }}>Controlling remote differentiable audio graphs</Title>
+      <Title level={3} style={{ marginTop: 0 }}>
+        Real-time remote control and training of differentiable audio graphs
+      </Title>
       <div>
         <span>Audio input source:</span>{' '}
         <Select value={audioInputSourceLabel} onChange={value => setAudioInputSourceLabel(value)}>
@@ -229,88 +229,12 @@ export default function JaxDspClient({ testSample }) {
       {isStreamingAudio && (
         <div>
           {processorDefinitions && (
-            <DragDropContext
-              onDragEnd={({ source, destination }) => {
-                if (destination) {
-                  if (
-                    source.droppableId === 'selectedProcessors' &&
-                    destination.droppableId === 'selectedProcessors'
-                  ) {
-                    const reorderedProcessors = [...selectedProcessors]
-                    const [removed] = reorderedProcessors.splice(source.index, 1)
-                    reorderedProcessors.splice(destination.index, 0, removed)
-                    setSelectedProcessors(reorderedProcessors)
-                  } else if (
-                    source.droppableId === 'processors' &&
-                    destination.droppableId === 'selectedProcessors'
-                  ) {
-                    const item = clone(processorDefinitions[source.index])
-                    const newSelectedProcessors = [...selectedProcessors]
-                    newSelectedProcessors.splice(destination.index, 0, item)
-                    setSelectedProcessors(newSelectedProcessors)
-                  }
-                }
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div
-                  style={{
-                    width: 'fit-content',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    background: '#e0e0e0',
-                    borderRadius: '4px',
-                    margin: '4px',
-                    alignItems: 'center',
-                  }}
-                >
-                  <label style={{ fontSize: '17px', fontWeight: 'bold', margin: '0px 8px' }}>
-                    Processors
-                  </label>
-                  <DragDropList
-                    itemDraggingStyle={{ background: 'white' }}
-                    droppableId="processors"
-                    direction="horizontal"
-                    isStatic
-                  >
-                    {processorDefinitions.map(({ name }) => (
-                      <div key={name}>{name}</div>
-                    ))}
-                  </DragDropList>
-                </div>
-                <DragDropList
-                  style={{
-                    height: 'fit-content',
-                    background: '#e0e0e0',
-                    borderRadius: '4px',
-                    width: 'fit-content',
-                  }}
-                  draggingStyle={{ outline: '1px dashed black', background: '#e0e0e0' }}
-                  droppableId="selectedProcessors"
-                  direction="horizontal"
-                  emptyContent={<i style={{ margin: '8px' }}>Drop processors here</i>}
-                >
-                  {selectedProcessors.map((processor, i) => (
-                    <Processor
-                      key={i}
-                      processor={processor}
-                      estimatedParams={trainState?.['params']?.[i]}
-                      mouseX={mouseX}
-                      onChange={(paramName, newValue) => {
-                        const newSelectedProcessors = clone(selectedProcessors)
-                        newSelectedProcessors[i].params[paramName] = newValue
-                        setSelectedProcessors(newSelectedProcessors)
-                      }}
-                      onClose={() => {
-                        const newSelectedProcessors = clone(selectedProcessors)
-                        newSelectedProcessors.splice(i, 1)
-                        setSelectedProcessors(newSelectedProcessors)
-                      }}
-                    />
-                  ))}
-                </DragDropList>
-              </div>
-            </DragDropContext>
+            <ProcessorGraphBuilder
+              processorDefinitions={processorDefinitions}
+              selectedProcessors={selectedProcessors}
+              estimatedParams={trainState?.['params']}
+              onChange={newSelectedProcessors => setSelectedProcessors(newSelectedProcessors)}
+            />
           )}
           {isEstimatingParams && trainState?.loss !== undefined && (
             <div>

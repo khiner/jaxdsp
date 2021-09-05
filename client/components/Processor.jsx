@@ -5,12 +5,17 @@ import { CloseOutlined } from '@ant-design/icons'
 import Slider from './Slider'
 import { snakeCaseToSentence } from '../util/string'
 
-export default function Processor({ processor, estimatedParams, mouseX, onChange, onClose }) {
+export default function Processor({ processor, estimatedParams, onChange, onClose, onDragStart, style }) {
   return (
-    <>
+    <div draggable={!!onDragStart} onDragStart={onDragStart} style={style}>
       <div>
         <label style={{ fontSize: 16, fontWeight: 'bold', marginRight: 4 }}>{processor.name}</label>
-        <Button style={{ float: 'right', marginTop: -5 }} type="link" icon={<CloseOutlined />} onClick={onClose} />
+        <Button
+          style={{ float: 'right', marginTop: -5 }}
+          type="link"
+          icon={<CloseOutlined />}
+          onClick={onClose}
+        />
       </div>
       <div style={{ display: 'flex', flexDirection: 'row' }}>
         <div>
@@ -23,7 +28,6 @@ export default function Processor({ processor, estimatedParams, mouseX, onChange
               maxValue={max_value}
               logScale={log_scale}
               onChange={newValue => onChange(name, newValue)}
-              mouseX={mouseX}
             />
           ))}
         </div>
@@ -40,13 +44,12 @@ export default function Processor({ processor, estimatedParams, mouseX, onChange
                     maxValue={max_value}
                     logScale={log_scale}
                     onChange={null}
-                    mouseX={mouseX}
                   />
                 )
             )}
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }

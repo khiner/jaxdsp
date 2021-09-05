@@ -1,7 +1,7 @@
 import React from 'react'
 import { Slider as AntSlider, InputNumber } from 'antd'
 
-export default function Slider({ name, value, minValue, maxValue, logScale, onChange, mouseX }) {
+export default function Slider({ name, value, minValue, maxValue, logScale, onChange }) {
   // `position` vars correspond to slider position. (e.g. 0-1)
   // `value` vars correspond to scaled parameter values (e.g. frequency in Hz)
   const minPosition = 0.0
@@ -32,7 +32,7 @@ export default function Slider({ name, value, minValue, maxValue, logScale, onCh
           const newValue = logScale
             ? Math.exp(Math.log(minValue) + scale * (position - minPosition))
             : minValue + scale * (position - minPosition)
-          return onChange(newValue)
+          onChange(newValue)
         }}
         style={{ width: 100 }}
       />
