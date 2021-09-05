@@ -5,9 +5,17 @@ import { CloseOutlined } from '@ant-design/icons'
 import Slider from './Slider'
 import { snakeCaseToSentence } from '../util/string'
 
-export default function Processor({ processor, estimatedParams, onChange, onClose, onDragStart, style }) {
+export default function Processor({
+  processor,
+  estimatedParams,
+  onChange,
+  onClose,
+  onDragStart,
+  className,
+  style,
+}) {
   return (
-    <div draggable={!!onDragStart} onDragStart={onDragStart} style={style}>
+    <div draggable={!!onDragStart} onDragStart={onDragStart} className={className} style={style}>
       <div>
         <label style={{ fontSize: 16, fontWeight: 'bold', marginRight: 4 }}>{processor.name}</label>
         <Button

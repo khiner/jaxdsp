@@ -1,9 +1,31 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Processor from './Processor'
 import { clone } from '../util/object'
+import { isEventContainedInElement, isEventToLeftOfElement } from '../util/dom'
 
 const ALL_PROCESSORS_ID = 'allProcessors'
 const PROCESSOR_GRAPH_ID = 'selectedProcessors'
+
+function ProcessorDefinition({ className, name, onDragStart }) {
+  return (
+    <div
+      key={name}
+      className={className}
+      style={{
+        margin: 5,
+        padding: 5,
+        border: '1px solid black',
+        borderRadius: 5,
+        background: 'white',
+        textAlign: 'middle',
+      }}
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
+    >
+      {name}
+    </div>
+  )
+}
 
 export default function ProcessorGraphBuilder({
   processorDefinitions,
@@ -11,6 +33,23 @@ export default function ProcessorGraphBuilder({
   estimatedParams,
   onChange,
 }) {
+  const [draggingFrom, setDraggingFrom] = useState(undefined)
+  const [draggingToIndex, setDraggingToIndex] = useState(undefined)
+  const processorGraphRef = useRef(undefined)
+
+  const processors = [...selectedProcessors]
+  if (draggingFrom && draggingToIndex !== undefined) {
+    const { index: draggingFromIndex, sourceId } = draggingFrom
+    if (sourceId === ALL_PROCESSORS_ID) {
+      const item = clone(processorDefinitions[draggingFromIndex])
+      processors.splice(draggingToIndex, 0, item)
+    } else {
+      // const sourceIndex = 1
+      // const [removed] = newSelectedProcessorsEditing.splice(source.index, 1)
+      // newSelectedProcessorsEditing.splice(destination.index, 0, removed)
+    }
+  }
+
   return (
     <>
       <div
@@ -24,81 +63,109 @@ export default function ProcessorGraphBuilder({
       >
         <label style={{ fontSize: '17px', fontWeight: 'bold', margin: '0px 8px' }}>Processors</label>
         {processorDefinitions.map(({ name }, i) => (
-          <div
-            key={name}
-            style={{ margin: 5, padding: 5, border: '1px solid black', borderRadius: 5, background: 'white' }}
-            draggable
+          <ProcessorDefinition
+            key={i}
+            name={name}
             onDragStart={e => {
-              const { dataTransfer } = e
-              dataTransfer.setData('sourceId', ALL_PROCESSORS_ID)
-              dataTransfer.setData('processorIndex', i)
-              dataTransfer.setData('processorName', name)
+              setDraggingFrom({ sourceId: ALL_PROCESSORS_ID, index: i })
             }}
-          >
-            {name}
-          </div>
+          />
         ))}
       </div>
       <div
-        style={{ outline: '1px dashed black' }}
-        onDragEnter={() => console.log('enter')}
-        onDragOver={e => {
-          e.preventDefault()
+        ref={processorGraphRef}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: 'fit-content',
+          minWidth: 200,
+          outline: '1px dashed black',
         }}
-        onDrop={e => {
-          e.preventDefault()
-          const { dataTransfer } = e
-          const sourceId = dataTransfer.getData('sourceId')
-          const processorIndex = dataTransfer.getData('processorIndex')
-          const processorName = dataTransfer.getData('processorName')
+        onDragLeave={event => {
+          event.preventDefault()
+          if (!isEventContainedInElement(event, processorGraphRef.current)) {
+            setDraggingToIndex(undefined)
+          }
+        }}
+        onDragOver={event => {
+          event.preventDefault()
+          const processorElements = [...processorGraphRef.current.getElementsByClassName('processor')]
+          const match = processorElements
+            .map((processorElement, i) => [processorElement, i])
+            .find(([processorElement]) => isEventToLeftOfElement(event, processorElement))
+          if (match) {
+            const [processorElement, index] = match
+            if (processorElement && !processorElement.className.includes('definition')) {
+              setDraggingToIndex(index)
+            }
+          } else {
+            setDraggingToIndex(selectedProcessors.length)
+          }
+        }}
+        onDrop={event => {
+          event.preventDefault()
+          if (draggingFrom === undefined || draggingToIndex === undefined) return
+
+          const { sourceId } = draggingFrom
           if (sourceId === PROCESSOR_GRAPH_ID) {
-            // const sourceIndex = 1
-            // const reorderedProcessors = [...selectedProcessors]
-            // const [removed] = reorderedProcessors.splice(source.index, 1)
-            // reorderedProcessors.splice(destination.index, 0, removed)
-            // onChange(reorderedProcessors)
           } else if (sourceId === ALL_PROCESSORS_ID) {
-            const destinationIndex = selectedProcessors.length // TODO
-            const newSelectedProcessors = [...selectedProcessors]
-            const item = clone(processorDefinitions[processorIndex])
-            newSelectedProcessors.splice(destinationIndex, 0, item)
-            onChange(newSelectedProcessors)
+            onChange(processors)
+            setDraggingToIndex(undefined)
           }
         }}
       >
-        {selectedProcessors?.length === 0 && <i style={{ margin: '8px' }}>Drop processors here</i>}
-        {selectedProcessors?.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'row' }}>
-            {selectedProcessors.map((processor, i) => (
-              <Processor
-                key={i}
-                processor={processor}
-                estimatedParams={estimatedParams?.[i]}
-                onChange={(paramName, newValue) => {
-                  const newSelectedProcessors = clone(selectedProcessors)
-                  newSelectedProcessors[i].params[paramName] = newValue
-                  onChange(newSelectedProcessors)
-                }}
-                onClose={() => {
-                  const newSelectedProcessors = clone(selectedProcessors)
-                  newSelectedProcessors.splice(i, 1)
-                  onChange(newSelectedProcessors)
-                }}
-                onDragStart={e => {
-                  const { dataTransfer } = e
-                  dataTransfer.setData('sourceId', PROCESSOR_GRAPH_ID)
-                  dataTransfer.setData('processorIndex', i)
-                  dataTransfer.setData('processorName', processor.name)
-                }}
-                style={{
-                  margin: 5,
-                  padding: 5,
-                  border: '1px solid black',
-                  borderRadius: 5,
-                  background: 'white',
-                }}
-              />
-            ))}
+        {processors.length === 0 && <i style={{ margin: '8px' }}>Drop processors here</i>}
+        {processors.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+            {processors.map((processor, i) => {
+              const { name } = processor
+              if (i === draggingToIndex) {
+                // Dragging placeholder definition
+                return <ProcessorDefinition key={i} name={name} />
+              }
+
+              return (
+                <Processor
+                  key={i}
+                  className="processor"
+                  processor={processor}
+                  estimatedParams={estimatedParams?.[i]}
+                  onChange={(paramName, newValue) => {
+                    const newSelectedProcessors = clone(selectedProcessors)
+                    newSelectedProcessors[i].params[paramName] = newValue
+                    onChange(newSelectedProcessors)
+                  }}
+                  onClose={() => {
+                    const newSelectedProcessors = clone(selectedProcessors)
+                    newSelectedProcessors.splice(i, 1)
+                    onChange(newSelectedProcessors)
+                  }}
+                  onDragStart={event => {
+                    setDraggingFrom({ sourceId: PROCESSOR_GRAPH_ID, index: i })
+                  }}
+                  onDragEnter={() => {
+                    // event.preventDefault()
+                    // setDraggingOverProcessor(i)
+                  }}
+                  onDragOver={event => {
+                    event.preventDefault()
+                  }}
+                  onDragLeave={() => {
+                    // event.preventDefault()
+                    // setDraggingOverProcessor(undefined)
+                  }}
+                  style={{
+                    margin: 5,
+                    padding: 5,
+                    border: '1px solid black',
+                    borderRadius: 5,
+                    background: 'white',
+                  }}
+                />
+              )
+            })}
           </div>
         )}
       </div>
