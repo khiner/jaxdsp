@@ -38,7 +38,6 @@ export default function JaxDspClient({ testSample }) {
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
   const [selectedProcessors, setSelectedProcessors] = useState([])
-  const [mouseX, setMouseX] = useState(undefined)
 
   const audioRef = useRef(null)
 
@@ -55,12 +54,6 @@ export default function JaxDspClient({ testSample }) {
     const errorMessage = error ? `${displayMessage}: ${error}` : displayMessage
     console.error(errorMessage)
   }
-
-  useEffect(() => {
-    const onMouseMove = event => setMouseX(event.pageX)
-    window.addEventListener('mousemove', onMouseMove)
-    return () => window.removeEventListener('mousemove', onMouseMove)
-  }, [])
 
   useEffect(() => {
     sendProcessors()
@@ -261,7 +254,6 @@ export default function JaxDspClient({ testSample }) {
                           value={value}
                           minValue={0.0}
                           maxValue={1.0}
-                          mouseX={mouseX}
                           onChange={newValue => {
                             const newLossOptions = { ...lossOptions }
                             newLossOptions.weights[key] = newValue
@@ -329,7 +321,6 @@ export default function JaxDspClient({ testSample }) {
                               minValue={min_value}
                               maxValue={max_value}
                               logScale={log_scale}
-                              mouseX={mouseX}
                               onChange={newValue => {
                                 const newOptimizer = clone(editingOptimizer)
                                 newOptimizer.params[name] = newValue

@@ -1,10 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Processor from './Processor'
 import { clone } from '../util/object'
 import { isEventContainedInElement, isEventToLeftOfElement } from '../util/dom'
-
-const ALL_PROCESSORS_ID = 'allProcessors'
-const PROCESSOR_GRAPH_ID = 'selectedProcessors'
 
 function ProcessorDefinition({ className, name, onDragStart }) {
   return (
@@ -34,15 +31,16 @@ export default function ProcessorGraphBuilder({
   onChange,
 }) {
   const [draggingFrom, setDraggingFrom] = useState(undefined)
-  const [draggingToIndex, setDraggingToIndex] = useState(undefined)
+  // e.g. `draggingToIndices := [2,3]` means the 4th (0-indexed) parallel processor in the 3rd serial processor
+  const [draggingToIndices, setDraggingToIndices] = useState(undefined)
   const processorGraphRef = useRef(undefined)
 
   const processors = [...selectedProcessors]
-  if (draggingFrom && draggingToIndex !== undefined) {
-    const { index: draggingFromIndex, sourceId } = draggingFrom
-    if (sourceId === ALL_PROCESSORS_ID) {
-      const item = clone(processorDefinitions[draggingFromIndex])
-      processors.splice(draggingToIndex, 0, item)
+  if (draggingFrom && draggingToIndices) {
+    const { processorDefinitionIndex } = draggingFrom
+    if (processorDefinitionIndex !== undefined) {
+      const item = clone(processorDefinitions[processorDefinitionIndex])
+      processors.splice(draggingToIndices[0], 0, item)
     } else {
       // const sourceIndex = 1
       // const [removed] = newSelectedProcessorsEditing.splice(source.index, 1)
@@ -50,6 +48,20 @@ export default function ProcessorGraphBuilder({
     }
   }
 
+  const updateDraggingToIndices = newDraggingToIndices => {
+    if (!draggingToIndices || !newDraggingToIndices) {
+      setDraggingToIndices(newDraggingToIndices)
+      return
+    }
+
+    const [serialIndex, parallelIndex] = newDraggingToIndices
+    const [currentSerialIndex, currentParallelIndex] = draggingToIndices
+    if (serialIndex !== currentSerialIndex || parallelIndex !== currentParallelIndex) {
+      setDraggingToIndices([serialIndex, parallelIndex])
+    }
+  }
+
+  console.log('render')
   return (
     <>
       <div
@@ -66,9 +78,7 @@ export default function ProcessorGraphBuilder({
           <ProcessorDefinition
             key={i}
             name={name}
-            onDragStart={e => {
-              setDraggingFrom({ sourceId: ALL_PROCESSORS_ID, index: i })
-            }}
+            onDragStart={() => setDraggingFrom({ processorDefinitionIndex: i })}
           />
         ))}
       </div>
@@ -86,7 +96,7 @@ export default function ProcessorGraphBuilder({
         onDragLeave={event => {
           event.preventDefault()
           if (!isEventContainedInElement(event, processorGraphRef.current)) {
-            setDraggingToIndex(undefined)
+            updateDraggingToIndices(undefined)
           }
         }}
         onDragOver={event => {
@@ -98,72 +108,72 @@ export default function ProcessorGraphBuilder({
           if (match) {
             const [processorElement, index] = match
             if (processorElement && !processorElement.className.includes('definition')) {
-              setDraggingToIndex(index)
+              updateDraggingToIndices([index, 0])
             }
           } else {
-            setDraggingToIndex(selectedProcessors.length)
+            updateDraggingToIndices([selectedProcessors.length, 0])
           }
         }}
         onDrop={event => {
           event.preventDefault()
-          if (draggingFrom === undefined || draggingToIndex === undefined) return
+          if (!draggingFrom || !draggingToIndices) return
 
-          const { sourceId } = draggingFrom
-          if (sourceId === PROCESSOR_GRAPH_ID) {
-          } else if (sourceId === ALL_PROCESSORS_ID) {
+          const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
+          if (processorDefinitionIndex) {
             onChange(processors)
-            setDraggingToIndex(undefined)
+            updateDraggingToIndices(undefined)
+          } else if (processorGraphIndices) {
           }
         }}
       >
         {processors.length === 0 && <i style={{ margin: '8px' }}>Drop processors here</i>}
         {processors.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-            {processors.map((processor, i) => {
-              const { name } = processor
-              if (i === draggingToIndex) {
-                // Dragging placeholder definition
-                return <ProcessorDefinition key={i} name={name} />
-              }
+            {processors.map((parallelProcessors, serialIndex) => {
+              if (!Array.isArray(parallelProcessors)) parallelProcessors = [parallelProcessors]
 
               return (
-                <Processor
-                  key={i}
-                  className="processor"
-                  processor={processor}
-                  estimatedParams={estimatedParams?.[i]}
-                  onChange={(paramName, newValue) => {
-                    const newSelectedProcessors = clone(selectedProcessors)
-                    newSelectedProcessors[i].params[paramName] = newValue
-                    onChange(newSelectedProcessors)
-                  }}
-                  onClose={() => {
-                    const newSelectedProcessors = clone(selectedProcessors)
-                    newSelectedProcessors.splice(i, 1)
-                    onChange(newSelectedProcessors)
-                  }}
-                  onDragStart={event => {
-                    setDraggingFrom({ sourceId: PROCESSOR_GRAPH_ID, index: i })
-                  }}
-                  onDragEnter={() => {
-                    // event.preventDefault()
-                    // setDraggingOverProcessor(i)
-                  }}
-                  onDragOver={event => {
-                    event.preventDefault()
-                  }}
-                  onDragLeave={() => {
-                    // event.preventDefault()
-                    // setDraggingOverProcessor(undefined)
-                  }}
-                  style={{
-                    margin: 5,
-                    padding: 5,
-                    border: '1px solid black',
-                    borderRadius: 5,
-                    background: 'white',
-                  }}
-                />
+                <div
+                  key={`parallel${serialIndex}`}
+                  style={{ display: 'flex', flexDirection: 'column', width: 'fit-content' }}
+                >
+                  {parallelProcessors.map((processor, parallelIndex) => {
+                    const { name } = processor
+                    if (serialIndex === draggingToIndices?.[0]) {
+                      // Dragging placeholder definition
+                      return <ProcessorDefinition key={serialIndex} name={name} />
+                    }
+
+                    return (
+                      <Processor
+                        key={`processor${serialIndex}`}
+                        className="processor"
+                        processor={processor}
+                        estimatedParams={estimatedParams?.[serialIndex]}
+                        onChange={(paramName, newValue) => {
+                          const newSelectedProcessors = clone(selectedProcessors)
+                          newSelectedProcessors[serialIndex].params[paramName] = newValue
+                          onChange(newSelectedProcessors)
+                        }}
+                        onClose={() => {
+                          const newSelectedProcessors = clone(selectedProcessors)
+                          newSelectedProcessors.splice(serialIndex, 1)
+                          onChange(newSelectedProcessors)
+                        }}
+                        onDragStart={() => {
+                          setDraggingFrom({ processorGraphIndices: [serialIndex, parallelIndex] })
+                        }}
+                        style={{
+                          margin: 5,
+                          padding: 5,
+                          border: '1px solid black',
+                          borderRadius: 5,
+                          background: 'white',
+                        }}
+                      />
+                    )
+                  })}
+                </div>
               )
             })}
           </div>
