@@ -71,7 +71,7 @@ export default function ProcessorGraphBuilder({
           alignItems: 'center',
         }}
       >
-        <label style={{ fontSize: '17px', fontWeight: 'bold', margin: '0px 8px' }}>Processors</label>
+        <label style={{ fontSize: '17px', fontWeight: 'bold', marginRight: '0.5em' }}>Processors:</label>
         {processorDefinitions.map(({ name }, i) => (
           <ProcessorDefinition
             key={i}
@@ -93,18 +93,21 @@ export default function ProcessorGraphBuilder({
         }}
         onDragLeave={event => {
           event.preventDefault()
-          if (!isEventContainedInElement(event, processorGraphRef.current) && draggingFrom?.processorDefinitionIndex !== undefined) {
+          if (
+            !isEventContainedInElement(event, processorGraphRef.current) &&
+            draggingFrom?.processorDefinitionIndex !== undefined
+          ) {
             updateDraggingToIndices(undefined)
           }
         }}
         onDragOver={event => {
           event.preventDefault()
           const processorElements = [...processorGraphRef.current.getElementsByClassName('processor')]
-          const match = processorElements
+          const insertBeforeElement = processorElements
             .map((processorElement, i) => [processorElement, i])
             .find(([processorElement]) => isEventToLeftOfElement(event, processorElement))
-          if (match) {
-            const [processorElement, index] = match
+          if (insertBeforeElement) {
+            const [processorElement, index] = insertBeforeElement
             if (processorElement) {
               updateDraggingToIndices([index, 0])
             }
@@ -162,7 +165,7 @@ export default function ProcessorGraphBuilder({
                         }}
                         style={{
                           margin: 5,
-                          padding: 5,
+                          padding: 7,
                           border: '1px solid black',
                           borderRadius: 5,
                           background: 'white',

@@ -18,8 +18,12 @@ export default function Slider({ name, value, minValue, maxValue, logScale, onCh
 
   const isPreview = !onChange
   return (
-    <div style={{ display: 'flex', alignItems: 'center', margin: '5px' }}>
-      {!isPreview && <label htmlFor={name}>{name}</label>}
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      {!isPreview && (
+        <label style={{ marginRight: 4 }} htmlFor={name}>
+          {name}
+        </label>
+      )}
       <AntSlider
         type="range"
         name={name}

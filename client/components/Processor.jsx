@@ -19,7 +19,7 @@ export default function Processor({
       <div>
         <label style={{ fontSize: 16, fontWeight: 'bold', marginRight: 4 }}>{processor.name}</label>
         <Button
-          style={{ float: 'right', marginTop: -5 }}
+          style={{ float: 'right', marginTop: -8, marginRight: -8 }}
           type="link"
           icon={<CloseOutlined />}
           onClick={onClose}
