@@ -34,7 +34,7 @@ export default function ProcessorGraphBuilder({
   const [draggingToIndices, setDraggingToIndices] = useState(undefined)
   const processorGraphRef = useRef(undefined)
 
-  const processors = [...selectedProcessors]
+  const processors = clone(selectedProcessors)
   if (draggingFrom && draggingToIndices?.length === 2) {
     const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
     if (processorDefinitionIndex !== undefined) {
@@ -93,7 +93,7 @@ export default function ProcessorGraphBuilder({
         }}
         onDragLeave={event => {
           event.preventDefault()
-          if (!isEventContainedInElement(event, processorGraphRef.current)) {
+          if (!isEventContainedInElement(event, processorGraphRef.current) && draggingFrom?.processorDefinitionIndex !== undefined) {
             updateDraggingToIndices(undefined)
           }
         }}
