@@ -3,11 +3,10 @@ import Processor from './Processor'
 import { clone } from '../util/object'
 import { isEventContainedInElement, isEventToLeftOfElement } from '../util/dom'
 
-function ProcessorDefinition({ className, name, onDragStart }) {
+function ProcessorDefinition({ name, onDragStart }) {
   return (
     <div
       key={name}
-      className={className}
       style={{
         margin: 5,
         padding: 5,
@@ -36,15 +35,14 @@ export default function ProcessorGraphBuilder({
   const processorGraphRef = useRef(undefined)
 
   const processors = [...selectedProcessors]
-  if (draggingFrom && draggingToIndices) {
-    const { processorDefinitionIndex } = draggingFrom
+  if (draggingFrom && draggingToIndices?.length === 2) {
+    const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
     if (processorDefinitionIndex !== undefined) {
       const item = clone(processorDefinitions[processorDefinitionIndex])
       processors.splice(draggingToIndices[0], 0, item)
-    } else {
-      // const sourceIndex = 1
-      // const [removed] = newSelectedProcessorsEditing.splice(source.index, 1)
-      // newSelectedProcessorsEditing.splice(destination.index, 0, removed)
+    } else if (processorGraphIndices?.length === 2) {
+      const [removed] = processors.splice(processorGraphIndices[0], 1)
+      processors.splice(draggingToIndices[0], 0, removed)
     }
   }
 
@@ -107,11 +105,11 @@ export default function ProcessorGraphBuilder({
             .find(([processorElement]) => isEventToLeftOfElement(event, processorElement))
           if (match) {
             const [processorElement, index] = match
-            if (processorElement && !processorElement.className.includes('definition')) {
+            if (processorElement) {
               updateDraggingToIndices([index, 0])
             }
           } else {
-            updateDraggingToIndices([selectedProcessors.length, 0])
+            updateDraggingToIndices([processorElements.length, 0])
           }
         }}
         onDrop={event => {
@@ -119,10 +117,9 @@ export default function ProcessorGraphBuilder({
           if (!draggingFrom || !draggingToIndices) return
 
           const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
-          if (processorDefinitionIndex) {
+          if (processorDefinitionIndex !== undefined || processorGraphIndices) {
             onChange(processors)
             updateDraggingToIndices(undefined)
-          } else if (processorGraphIndices) {
           }
         }}
       >
