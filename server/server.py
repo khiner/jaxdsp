@@ -24,6 +24,7 @@ from jaxdsp.processors import (
     serialize_processor,
     processor_by_name,
     graph_config_to_carry,
+    get_graph_processor_names,
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
@@ -78,7 +79,7 @@ class AudioTransformTrack(MediaStreamTrack):
             self.trainer.set_graph_config(None)
             return
 
-        processor_names = [processor["name"] for processor in graph_config]
+        processor_names = get_graph_processor_names(graph_config)
         # This is also the path to update processor params, regardless of whether the processor has changed.
         self.params, state = graph_config_to_carry(graph_config)
         if self.processor_names != processor_names:

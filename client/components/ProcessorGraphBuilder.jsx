@@ -1,7 +1,16 @@
 import React, { useRef, useState } from 'react'
 import Processor from './Processor'
 import { clone } from '../util/object'
-import { isEventContainedInElement, isEventToLeftOfElement } from '../util/dom'
+
+const isEventContainedInElement = (event, element) => {
+  if (!event || !element) return false
+
+  const { clientX, clientY } = event
+  const rect = element.getBoundingClientRect()
+  return clientY >= rect.top && clientY < rect.bottom && clientX >= rect.left && clientX < rect.right
+}
+
+const wrapInArray = itemOrArray => (Array.isArray(itemOrArray) ? itemOrArray : [itemOrArray])
 
 function ProcessorDefinition({ name, onDragStart }) {
   return (
@@ -34,17 +43,31 @@ export default function ProcessorGraphBuilder({
   const [draggingToIndices, setDraggingToIndices] = useState(undefined)
   const processorGraphRef = useRef(undefined)
 
-  const processors = clone(selectedProcessors)
+  const processors = clone(selectedProcessors.map(selectedProcessor => wrapInArray(selectedProcessor)))
   if (draggingFrom && draggingToIndices?.length === 2) {
+    const [toSerialIndex, toParallelIndex] = draggingToIndices
     const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
     if (processorDefinitionIndex !== undefined) {
-      const item = clone(processorDefinitions[processorDefinitionIndex])
-      processors.splice(draggingToIndices[0], 0, item)
+      // Creating a new processor by dragging its label
+      const processor = clone(processorDefinitions[processorDefinitionIndex])
+      if (toParallelIndex === -1 || processors.length === 0) {
+        processors.splice(toSerialIndex, 0, wrapInArray(processor))
+      } else {
+        processors[toSerialIndex].splice(toParallelIndex, 0, processor)
+      }
     } else if (processorGraphIndices?.length === 2) {
-      const [removed] = processors.splice(processorGraphIndices[0], 1)
-      processors.splice(draggingToIndices[0], 0, removed)
+      // Moving another processor in the graph
+      const [fromSerialIndex, fromParallelIndex] = processorGraphIndices
+      if (toParallelIndex === -1) {
+        const processor = processors.splice(fromSerialIndex, 1)[0]
+        processors.splice(toSerialIndex, 0, processor)
+      } else {
+        const processor = processors[fromSerialIndex].splice(fromParallelIndex, 1)[0]
+        processors[toSerialIndex].splice(toParallelIndex, 0, processor)
+      }
     }
   }
+  // Invariant: `processors` is an array of arrays
 
   const updateDraggingToIndices = newDraggingToIndices => {
     if (!draggingToIndices || !newDraggingToIndices) {
@@ -102,18 +125,60 @@ export default function ProcessorGraphBuilder({
         }}
         onDragOver={event => {
           event.preventDefault()
-          const processorElements = [...processorGraphRef.current.getElementsByClassName('processor')]
-          const insertBeforeElement = processorElements
-            .map((processorElement, i) => [processorElement, i])
-            .find(([processorElement]) => isEventToLeftOfElement(event, processorElement))
-          if (insertBeforeElement) {
-            const [processorElement, index] = insertBeforeElement
-            if (processorElement) {
-              updateDraggingToIndices([index, 0])
+          const [currentToSerialIndex, currentToParallelIndex] = draggingToIndices || [undefined, undefined]
+
+          const parallelProcessorElements = [
+            ...processorGraphRef.current.getElementsByClassName('parallelProcessor'),
+          ]
+          for (let serialIndex = 0; serialIndex < parallelProcessorElements.length; serialIndex++) {
+            const parallelProcessorElement = parallelProcessorElements[serialIndex]
+            const { clientX } = event
+            const rect = parallelProcessorElement.getBoundingClientRect()
+            const { left, right } = rect
+            const width = right - left
+            if (
+              clientX >= left &&
+              clientX < left + width &&
+              serialIndex === currentToSerialIndex &&
+              currentToParallelIndex === -1
+            ) {
+              return
             }
-          } else {
-            updateDraggingToIndices([processorElements.length, 0])
+
+            // Insert as a parallel (vertically oriented) sub-processor if
+            // mouse is in the middle 1/2 of the processor's width.
+            if (clientX >= left + width / 4 && clientX < right - width / 4) {
+              const processorElements = [...parallelProcessorElement.getElementsByClassName('processor')]
+              const insertAboveIndex = processorElements
+                .map((element, i) => [element, i])
+                .find(([element]) => {
+                  const { clientY } = event
+                  const rect = element.getBoundingClientRect()
+                  const { top, bottom } = rect
+                  const height = bottom - top
+                  return clientY < top + height / 2
+                })?.[1]
+              const newToSerialIndex = serialIndex > currentToSerialIndex ? serialIndex - 1 : serialIndex
+              let newToParallelIndex =
+                insertAboveIndex !== undefined ? insertAboveIndex : processorElements.length
+              updateDraggingToIndices([newToSerialIndex, newToParallelIndex])
+              return
+            }
           }
+
+          const insertToLeftOfIndex = parallelProcessorElements
+            .map((element, i) => [element, i])
+            .find(([element]) => {
+              const { clientX } = event
+              const rect = element.getBoundingClientRect()
+              const { left, right } = rect
+              const width = right - left
+              return clientX < left + width / 2
+            })?.[1]
+          let newToSerialIndex =
+            insertToLeftOfIndex !== undefined ? insertToLeftOfIndex : parallelProcessorElements.length
+          if (newToSerialIndex > currentToSerialIndex && currentToParallelIndex === -1) newToSerialIndex -= 1
+          updateDraggingToIndices([newToSerialIndex, -1])
         }}
         onDrop={event => {
           event.preventDefault()
@@ -129,53 +194,66 @@ export default function ProcessorGraphBuilder({
         {processors.length === 0 && <i style={{ margin: '8px' }}>Drop processors here</i>}
         {processors.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-            {processors.map((parallelProcessors, serialIndex) => {
-              if (!Array.isArray(parallelProcessors)) parallelProcessors = [parallelProcessors]
+            {processors.map((parallelProcessors, serialIndex) => (
+              <div
+                key={`parallel${serialIndex}`}
+                className="parallelProcessor"
+                style={{ display: 'flex', flexDirection: 'column', width: 'fit-content' }}
+              >
+                {parallelProcessors.map((processor, parallelIndex) => {
+                  const { name } = processor
+                  const [draggingToSerialIndex, draggingToParallelIndex] = draggingToIndices || [
+                    undefined,
+                    undefined,
+                  ]
+                  if (
+                    serialIndex === draggingToSerialIndex &&
+                    (draggingToParallelIndex === -1 || parallelIndex === draggingToParallelIndex)
+                  ) {
+                    // Dragging placeholder definition
+                    return <ProcessorDefinition key={serialIndex} name={name} />
+                  }
 
-              return (
-                <div
-                  key={`parallel${serialIndex}`}
-                  style={{ display: 'flex', flexDirection: 'column', width: 'fit-content' }}
-                >
-                  {parallelProcessors.map((processor, parallelIndex) => {
-                    const { name } = processor
-                    if (serialIndex === draggingToIndices?.[0]) {
-                      // Dragging placeholder definition
-                      return <ProcessorDefinition key={serialIndex} name={name} />
-                    }
-
-                    return (
-                      <Processor
-                        key={`processor${serialIndex}`}
-                        className="processor"
-                        processor={processor}
-                        estimatedParams={estimatedParams?.[serialIndex]}
-                        onChange={(paramName, newValue) => {
-                          const newSelectedProcessors = clone(selectedProcessors)
-                          newSelectedProcessors[serialIndex].params[paramName] = newValue
-                          onChange(newSelectedProcessors)
-                        }}
-                        onClose={() => {
-                          const newSelectedProcessors = clone(selectedProcessors)
+                  return (
+                    <Processor
+                      key={`processor-${serialIndex}-${parallelIndex}`}
+                      className="processor"
+                      processor={processor}
+                      estimatedParams={estimatedParams?.[serialIndex]}
+                      onChange={(paramName, newValue) => {
+                        const newSelectedProcessors = clone(selectedProcessors)
+                        newSelectedProcessors[serialIndex][parallelIndex].params[paramName] = newValue
+                        onChange(newSelectedProcessors)
+                      }}
+                      onClose={() => {
+                        const newSelectedProcessors = clone(selectedProcessors)
+                        newSelectedProcessors[serialIndex].splice(parallelIndex, 1)
+                        if (newSelectedProcessors[serialIndex].length === 0) {
                           newSelectedProcessors.splice(serialIndex, 1)
-                          onChange(newSelectedProcessors)
-                        }}
-                        onDragStart={() => {
-                          setDraggingFrom({ processorGraphIndices: [serialIndex, parallelIndex] })
-                        }}
-                        style={{
-                          margin: 5,
-                          padding: 7,
-                          border: '1px solid black',
-                          borderRadius: 5,
-                          background: 'white',
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              )
-            })}
+                        }
+                        onChange(newSelectedProcessors)
+                      }}
+                      onDragStart={() => {
+                        setDraggingFrom({ processorGraphIndices: [serialIndex, parallelIndex] })
+                      }}
+                      onDragEnter={() => {
+                        console.log(`drag enter:${serialIndex}`)
+                      }}
+                      onDragExit={() => {
+                        console.log(`drag exit:${serialIndex}`)
+                      }}
+                      style={{
+                        margin: 5,
+                        padding: 7,
+                        border: '1px solid black',
+                        borderRadius: 5,
+                        background: 'white',
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            ))}
           </div>
         )}
       </div>
