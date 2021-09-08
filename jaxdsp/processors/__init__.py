@@ -23,6 +23,7 @@ all_processors = [
 ]
 processor_by_name = {processor.NAME: processor for processor in all_processors}
 
+
 def default_param_values(processor):
     return (
         {param.name: param.default_value for param in processor.PARAMS}
@@ -77,15 +78,36 @@ def params_from_unit_scale(params, processor_name):
     }
 
 
-def get_graph_processor_names(graph_config):
+def processor_names_from_graph_config(graph_config):
     if not graph_config:
         return None
 
     return [
-        get_graph_processor_names(processor_config)
+        processor_names_from_graph_config(processor_config)
         if isinstance(processor_config, list)
         else processor_config["name"]
         for processor_config in graph_config
+    ]
+
+
+def processor_names_to_graph_config(processor_names):
+    if not processor_names:
+        return None
+
+    return [
+        processor_names_to_graph_config(processor_name)
+        if isinstance(processor_name, list)
+        else {"name": processor_name}
+        for processor_name in processor_names
+    ]
+
+
+def processors_to_graph_config(processors):
+    return [
+        processors_to_graph_config(processor)
+        if isinstance(processor, list)
+        else {"name": processor.NAME}
+        for processor in processors
     ]
 
 
@@ -125,10 +147,12 @@ def graph_config_to_carry(graph_config):
     return get_graph_params(graph_config), init_graph_state(graph_config)
 
 
-def processors_to_graph_config(processors):
-    return [
-        processors_to_graph_config(processor)
-        if isinstance(processor, list)
-        else {"name": processor.NAME}
-        for processor in processors
-    ]
+def set_state_recursive(state, key, value):
+    if not state:
+        return
+
+    if isinstance(state, list):
+        for state_item in state:
+            set_state_recursive(state_item, key, value)
+    else:
+        state[key] = value

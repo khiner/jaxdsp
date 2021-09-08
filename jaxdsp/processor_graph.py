@@ -2,6 +2,7 @@ import jax.numpy as jnp
 
 from jaxdsp.processors import processor_by_name
 
+
 # This module does not actually support full graph connectivity.
 # For simplicity, only series & parallel processing is supported.
 # A wide variety of common DSP techniques can be implemented by nesting series and parallel processor groups.
@@ -44,8 +45,8 @@ def tick_buffer_parallel(carry, X, processor_names):
 
 # `processor_names`, and the params/state tuples in `carry`, are each lists,
 # each element of which can be a processor or a list.
-# The top-level list is interpretted as a series-connected chain,
-# and every nested list is interpretted as a parallel-connected chain.
+# The top-level list is interpreted as a series-connected chain,
+# and every nested list is interpreted as a parallel-connected chain.
 # E.g. `[["Sine Wave", "Sine Wave"], "Allpass Filter"]`
 # is two parallel sine wave processors followed by an allpass filter.
 def tick_buffer(carry, X, processor_names):

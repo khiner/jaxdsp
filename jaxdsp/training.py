@@ -3,16 +3,17 @@ from jax import value_and_grad, jit
 from jax.tree_util import tree_map, tree_multimap
 
 from jaxdsp import processor_graph
+from jaxdsp.loss import LossOptions, loss_fn
+from jaxdsp.optimizers import create_optimizer
 from jaxdsp.processors import (
-    default_param_values,
-    get_graph_processor_names,
+    processor_names_from_graph_config,
     processor_by_name,
     graph_config_to_carry,
     params_to_unit_scale,
     params_from_unit_scale,
+    get_graph_params,
+    processor_names_to_graph_config,
 )
-from jaxdsp.loss import LossOptions, loss_fn
-from jaxdsp.optimizers import create_optimizer
 
 
 @jit
@@ -61,19 +62,14 @@ class IterativeTrainer:
         self.set_loss_options(loss_options)
 
     def set_graph_config(self, graph_config):
-        self.processor_names = get_graph_processor_names(graph_config)
+        self.processor_names = processor_names_from_graph_config(graph_config)
         self.set_carry(graph_config_to_carry(graph_config))
 
     def set_carry(self, carry):
         if carry:
             params, self.state = carry
-            self.params = params or (
-                [
-                    default_param_values(processor_by_name[processor_name])
-                    for processor_name in self.processor_names
-                ]
-                if self.processor_names
-                else None
+            self.params = params or get_graph_params(
+                processor_names_to_graph_config(self.processor_names)
             )
             self.step_evaluator = LossHistoryAccumulator(self.params)
         else:

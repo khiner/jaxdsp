@@ -87,8 +87,14 @@ def plot_processor(fig, processor_name, params_target, params_history):
             plot.autoscale()
 
 
-def plot_processors(fig, params_targets, params_histories, processor_names, is_row=True):
-    subfigs = fig.subfigures(1 if is_row else len(processor_names), len(processor_names) if is_row else 1, wspace=0.07)
+def plot_processors(
+    fig, params_targets, params_histories, processor_names, is_row=True
+):
+    subfigs = fig.subfigures(
+        1 if is_row else len(processor_names),
+        len(processor_names) if is_row else 1,
+        wspace=0.07,
+    )
 
     if len(processor_names) == 1:
         subfigs = [subfigs]
@@ -98,7 +104,9 @@ def plot_processors(fig, params_targets, params_histories, processor_names, is_r
     ):
         if isinstance(processor_name, list):
             # Nested processors are processoed in parallel, so display in nested column
-            plot_processors(subfig, params_target, params_history, processor_name, not is_row)
+            plot_processors(
+                subfig, params_target, params_history, processor_name, not is_row
+            )
         else:
             plot_processor(
                 subfig,
@@ -126,7 +134,7 @@ def plot_train(
         num_rows += 1
 
     fig = plt.figure(constrained_layout=True, figsize=(16, num_rows * 4))
-    height_ratios=None
+    height_ratios = None
     if plot_loss_history:
         height_ratios = [0.75, 0.5, 1] if num_rows == 3 else [0.25, 1]
     subfigs = fig.subfigures(num_rows, 1, wspace=0.07, height_ratios=height_ratios)

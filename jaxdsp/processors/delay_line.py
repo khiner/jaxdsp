@@ -21,7 +21,9 @@ from jaxdsp.param import Param
 
 # Stay inside the range of the the lowest frequency resolved by the fft in the spectral optimizers
 MAX_DELAY_LENGTH_MS = 40.0
-MAX_DELAY_LENGTH_SAMPLES = math.ceil(DEFAULT_SAMPLE_RATE * (MAX_DELAY_LENGTH_MS / 1000.0))
+MAX_DELAY_LENGTH_SAMPLES = math.ceil(
+    DEFAULT_SAMPLE_RATE * (MAX_DELAY_LENGTH_MS / 1000.0)
+)
 
 NAME = "Delay Line"
 PARAMS = [
@@ -70,5 +72,7 @@ def tick(carry, x):
 def tick_buffer(carry, X):
     params, state = carry
     delay_samples = jnp.ceil(state["sample_rate"] * (params["delay_ms"] / 1000.0))
-    state["read_sample"] = (state["write_sample"] - jnp.clip(delay_samples, 0, MAX_DELAY_LENGTH_SAMPLES)) % MAX_DELAY_LENGTH_SAMPLES
+    state["read_sample"] = (
+        state["write_sample"] - jnp.clip(delay_samples, 0, MAX_DELAY_LENGTH_SAMPLES)
+    ) % MAX_DELAY_LENGTH_SAMPLES
     return lax.scan(tick, carry, X)

@@ -1,19 +1,20 @@
 import argparse
 import asyncio
-import websockets
-import uuid
 import json
 import logging
 import ssl
 import uuid
-import numpy as np
 from collections import deque
 
-from aiohttp import web
 import aiohttp_cors
+import numpy as np
+import websockets
+from aiohttp import web
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 
 from jaxdsp import processor_graph
+from jaxdsp.loss import LossOptions
+from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
 from jaxdsp.processors import (
     allpass_filter,
     clip,
@@ -24,11 +25,10 @@ from jaxdsp.processors import (
     serialize_processor,
     processor_by_name,
     graph_config_to_carry,
-    get_graph_processor_names,
+    processor_names_from_graph_config,
+    set_state_recursive,
 )
 from jaxdsp.training import IterativeTrainer
-from jaxdsp.optimizers import create_optimizer, all_optimizer_definitions
-from jaxdsp.loss import LossOptions
 
 ALL_PROCESSORS = [allpass_filter, clip, delay_line, biquad_lowpass, sine_wave, freeverb]
 # Training frame pairs are queued up for each client, limited to this cap:
@@ -79,7 +79,7 @@ class AudioTransformTrack(MediaStreamTrack):
             self.trainer.set_graph_config(None)
             return
 
-        processor_names = get_graph_processor_names(graph_config)
+        processor_names = processor_names_from_graph_config(graph_config)
         # This is also the path to update processor params, regardless of whether the processor has changed.
         self.params, state = graph_config_to_carry(graph_config)
         if self.processor_names != processor_names:
@@ -108,13 +108,9 @@ class AudioTransformTrack(MediaStreamTrack):
         if self.params and self.state:
             # TODO can this be done once on negotiate/processor change, instead of each frame?
             #  or, maybe it can be passed as another arg to tick_buffer
-            if isinstance(self.state, list):
-                for inner_processor_state in self.state:
-                    inner_processor_state["sample_rate"] = sample_rate
-            else:
-                self.state["sample_rate"] = sample_rate
+            set_state_recursive(self.state, "sample_rate", sample_rate)
 
-            carry, Y = processor_graph.tick_buffer_series(
+            carry, Y = processor_graph.tick_buffer(
                 (self.params, self.state), X_left, self.processor_names
             )
         else:
