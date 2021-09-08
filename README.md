@@ -11,10 +11,6 @@ Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets and React.
 _**Note:** The `requirements.txt` file at the root of this repo was generated with `pip freeze > requirements.txt`, and
 it likely contains more than what's strictly needed!_
 
-```shell
-pip install git+https://github.com/cifkao/jax-spectral.git@main#egg=jax-spectral
-```
-
 ## Server
 
 ```shell
