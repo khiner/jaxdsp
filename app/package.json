@@ -2,13 +2,6 @@
   "name": "jaxdsp-app",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@craco/craco": "^6.1.0",
-    "jaxdsp-client": "file:../client",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-scripts": "4.0.1"
-  },
   "scripts": {
     "start": "craco start",
     "build": "craco build",
@@ -31,7 +24,15 @@
       "last 1 safari version"
     ]
   },
+  "dependencies": {
+    "@craco/craco": "^6.1.0",
+    "jaxdsp-client": "file:../client",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.1"
+  },
   "devDependencies": {
+    "craco-babel-loader": "^0.1.4",
     "husky": "^4.3.8",
     "lint-staged": "^10.5.3",
     "prettier": "^2.2.1"

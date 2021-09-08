@@ -21,10 +21,16 @@ $ python server.py
 
 ## Client
 
+_**Note:** For local development of the client within the test `/app` (see below), the client is included as a
+local `file:../client` dependency, and included in the babel transpilation for the `/app` build (
+see `app/craco.config.js`)._
+
+_`build:dev` in the client just symlinks the `dist/jaxdsp-client.js` target to the root `index.js` file._
+
 ```shell
 $ cd client
 $ npm ci
-$ npm run build:dev
+$ npm run build # or, for a development build: `build:dev`
 ```
 
 ## App

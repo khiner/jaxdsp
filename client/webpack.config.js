@@ -12,7 +12,6 @@ module.exports = {
   externals: {
     react: 'react',
   },
-  devtool: 'source-map',
   module: {
     rules: [
       {

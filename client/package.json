@@ -4,7 +4,7 @@
   "description": "Interactive editor and monitor for JAXdsp",
   "main": "dist/jaxdsp-client.js",
   "scripts": {
-    "build:dev": "rm -rf dist && webpack --mode development --watch",
+    "build:dev": "rm -rf dist && mkdir dist && ln -s index.js dist/jaxdsp-client.js",
     "build:prod": "rm -rf dist && webpack --mode production",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\""

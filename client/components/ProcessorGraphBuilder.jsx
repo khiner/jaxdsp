@@ -39,13 +39,14 @@ export default function ProcessorGraphBuilder({
   onChange,
 }) {
   const [draggingFrom, setDraggingFrom] = useState(undefined)
-  // e.g. `draggingToIndices := [2,3]` means the 4th (0-indexed) parallel processor in the 3rd serial processor
+  // E.g. `draggingToIndices := [2,3]` means the 4th (0-indexed) parallel processor in the 3rd serial processor
   const [draggingToIndices, setDraggingToIndices] = useState(undefined)
+  const [draggingToSerialIndex, draggingToParallelIndex] = draggingToIndices || [undefined, undefined]
+
   const processorGraphRef = useRef(undefined)
 
   const processors = clone(selectedProcessors.map(selectedProcessor => wrapInArray(selectedProcessor)))
-  if (draggingFrom && draggingToIndices?.length === 2) {
-    const [toSerialIndex, toParallelIndex] = draggingToIndices
+  if (draggingFrom && (draggingToSerialIndex !== undefined || draggingToParallelIndex !== undefined)) {
     const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
     let processor
     if (processorGraphIndices?.length === 2) {
@@ -53,16 +54,16 @@ export default function ProcessorGraphBuilder({
       const [fromSerialIndex, fromParallelIndex] = processorGraphIndices
       processor = processors[fromSerialIndex].splice(fromParallelIndex, 1)[0]
       if (processors[fromSerialIndex].length === 0) processors.splice(fromSerialIndex, 1)
-      if (toSerialIndex === processors.length) processors.push([])
+      if (draggingToSerialIndex === processors.length) processors.push([])
     } else {
       // Creating a new processor by dragging its label
       processor = clone(processorDefinitions[processorDefinitionIndex])
     }
 
-    if (toParallelIndex === -1 || processors.length === 0) {
-      processors.splice(toSerialIndex, 0, wrapInArray(processor))
+    if (draggingToParallelIndex === -1 || processors.length === 0) {
+      processors.splice(draggingToSerialIndex, 0, wrapInArray(processor))
     } else {
-      processors[toSerialIndex].splice(toParallelIndex, 0, processor)
+      processors[draggingToSerialIndex].splice(draggingToParallelIndex, 0, processor)
     }
   }
   // Invariant: `processors` is an array of arrays, with no empty subarrays
@@ -74,8 +75,7 @@ export default function ProcessorGraphBuilder({
     }
 
     const [serialIndex, parallelIndex] = newDraggingToIndices
-    const [currentSerialIndex, currentParallelIndex] = draggingToIndices
-    if (serialIndex !== currentSerialIndex || parallelIndex !== currentParallelIndex) {
+    if (serialIndex !== draggingToSerialIndex || parallelIndex !== draggingToParallelIndex) {
       setDraggingToIndices([serialIndex, parallelIndex])
     }
   }
@@ -206,11 +206,6 @@ export default function ProcessorGraphBuilder({
               >
                 {parallelProcessors.map((processor, parallelIndex) => {
                   const key = `processor-${serialIndex}-${parallelIndex}`
-                  const { name } = processor
-                  const [draggingToSerialIndex, draggingToParallelIndex] = draggingToIndices || [
-                    undefined,
-                    undefined,
-                  ]
                   const isPreview =
                     serialIndex === draggingToSerialIndex &&
                     (draggingToParallelIndex === -1 || parallelIndex === draggingToParallelIndex)
@@ -243,11 +238,11 @@ export default function ProcessorGraphBuilder({
                         console.log(`drag exit:${serialIndex}`)
                       }}
                       style={{
+                        background: isPreview ? 'grey' : 'white',
                         margin: 5,
                         padding: 7,
                         border: '1px solid black',
                         borderRadius: 5,
-                        background: isPreview ? 'grey' : 'white',
                       }}
                     />
                   )
