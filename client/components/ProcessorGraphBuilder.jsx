@@ -47,27 +47,25 @@ export default function ProcessorGraphBuilder({
   if (draggingFrom && draggingToIndices?.length === 2) {
     const [toSerialIndex, toParallelIndex] = draggingToIndices
     const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
-    if (processorDefinitionIndex !== undefined) {
-      // Creating a new processor by dragging its label
-      const processor = clone(processorDefinitions[processorDefinitionIndex])
-      if (toParallelIndex === -1 || processors.length === 0) {
-        processors.splice(toSerialIndex, 0, wrapInArray(processor))
-      } else {
-        processors[toSerialIndex].splice(toParallelIndex, 0, processor)
-      }
-    } else if (processorGraphIndices?.length === 2) {
+    let processor
+    if (processorGraphIndices?.length === 2) {
       // Moving another processor in the graph
       const [fromSerialIndex, fromParallelIndex] = processorGraphIndices
-      if (toParallelIndex === -1) {
-        const processor = processors.splice(fromSerialIndex, 1)[0]
-        processors.splice(toSerialIndex, 0, processor)
-      } else {
-        const processor = processors[fromSerialIndex].splice(fromParallelIndex, 1)[0]
-        processors[toSerialIndex].splice(toParallelIndex, 0, processor)
-      }
+      processor = processors[fromSerialIndex].splice(fromParallelIndex, 1)[0]
+      if (processors[fromSerialIndex].length === 0) processors.splice(fromSerialIndex, 1)
+      if (toSerialIndex === processors.length) processors.push([])
+    } else {
+      // Creating a new processor by dragging its label
+      processor = clone(processorDefinitions[processorDefinitionIndex])
+    }
+
+    if (toParallelIndex === -1 || processors.length === 0) {
+      processors.splice(toSerialIndex, 0, wrapInArray(processor))
+    } else {
+      processors[toSerialIndex].splice(toParallelIndex, 0, processor)
     }
   }
-  // Invariant: `processors` is an array of arrays
+  // Invariant: `processors` is an array of arrays, with no empty subarrays
 
   const updateDraggingToIndices = newDraggingToIndices => {
     if (!draggingToIndices || !newDraggingToIndices) {
@@ -207,22 +205,18 @@ export default function ProcessorGraphBuilder({
                 style={{ display: 'flex', flexDirection: 'column', width: 'fit-content' }}
               >
                 {parallelProcessors.map((processor, parallelIndex) => {
+                  const key = `processor-${serialIndex}-${parallelIndex}`
                   const { name } = processor
                   const [draggingToSerialIndex, draggingToParallelIndex] = draggingToIndices || [
                     undefined,
                     undefined,
                   ]
-                  if (
+                  const isPreview =
                     serialIndex === draggingToSerialIndex &&
                     (draggingToParallelIndex === -1 || parallelIndex === draggingToParallelIndex)
-                  ) {
-                    // Dragging placeholder definition
-                    return <ProcessorDefinition key={serialIndex} name={name} />
-                  }
-
                   return (
                     <Processor
-                      key={`processor-${serialIndex}-${parallelIndex}`}
+                      key={key}
                       className="processor"
                       processor={processor}
                       estimatedParams={estimatedParams?.[serialIndex]}
@@ -253,7 +247,7 @@ export default function ProcessorGraphBuilder({
                         padding: 7,
                         border: '1px solid black',
                         borderRadius: 5,
-                        background: 'white',
+                        background: isPreview ? 'grey' : 'white',
                       }}
                     />
                   )
