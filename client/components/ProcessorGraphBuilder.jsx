@@ -158,7 +158,11 @@ export default function ProcessorGraphBuilder({
                   const height = bottom - top
                   return clientY < top + height / 2
                 })?.[1]
-              const newToSerialIndex = serialIndex > currentToSerialIndex ? serialIndex - 1 : serialIndex
+              const { processorDefinitionIndex } = draggingFrom
+              const newToSerialIndex =
+                serialIndex > currentToSerialIndex && processorDefinitionIndex !== undefined
+                  ? serialIndex - 1
+                  : serialIndex
               let newToParallelIndex =
                 insertAboveIndex !== undefined ? insertAboveIndex : processorElements.length
               updateDraggingToIndices([newToSerialIndex, newToParallelIndex])
@@ -177,7 +181,9 @@ export default function ProcessorGraphBuilder({
             })?.[1]
           let newToSerialIndex =
             insertToLeftOfIndex !== undefined ? insertToLeftOfIndex : parallelProcessorElements.length
-          if (newToSerialIndex > currentToSerialIndex && currentToParallelIndex === -1) newToSerialIndex -= 1
+          if (newToSerialIndex > currentToSerialIndex && currentToParallelIndex === -1) {
+            newToSerialIndex -= 1
+          }
           updateDraggingToIndices([newToSerialIndex, -1])
         }}
         onDrop={event => {
