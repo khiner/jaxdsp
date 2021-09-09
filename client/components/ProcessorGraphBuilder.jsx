@@ -238,7 +238,7 @@ export default function ProcessorGraphBuilder({
       >
         {processors.length === 0 && <i style={{ margin: '8px' }}>Drop processors here</i>}
         {processors.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: 5 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: 10 }}>
             {processors.map((parallelProcessors, serialIndex) => (
               <div
                 key={`parallel${serialIndex}`}
@@ -248,7 +248,7 @@ export default function ProcessorGraphBuilder({
                   flexDirection: 'column',
                   justifyContent: 'center',
                   width: 'fit-content',
-                  gap: 5,
+                  gap: 10,
                 }}
               >
                 {parallelProcessors.map((processor, parallelIndex) => {

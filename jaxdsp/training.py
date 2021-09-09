@@ -108,8 +108,6 @@ class IterativeTrainer:
             carry, Y_estimated = processor_graph.tick_buffer(
                 (params, state), X, self.processor_names
             )
-            if Y_estimated.shape == Y_target.shape[::-1]:
-                Y_estimated = Y_estimated.T  # TODO should eventually remove this check
             return (
                 loss_fn(Y_estimated, Y_target, self.loss_options),
                 carry[1],  # return state as aux

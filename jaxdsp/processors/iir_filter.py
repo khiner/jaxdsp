@@ -4,7 +4,6 @@ from jax import jit, lax
 from jaxdsp.param import Param
 
 NAME = "IIR Filter"
-# TODO how to handle array params in UI?
 PARAMS = [
     Param("B", jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)])),
     Param("A", jnp.concatenate([jnp.array([1.0]), jnp.zeros(4)])),

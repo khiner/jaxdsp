@@ -58,9 +58,6 @@ export async function negotiatePeerConnection(peerConnection) {
   // [this bug](https://bugs.chromium.org/p/webrtc/issues/detail?id=8133),
   // but that bug was resolved in Chrome v89 (currently v88 - Feb 4),
   // and also it focuses on microphone sources.
-  // ALSO, the returned track seems to be downmixed from an interleaved
-  // stereo channel back to mono...
-  // Why the frick isn't this working to send and receive stereo?
   // I notice that the answer sdp doesn't even have the fmtp line...
   offer.sdp = offer.sdp.replace('a=fmtp:111', 'a=fmtp:111 stereo=1;sprop-stereo=1;')
   await peerConnection.setLocalDescription(offer)
@@ -74,6 +71,7 @@ export async function negotiatePeerConnection(peerConnection) {
           resolve()
         }
       }
+
       peerConnection.addEventListener('icegatheringstatechange', checkState)
     }
   })

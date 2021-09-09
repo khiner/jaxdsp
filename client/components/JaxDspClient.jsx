@@ -157,7 +157,7 @@ export default function JaxDspClient({ testSample }) {
     const startStreamingMicrophone = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: false },
+          audio: { echoCancellation: false, channelCount: 2 },
           video: false,
         })
         addOrReplaceTrack(stream.getTracks()[0])

@@ -10,7 +10,7 @@ PARAMS = [Param("resonance", 0.7), Param("cutoff", 0.49, 0.0, 0.49)]
 PRESETS = {}
 
 
-def init_state(buffer_size=20):
+def init_state():
     return {
         "a0": 1.0,
         "a1": 0.0,

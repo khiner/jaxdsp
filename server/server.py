@@ -109,7 +109,6 @@ class AudioTransformTrack(MediaStreamTrack):
             # TODO can this be done once on negotiate/processor change, instead of each frame?
             #  or, maybe it can be passed as another arg to tick_buffer
             set_state_recursive(self.state, "sample_rate", sample_rate)
-
             carry, Y = processor_graph.tick_buffer(
                 (self.params, self.state), X_left, self.processor_names
             )
@@ -118,10 +117,7 @@ class AudioTransformTrack(MediaStreamTrack):
 
         self.state = carry[1]
 
-        # Transposing to conform to processors with stereo output.
-        # Stereo processing is done that way to support the same
-        # array-of-ticks processing for both stereo and mono.
-        return np.array([Y, Y]) if Y.ndim == 1 else np.asarray(Y).T
+        return np.array([Y, Y]) if Y.ndim == 1 else np.asarray(Y)
 
     async def recv(self):
         frame = await self.track.recv()
@@ -298,7 +294,7 @@ async def on_shutdown(app):
 
 async def register_websocket(websocket, path):
     client_uid = None
-    while client_uid == None:
+    while client_uid is None:
         message = await websocket.recv()
         message_object = json.loads(message)
         client_uid = message_object.get("client_uid")

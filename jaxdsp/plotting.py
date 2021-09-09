@@ -1,6 +1,7 @@
 from collections.abc import Iterable
-from matplotlib import pyplot as plt
+
 import numpy as np
+from matplotlib import pyplot as plt
 
 from jaxdsp import training
 
@@ -27,7 +28,7 @@ def plot_filter(fig, X, Y, Y_estimated, Y_reference, title):
 
         out_plot = ax_column[1]
         # out_plot.stem(Ys[i], basefmt=' ')
-        out_plot.plot(Ys[i])
+        out_plot.plot(Ys[i].T)
         out_plot.set_ylim([Ys[i].min() - 0.1, Ys[i].max() + 0.1])
 
 
@@ -103,7 +104,7 @@ def plot_processors(
         subfigs, processor_names, params_targets, params_histories
     ):
         if isinstance(processor_name, list):
-            # Nested processors are processoed in parallel, so display in nested column
+            # Nested processors are processed in parallel, so display in nested column
             plot_processors(
                 subfig, params_target, params_history, processor_name, not is_row
             )

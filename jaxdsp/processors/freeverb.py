@@ -1,9 +1,9 @@
 import jax.numpy as jnp
 from jax import jit, lax
 
-from jaxdsp.processors import lowpass_feedback_comb_filter as comb
-from jaxdsp.processors import allpass_filter as allpass
 from jaxdsp.param import Param
+from jaxdsp.processors import allpass_filter as allpass
+from jaxdsp.processors import lowpass_feedback_comb_filter as comb
 
 NAME = "Freeverb"
 PARAMS = [
@@ -41,16 +41,17 @@ comb_tunings_l = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617]
 allpass_tunings_l = [556, 441, 341, 225]
 stereo_spread = 23
 
+
 # comb_tunings_l = [1, 2, 3, 4, 5, 6, 7, 9]
 # allpass_tunings_l = [2, 3, 4, 5]
 
 
 def init_comb_carry(buffer_size):
-    return ({"feedback": 0.5, "damp": 0.0}, comb.init_state(buffer_size=buffer_size))
+    return {"feedback": 0.5, "damp": 0.0}, comb.init_state(buffer_size=buffer_size)
 
 
 def init_allpass_carry(buffer_size):
-    return ({"feedback": 0.5}, allpass.init_state(buffer_size=buffer_size))
+    return {"feedback": 0.5}, allpass.init_state(buffer_size=buffer_size)
 
 
 def init_state():
@@ -114,4 +115,5 @@ def tick_buffer(carry, X):
         comb_r[0]["feedback"] = room_size
         comb_r[0]["damp"] = damp
 
-    return lax.scan(tick, carry, X)
+    carry_out, Y = lax.scan(tick, carry, X)
+    return carry_out, Y.T

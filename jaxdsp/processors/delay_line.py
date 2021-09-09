@@ -10,14 +10,13 @@
 # (See "Differentiable array indexing" notebook for more details.)
 
 import math
+
 import jax.numpy as jnp
-import numpy as np
 from jax import jit, lax
 from jax.ops import index, index_update
 
-from jaxdsp.processors.constants import DEFAULT_SAMPLE_RATE
 from jaxdsp.param import Param
-
+from jaxdsp.processors.constants import DEFAULT_SAMPLE_RATE
 
 # Stay inside the range of the the lowest frequency resolved by the fft in the spectral optimizers
 MAX_DELAY_LENGTH_MS = 40.0
