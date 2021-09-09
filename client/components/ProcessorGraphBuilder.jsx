@@ -1,6 +1,15 @@
 import React, { useRef, useState } from 'react'
+import { PlusOutlined } from '@ant-design/icons'
 import Processor from './Processor'
 import { clone } from '../util/object'
+
+// From https://ant.design/docs/spec/colors
+const colors = {
+  blue6: '#1890ff',
+  magenta6: '#eb2f96',
+  gray9: '#434343',
+  gray10: '#262626',
+}
 
 const isEventContainedInElement = (event, element) => {
   if (!event || !element) return false
@@ -18,8 +27,8 @@ function ProcessorDefinition({ name, onDragStart }) {
       key={name}
       style={{
         margin: 5,
-        padding: 5,
-        border: '1px solid black',
+        padding: 7,
+        border: `1px solid ${colors.gray9}`,
         borderRadius: 5,
         background: 'white',
         textAlign: 'middle',
@@ -28,6 +37,36 @@ function ProcessorDefinition({ name, onDragStart }) {
       onDragStart={onDragStart}
     >
       {name}
+    </div>
+  )
+}
+
+// I miss typescript...
+const ORIENTATION_HORIZONTAL = 0
+const ORIENTATION_VERTICAL = 1
+
+function ProcessorPlaceholder({ orientation }) {
+  return (
+    <div
+      style={{
+        ...(orientation === ORIENTATION_HORIZONTAL
+          ? { minWidth: 80, width: '100%', height: '3em' }
+          : {
+              minHeight: 80,
+              width: '3em',
+              height: '100%',
+            }),
+        alignSelf: 'stretch',
+        padding: 5,
+        background: 'white',
+        border: `2px solid ${colors.magenta6}`,
+        borderRadius: 5,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <PlusOutlined style={{ color: colors.blue6, fontSize: 20 }} />
     </div>
   )
 }
@@ -110,7 +149,9 @@ export default function ProcessorGraphBuilder({
           alignItems: 'center',
           width: 'fit-content',
           minWidth: 200,
-          outline: '1px dashed black',
+          border: `1px dashed ${colors.gray9}`,
+          borderRadius: 5,
+          padding: 5,
         }}
         onDragLeave={event => {
           event.preventDefault()
@@ -197,18 +238,34 @@ export default function ProcessorGraphBuilder({
       >
         {processors.length === 0 && <i style={{ margin: '8px' }}>Drop processors here</i>}
         {processors.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: 5 }}>
             {processors.map((parallelProcessors, serialIndex) => (
               <div
                 key={`parallel${serialIndex}`}
                 className="parallelProcessor"
-                style={{ display: 'flex', flexDirection: 'column', width: 'fit-content' }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  width: 'fit-content',
+                  gap: 5,
+                }}
               >
                 {parallelProcessors.map((processor, parallelIndex) => {
                   const key = `processor-${serialIndex}-${parallelIndex}`
                   const isPreview =
                     serialIndex === draggingToSerialIndex &&
                     (draggingToParallelIndex === -1 || parallelIndex === draggingToParallelIndex)
+                  if (isPreview) {
+                    return (
+                      <ProcessorPlaceholder
+                        key={key}
+                        orientation={
+                          draggingToParallelIndex === -1 ? ORIENTATION_VERTICAL : ORIENTATION_HORIZONTAL
+                        }
+                      />
+                    )
+                  }
                   return (
                     <Processor
                       key={key}
@@ -238,10 +295,9 @@ export default function ProcessorGraphBuilder({
                         console.log(`drag exit:${serialIndex}`)
                       }}
                       style={{
-                        background: isPreview ? 'grey' : 'white',
-                        margin: 5,
+                        background: 'white',
                         padding: 7,
-                        border: '1px solid black',
+                        border: `1px solid ${colors.gray9}`,
                         borderRadius: 5,
                       }}
                     />
