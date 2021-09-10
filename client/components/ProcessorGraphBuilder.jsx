@@ -71,6 +71,21 @@ function ProcessorPlaceholder({ orientation }) {
   )
 }
 
+const getRelativeRect = (rect, relativeToRect) => {
+  if (!rect || !relativeToRect) return undefined
+
+  const { top, bottom, left, right, width, height } = rect
+  console.log('rect: ', rect)
+  return {
+    top: top - relativeToRect.top,
+    bottom: bottom - relativeToRect.top,
+    left: left - relativeToRect.left,
+    right: right - relativeToRect.left,
+    width,
+    height,
+  }
+}
+
 export default function ProcessorGraphBuilder({
   processorDefinitions,
   selectedProcessors,
@@ -93,7 +108,6 @@ export default function ProcessorGraphBuilder({
       const [fromSerialIndex, fromParallelIndex] = processorGraphIndices
       processor = processors[fromSerialIndex].splice(fromParallelIndex, 1)[0]
       if (processors[fromSerialIndex].length === 0) processors.splice(fromSerialIndex, 1)
-      if (draggingToSerialIndex === processors.length) processors.push([])
     } else {
       // Creating a new processor by dragging its label
       processor = clone(processorDefinitions[processorDefinitionIndex])
@@ -102,10 +116,11 @@ export default function ProcessorGraphBuilder({
     if (draggingToParallelIndex === -1 || processors.length === 0) {
       processors.splice(draggingToSerialIndex, 0, wrapInArray(processor))
     } else {
+      if (draggingToSerialIndex === processors.length) processors.push([])
       processors[draggingToSerialIndex].splice(draggingToParallelIndex, 0, processor)
     }
   }
-  // Invariant: `processors` is an array of arrays, with no empty subarrays
+  // Invariant: `processors` is an array of arrays, with no empty sub-arrays
 
   const updateDraggingToIndices = newDraggingToIndices => {
     if (!draggingToIndices || !newDraggingToIndices) {
@@ -120,6 +135,12 @@ export default function ProcessorGraphBuilder({
   }
 
   console.log('render')
+  const parallelProcessorElements = [
+    ...(processorGraphRef?.current?.getElementsByClassName('parallelProcessor') || []),
+  ]
+  const processorGraphRect = processorGraphRef?.current?.getBoundingClientRect()
+
+  console.log('pgr: ', processorGraphRect)
   return (
     <>
       <div
@@ -143,6 +164,7 @@ export default function ProcessorGraphBuilder({
       <div
         ref={processorGraphRef}
         style={{
+          position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
@@ -166,15 +188,11 @@ export default function ProcessorGraphBuilder({
           event.preventDefault()
           const [currentToSerialIndex, currentToParallelIndex] = draggingToIndices || [undefined, undefined]
 
-          const parallelProcessorElements = [
-            ...processorGraphRef.current.getElementsByClassName('parallelProcessor'),
-          ]
           for (let serialIndex = 0; serialIndex < parallelProcessorElements.length; serialIndex++) {
             const parallelProcessorElement = parallelProcessorElements[serialIndex]
             const { clientX } = event
             const rect = parallelProcessorElement.getBoundingClientRect()
-            const { left, right } = rect
-            const width = right - left
+            const { left, right, width } = rect
             if (
               clientX >= left &&
               clientX < left + width &&
@@ -193,8 +211,7 @@ export default function ProcessorGraphBuilder({
                 .find(([element]) => {
                   const { clientY } = event
                   const rect = element.getBoundingClientRect()
-                  const { top, bottom } = rect
-                  const height = bottom - top
+                  const { top, height } = rect
                   return clientY < top + height / 2
                 })?.[1]
               const { processorDefinitionIndex } = draggingFrom
@@ -214,8 +231,7 @@ export default function ProcessorGraphBuilder({
             .find(([element]) => {
               const { clientX } = event
               const rect = element.getBoundingClientRect()
-              const { left, right } = rect
-              const width = right - left
+              const { left, width } = rect
               return clientX < left + width / 2
             })?.[1]
           let newToSerialIndex =
@@ -236,9 +252,53 @@ export default function ProcessorGraphBuilder({
           }
         }}
       >
+        {processorGraphRect && (
+          <svg
+            preserveAspectRatio="none"
+            width="100%"
+            height="100%"
+            style={{
+              position: 'absolute',
+              stroke: 'black',
+              strokeWidth: '3px',
+              zIndex: -1,
+            }}
+          >
+            {parallelProcessorElements.flatMap((parallelProcessor, parallelIndex) =>
+              [...parallelProcessor.getElementsByClassName('processor')].map(
+                (serialProcessor, serialIndex) => {
+                  const rect = getRelativeRect(serialProcessor.getBoundingClientRect(), processorGraphRect)
+                  const parentRect = getRelativeRect(
+                    serialProcessor.parentElement.getBoundingClientRect(),
+                    processorGraphRect
+                  )
+                  const fromLeft =
+                    parallelIndex === 0 ? undefined : (
+                      <path
+                        key={`p-${parallelIndex}-${serialIndex}-l`}
+                        d={`M ${parentRect.left - 1} ${parentRect.top + parentRect.height / 2} L ${
+                          rect.left
+                        } ${rect.top + rect.height / 2}`}
+                      />
+                    )
+                  const toRight =
+                    parallelIndex === parallelProcessorElements.length - 1 ? undefined : (
+                      <path
+                        key={`p-${parallelIndex}-${serialIndex}-r`}
+                        d={`M ${rect.right - 1} ${rect.top + rect.height / 2} L ${parentRect.right} ${
+                          parentRect.top + parentRect.height / 2
+                        }`}
+                      />
+                    )
+                  return [fromLeft, toRight]
+                }
+              )
+            )}
+          </svg>
+        )}
         {processors.length === 0 && <i style={{ margin: '8px' }}>Drop processors here</i>}
         {processors.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
             {processors.map((parallelProcessors, serialIndex) => (
               <div
                 key={`parallel${serialIndex}`}
@@ -299,6 +359,7 @@ export default function ProcessorGraphBuilder({
                         padding: 7,
                         border: `1px solid ${colors.gray9}`,
                         borderRadius: 5,
+                        margin: '0 8px',
                       }}
                     />
                   )
