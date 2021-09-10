@@ -21,6 +21,11 @@ const isEventContainedInElement = (event, element) => {
 
 const wrapInArray = itemOrArray => (Array.isArray(itemOrArray) ? itemOrArray : [itemOrArray])
 
+function Connection({ beginX, beginY, endX, endY }) {
+  const midX = beginX + (endX - beginX) / 2
+  return <path d={`M ${beginX} ${beginY} C ${midX} ${beginY} ${midX} ${endY} ${endX} ${endY}`} />
+}
+
 function ProcessorDefinition({ name, onDragStart }) {
   return (
     <div
@@ -274,20 +279,22 @@ export default function ProcessorGraphBuilder({
                   )
                   const fromLeft =
                     parallelIndex === 0 ? undefined : (
-                      <path
+                      <Connection
                         key={`p-${parallelIndex}-${serialIndex}-l`}
-                        d={`M ${parentRect.left - 1} ${parentRect.top + parentRect.height / 2} L ${
-                          rect.left
-                        } ${rect.top + rect.height / 2}`}
+                        beginX={parentRect.left - 1}
+                        beginY={parentRect.top + parentRect.height / 2}
+                        endX={rect.left}
+                        endY={rect.top + rect.height / 2}
                       />
                     )
                   const toRight =
                     parallelIndex === parallelProcessorElements.length - 1 ? undefined : (
-                      <path
+                      <Connection
                         key={`p-${parallelIndex}-${serialIndex}-r`}
-                        d={`M ${rect.right - 1} ${rect.top + rect.height / 2} L ${parentRect.right} ${
-                          parentRect.top + parentRect.height / 2
-                        }`}
+                        beginX={rect.right - 1}
+                        beginY={rect.top + rect.height / 2}
+                        endX={parentRect.right}
+                        endY={parentRect.top + parentRect.height / 2}
                       />
                     )
                   return [fromLeft, toRight]
@@ -359,7 +366,7 @@ export default function ProcessorGraphBuilder({
                         padding: 7,
                         border: `1px solid ${colors.gray9}`,
                         borderRadius: 5,
-                        margin: '0 8px',
+                        margin: '0 10px',
                       }}
                     />
                   )
