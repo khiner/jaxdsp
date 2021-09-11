@@ -142,7 +142,7 @@ export default function JaxDspClient({ testSample }) {
     const addOrReplaceTrack = async track => {
       const audioSender = peerConnection.getSenders().find(s => s.track?.kind === 'audio')
       if (audioSender) {
-        audioSender.replaceTrack(track)
+        await audioSender.replaceTrack(track)
       } else {
         peerConnection.addTrack(track)
         try {
@@ -160,23 +160,23 @@ export default function JaxDspClient({ testSample }) {
           audio: { echoCancellation: false, channelCount: 2 },
           video: false,
         })
-        addOrReplaceTrack(stream.getTracks()[0])
+        await addOrReplaceTrack(stream.getTracks()[0])
       } catch (error) {
         onAudioStreamError('Could not acquire media', error)
       }
     }
 
-    const startStreamingTestSample = () => {
+    const startStreamingTestSample = async () => {
       const sampleAudio = new Audio(testSample)
       const audioContext = new AudioContext()
       const sampleSource = audioContext.createMediaElementSource(sampleAudio)
       const sampleDestination = audioContext.createMediaStreamDestination()
       sampleSource.connect(sampleDestination)
-      addOrReplaceTrack(sampleDestination.stream.getAudioTracks()[0])
+      await addOrReplaceTrack(sampleDestination.stream.getAudioTracks()[0])
 
       sampleAudio.loop = true
       sampleAudio.currentTime = 0
-      sampleAudio.play()
+      await sampleAudio.play()
     }
 
     if (isStreamingAudio) {
