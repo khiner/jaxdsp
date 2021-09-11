@@ -367,7 +367,7 @@ export default function ProcessorGraphBuilder({
                       key={key}
                       className="processor final"
                       processor={processor}
-                      estimatedParams={estimatedParams?.[serialIndex]}
+                      estimatedParams={estimatedParams?.[serialIndex]?.[parallelIndex]}
                       onChange={(paramName, newValue) => {
                         const newSelectedProcessors = clone(selectedProcessors)
                         newSelectedProcessors[serialIndex][parallelIndex].params[paramName] = newValue

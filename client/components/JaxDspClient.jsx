@@ -10,6 +10,7 @@ import { snakeCaseToSentence } from '../util/string'
 
 import 'antd/dist/antd.css'
 import ProcessorGraphBuilder from './ProcessorGraphBuilder'
+import RealTimeChart from './charts/RealTimeLineChart'
 
 const { Title } = Typography
 
@@ -81,9 +82,7 @@ export default function JaxDspClient({ testSample }) {
     ws.onerror = () => {
       setAudioStreamErrorMessage('WebSocket connection error')
     }
-    return () => {
-      ws.close()
-    }
+    return () => ws.close()
   }, [clientUid])
 
   useEffect(() => {
@@ -188,9 +187,7 @@ export default function JaxDspClient({ testSample }) {
       closePeerConnection()
     }
 
-    return () => {
-      closePeerConnection()
-    }
+    return () => closePeerConnection()
   }, [isStreamingAudio, audioInputSourceLabel])
 
   const startEstimatingParams = () => {
@@ -230,10 +227,13 @@ export default function JaxDspClient({ testSample }) {
             />
           )}
           {isEstimatingParams && trainState?.loss !== undefined && (
-            <div>
-              <span>Loss: </span>
-              {trainState.loss}
-            </div>
+            <>
+              <RealTimeChart lossValue={trainState.loss} />
+              <div>
+                <span>Loss: </span>
+                {trainState.loss}
+              </div>
+            </>
           )}
         </div>
       )}
