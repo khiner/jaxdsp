@@ -1,4 +1,3 @@
-import numpy as np
 from jax import value_and_grad, jit
 from jax.tree_util import tree_map, tree_multimap
 
@@ -14,11 +13,6 @@ from jaxdsp.processors import (
     processor_names_to_graph_config,
     init_graph_state,
 )
-
-
-@jit
-def mean_loss_and_grads(loss, grads):
-    return np.mean(loss), tree_map(lambda grad: np.mean(grad, axis=0), grads)
 
 
 class LossHistoryAccumulator:
