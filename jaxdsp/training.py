@@ -7,12 +7,12 @@ from jaxdsp.loss import LossOptions, loss_fn
 from jaxdsp.optimizers import create_optimizer
 from jaxdsp.processors import (
     processor_names_from_graph_config,
-    processor_by_name,
     graph_config_to_carry,
     params_to_unit_scale,
     params_from_unit_scale,
     get_graph_params,
     processor_names_to_graph_config,
+    init_graph_state,
 )
 
 
@@ -88,10 +88,9 @@ class IterativeTrainer:
         )
 
         if self.processor_names:
-            self.state = [
-                processor_by_name[processor_name].init_state()
-                for processor_name in self.processor_names
-            ]
+            self.state = init_graph_state(
+                processor_names_to_graph_config(self.processor_names)
+            )
 
         self.update_opt_state()
 
