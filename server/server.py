@@ -30,6 +30,7 @@ from jaxdsp.processors import (
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp import tracer
+from jaxdsp.tracer import trace
 
 ALL_PROCESSORS = [allpass_filter, clip, delay_line, biquad_lowpass, sine_wave, freeverb]
 # Training frame pairs are queued up for each client, limited to this cap:
@@ -120,6 +121,7 @@ class AudioTransformTrack(MediaStreamTrack):
 
         return np.array([Y, Y]) if Y.ndim == 1 else np.asarray(Y)
 
+    @trace
     async def recv(self):
         frame = await self.track.recv()
         num_channels = len(frame.layout.channels)
@@ -308,19 +310,15 @@ async def register_websocket(websocket, path):
     while True:
         try:
             if track.is_estimating_params and track.trainer and len(train_stack) > 0:
-                tracer.clear()
                 train_pair = train_stack.pop()
                 X, Y = train_pair
                 X_left = X[0]  # TODO support stereo in
                 track.trainer.step(X_left, Y)
-                await websocket.send(
-                    json.dumps(
-                        {
-                            "trainer": track.trainer.get_state(),
-                            "tracer": tracer.get_json(),
-                        }
-                    )
-                )
+            heartbeat = {"tracer": tracer.get_json()}
+            tracer.clear()
+            if track.trainer:
+                heartbeat["trainer"] = track.trainer.get_state()
+            await websocket.send(json.dumps(heartbeat))
             await asyncio.sleep(0.01)  # boo
         except websockets.ConnectionClosed:
             print("ws terminated")

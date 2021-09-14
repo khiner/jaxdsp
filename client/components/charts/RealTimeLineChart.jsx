@@ -7,9 +7,12 @@ const formatTime = timeFormat('%M:%S.%L')
 
 const allSeries = []
 
-const append = (value, values, limit = 100) => {
-  while (values.length >= limit) values.shift()
-  values.push({ x: new Date().getTime(), y: value })
+const DEFAULT_WINDOW_MILLIS = 10 * 1000
+
+const append = (value, values, windowMillis = DEFAULT_WINDOW_MILLIS) => {
+  const nowMillis = new Date().getTime()
+  values.push({ x: nowMillis, y: value })
+  while (values[0].x < nowMillis - windowMillis) values.shift()
 }
 
 // `value` is an object, whose keys will be used as labels,

@@ -35,7 +35,7 @@ export default function JaxDspClient({ testSample }) {
   const [lossOptions, setLossOptions] = useState(null)
   const [editingOptimizer, setEditingOptimizer] = useState(null)
   const [optimizer, setOptimizer] = useState(null)
-  const [trainState, setTrainState] = useState({})
+  const [heartbeat, setHeartbeat] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
   const [selectedProcessors, setSelectedProcessors] = useState([])
@@ -69,8 +69,8 @@ export default function JaxDspClient({ testSample }) {
       ws.send(JSON.stringify({ client_uid: clientUid }))
     }
     ws.onmessage = event => {
-      const message = JSON.parse(event.data)
-      setTrainState(message)
+      const heartbeat = JSON.parse(event.data)
+      setHeartbeat(heartbeat)
     }
     ws.onclose = event => {
       const { wasClean, code } = event
@@ -133,7 +133,7 @@ export default function JaxDspClient({ testSample }) {
       setEditingOptimizer(null)
       setOptimizers(null)
       setIsEstimatingParams(false)
-      setTrainState({})
+      setHeartbeat({})
       setClientUid(null)
     }
 
@@ -221,21 +221,19 @@ export default function JaxDspClient({ testSample }) {
             <ProcessorGraphBuilder
               processorDefinitions={processorDefinitions}
               selectedProcessors={selectedProcessors}
-              estimatedParams={trainState?.trainer?.params}
+              estimatedParams={heartbeat?.trainer?.params}
               onChange={newSelectedProcessors => setSelectedProcessors(newSelectedProcessors)}
             />
           )}
-          {isEstimatingParams && trainState?.trainer?.loss !== undefined && (
+          {heartbeat?.tracer && <RealTimeChart value={JSON.parse(heartbeat.tracer)} hideKeys={['loss']} />}
+          {isEstimatingParams && heartbeat?.trainer?.loss !== undefined && (
             <>
-              <RealTimeChart value={{ loss: trainState.trainer?.loss }} showKeys={['loss']} />
+              <RealTimeChart value={{ loss: heartbeat.trainer?.loss }} showKeys={['loss']} />
               <div>
                 <span>Loss: </span>
-                {trainState.trainer?.loss}
+                {heartbeat.trainer?.loss}
               </div>
             </>
-          )}
-          {isEstimatingParams && trainState?.tracer !== undefined && (
-            <RealTimeChart value={JSON.parse(trainState.tracer)} hideKeys={['loss']} />
           )}
         </div>
       )}
