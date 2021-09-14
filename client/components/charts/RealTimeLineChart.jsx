@@ -49,7 +49,6 @@ export default function RealTimeChart({ value, showKeys = [], hideKeys = [] }) {
   const maxX = Math.max(...allValues.map(({ x }) => x))
   const maxY = Math.max(...allValues.map(({ y }) => y))
 
-  console.log(shownSeries)
   return (
     <Line
       width={800}
@@ -66,9 +65,9 @@ export default function RealTimeChart({ value, showKeys = [], hideKeys = [] }) {
       animate={false}
       motionStiffness={120}
       motionDamping={50}
-      isInteractive={true}
-      enableSlices="x"
-      useMesh={true}
+      isInteractive={false}
+      enableSlices={false}
+      useMesh={false}
       theme={{
         axis: { ticks: { text: { fontSize: 14 } } },
         grid: { line: { stroke: '#ddd', strokeDasharray: '1 2' } },

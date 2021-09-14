@@ -316,7 +316,7 @@ async def register_websocket(websocket, path):
                 track.trainer.step(X_left, Y)
             heartbeat = {"tracer": tracer.get_json()}
             tracer.clear()
-            if track.trainer:
+            if track.is_estimating_params and track.trainer:
                 heartbeat["trainer"] = track.trainer.get_state()
             await websocket.send(json.dumps(heartbeat))
             await asyncio.sleep(0.01)  # boo

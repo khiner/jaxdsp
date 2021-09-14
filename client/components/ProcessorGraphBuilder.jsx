@@ -92,12 +92,7 @@ const getRelativeRect = (rect, relativeToRect) => {
   }
 }
 
-export default function ProcessorGraphBuilder({
-  processorDefinitions,
-  selectedProcessors,
-  estimatedParams,
-  onChange,
-}) {
+function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estimatedParams, onChange }) {
   const [draggingFrom, setDraggingFrom] = useState(undefined)
   // E.g. `draggingToIndices := [2,3]` means the 4th (0-indexed) parallel processor in the 3rd serial processor
   const [draggingToIndices, setDraggingToIndices] = useState(undefined)
@@ -108,14 +103,12 @@ export default function ProcessorGraphBuilder({
 
   const updateDraggingToIndices = newDraggingToIndices => {
     if (!draggingToIndices || !newDraggingToIndices) {
-      console.log('dt: ', newDraggingToIndices)
       setDraggingToIndices(newDraggingToIndices)
       return
     }
 
     const [serialIndex, parallelIndex] = newDraggingToIndices
     if (serialIndex !== draggingToSerialIndex || parallelIndex !== draggingToParallelIndex) {
-      console.log('dt1: ', [serialIndex, parallelIndex])
       setDraggingToIndices([serialIndex, parallelIndex])
     }
   }
@@ -186,15 +179,12 @@ export default function ProcessorGraphBuilder({
     )
   }, [JSON.stringify(processors)])
 
-  console.log('render')
-
   return (
     <div
       ref={parentRef}
       onDragLeave={event => {
         event.preventDefault()
         if (!isEventContainedInElement(event, parentRef.current) && draggingFrom?.processorGraphIndices) {
-          console.log('leaving parent')
           setDraggingFrom(undefined)
         }
       }}
@@ -313,7 +303,6 @@ export default function ProcessorGraphBuilder({
         onDragLeave={event => {
           event.preventDefault()
           if (!isEventContainedInElement(event, processorGraphRef.current)) {
-            console.log('leaving graph')
             updateDraggingToIndices(undefined)
           }
         }}
@@ -389,12 +378,6 @@ export default function ProcessorGraphBuilder({
                           ],
                         })
                       }}
-                      onDragEnter={() => {
-                        console.log(`drag enter:${serialIndex}`)
-                      }}
-                      onDragExit={() => {
-                        console.log(`drag exit:${serialIndex}`)
-                      }}
                       style={{
                         background: 'white',
                         padding: 7,
@@ -413,3 +396,5 @@ export default function ProcessorGraphBuilder({
     </div>
   )
 }
+
+export default React.memo(ProcessorGraphBuilder)

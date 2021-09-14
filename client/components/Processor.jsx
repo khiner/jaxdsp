@@ -11,20 +11,11 @@ export default function Processor({
   onChange,
   onClose,
   onDragStart,
-  onDragEnter,
-  onDragExit,
   className,
   style,
 }) {
   return (
-    <div
-      draggable={!!onDragStart}
-      onDragStart={onDragStart}
-      onDragEnter={onDragEnter}
-      onDragExit={onDragExit}
-      className={className}
-      style={style}
-    >
+    <div draggable={!!onDragStart} onDragStart={onDragStart} className={className} style={style}>
       <div>
         <label style={{ fontSize: 16, fontWeight: 'bold', marginRight: 4 }}>{processor.name}</label>
         <Button

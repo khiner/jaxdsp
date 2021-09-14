@@ -69,8 +69,7 @@ export default function JaxDspClient({ testSample }) {
       ws.send(JSON.stringify({ client_uid: clientUid }))
     }
     ws.onmessage = event => {
-      const heartbeat = JSON.parse(event.data)
-      setHeartbeat(heartbeat)
+      setHeartbeat(JSON.parse(event.data))
     }
     ws.onclose = event => {
       const { wasClean, code } = event
@@ -222,7 +221,7 @@ export default function JaxDspClient({ testSample }) {
               processorDefinitions={processorDefinitions}
               selectedProcessors={selectedProcessors}
               estimatedParams={heartbeat?.trainer?.params}
-              onChange={newSelectedProcessors => setSelectedProcessors(newSelectedProcessors)}
+              onChange={setSelectedProcessors}
             />
           )}
           {heartbeat?.tracer && <RealTimeChart value={JSON.parse(heartbeat.tracer)} hideKeys={['loss']} />}
