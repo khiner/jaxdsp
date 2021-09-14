@@ -70,8 +70,7 @@ export default function JaxDspClient({ testSample }) {
     }
     ws.onmessage = event => {
       const message = JSON.parse(event.data)
-      const { train_state: trainState } = message
-      if (trainState) setTrainState(trainState)
+      setTrainState(message)
     }
     ws.onclose = event => {
       const { wasClean, code } = event
@@ -222,18 +221,21 @@ export default function JaxDspClient({ testSample }) {
             <ProcessorGraphBuilder
               processorDefinitions={processorDefinitions}
               selectedProcessors={selectedProcessors}
-              estimatedParams={trainState?.['params']}
+              estimatedParams={trainState?.trainer?.params}
               onChange={newSelectedProcessors => setSelectedProcessors(newSelectedProcessors)}
             />
           )}
-          {isEstimatingParams && trainState?.loss !== undefined && (
+          {isEstimatingParams && trainState?.trainer?.loss !== undefined && (
             <>
-              <RealTimeChart lossValue={trainState.loss} />
+              <RealTimeChart value={{ loss: trainState.trainer?.loss }} showKeys={['loss']} />
               <div>
                 <span>Loss: </span>
-                {trainState.loss}
+                {trainState.trainer?.loss}
               </div>
             </>
+          )}
+          {isEstimatingParams && trainState?.tracer !== undefined && (
+            <RealTimeChart value={JSON.parse(trainState.tracer)} hideKeys={['loss']} />
           )}
         </div>
       )}

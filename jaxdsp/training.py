@@ -13,6 +13,7 @@ from jaxdsp.processors import (
     processor_names_to_graph_config,
     init_graph_state,
 )
+from jaxdsp.tracer import trace
 
 
 class LossHistoryAccumulator:
@@ -108,6 +109,7 @@ class IterativeTrainer:
 
         self.grad_fn = jit(value_and_grad(processor_loss, has_aux=True))
 
+    @trace
     def step(self, X, Y_target):
         if not self.processor_names:
             return
@@ -132,7 +134,7 @@ class IterativeTrainer:
     def float_params(self):
         return float_params(self.params)
 
-    def params_and_loss(self):
+    def get_state(self):
         return {
             "params": self.float_params(),
             "loss": float(self.loss),

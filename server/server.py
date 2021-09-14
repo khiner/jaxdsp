@@ -29,6 +29,7 @@ from jaxdsp.processors import (
     set_state_recursive,
 )
 from jaxdsp.training import IterativeTrainer
+from jaxdsp import tracer
 
 ALL_PROCESSORS = [allpass_filter, clip, delay_line, biquad_lowpass, sine_wave, freeverb]
 # Training frame pairs are queued up for each client, limited to this cap:
@@ -307,12 +308,18 @@ async def register_websocket(websocket, path):
     while True:
         try:
             if track.is_estimating_params and track.trainer and len(train_stack) > 0:
+                tracer.clear()
                 train_pair = train_stack.pop()
                 X, Y = train_pair
                 X_left = X[0]  # TODO support stereo in
                 track.trainer.step(X_left, Y)
                 await websocket.send(
-                    json.dumps({"train_state": track.trainer.params_and_loss()})
+                    json.dumps(
+                        {
+                            "trainer": track.trainer.get_state(),
+                            "tracer": tracer.get_json(),
+                        }
+                    )
                 )
             await asyncio.sleep(0.01)  # boo
         except websockets.ConnectionClosed:

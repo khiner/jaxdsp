@@ -1,32 +1,61 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React from 'react'
 import { Line } from '@nivo/line'
 import { timeFormat } from 'd3-time-format'
 import { last } from '../../util/array'
 
 const formatTime = timeFormat('%M:%S.%L')
 
-const loss = []
-let maxLossValue = 0.0
+const allSeries = []
 
-export default function RealTimeChart({ lossValue }) {
-  if (lossValue !== undefined) {
-    while (loss.length >= 100) loss.shift()
-    loss.push({ x: new Date().getTime(), y: lossValue })
+const append = (value, values, limit = 100) => {
+  while (values.length >= limit) values.shift()
+  values.push({ x: new Date().getTime(), y: value })
+}
+
+// `value` is an object, whose keys will be used as labels,
+// and whose numeric (or array-of-numerics) value will be tracked over time
+// Valid examples:
+//    <RealTimeChart value={{ loss: 0.01 }} showKeys={['loss']} />
+//    <RealTimeChart value={{ process_time: [0.01, 0.2], train_time: 0.21 }} hideKeys={['loss']} />
+export default function RealTimeChart({ value, showKeys = [], hideKeys = [] }) {
+  if (value !== undefined) {
+    Object.entries(value).forEach(([key, numericValue]) => {
+      const series =
+        allSeries.find(({ id }) => id === key) ||
+        (allSeries.push({
+          id: key,
+          label: key,
+          data: [],
+        }) &&
+          last(allSeries))
+      if (Array.isArray(numericValue)) {
+        numericValue.forEach(v => append(v, series.data))
+      } else {
+        append(numericValue, series.data)
+      }
+    })
   }
 
-  if (loss.length === 0) return null
+  if (allSeries.length === 0) return null
 
-  maxLossValue = Math.max(maxLossValue, lossValue)
+  const shownSeries = allSeries.filter(
+    ({ id }) => !hideKeys.includes(id) && (showKeys.length === 0 || showKeys.includes(id))
+  )
+  const allValues = shownSeries.flatMap(({ data }) => data)
+  const minX = Math.min(...allValues.map(({ x }) => x))
+  const maxX = Math.max(...allValues.map(({ x }) => x))
+  const maxY = Math.max(...allValues.map(({ y }) => y))
 
+  console.log(shownSeries)
   return (
     <Line
-      width={900}
-      height={400}
+      width={800}
+      height={300}
       margin={{ top: 30, right: 50, bottom: 60, left: 50 }}
-      data={[{ id: 'loss', data: loss }]}
+      data={shownSeries}
       xFormat={formatTime}
-      xScale={{ type: 'linear', min: loss[0]?.x, max: last(loss)?.x }}
-      yScale={{ type: 'linear', min: 0, max: maxLossValue + 0.1 }}
+      xScale={{ type: 'linear', min: minX, max: maxX }}
+      yScale={{ type: 'linear', min: 0, max: maxY + maxY * 0.1 }}
       axisBottom={{ format: formatTime }}
       enablePoints={false}
       enableGridX={true}
@@ -35,7 +64,7 @@ export default function RealTimeChart({ lossValue }) {
       motionStiffness={120}
       motionDamping={50}
       isInteractive={true}
-      enableSlices={false}
+      enableSlices="x"
       useMesh={true}
       theme={{
         axis: { ticks: { text: { fontSize: 14 } } },

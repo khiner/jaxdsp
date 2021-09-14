@@ -7,7 +7,7 @@ from jaxdsp.processors import processor_by_name
 # For simplicity, only series & parallel processing is supported.
 # A wide variety of common DSP techniques can be implemented by nesting series and parallel processor groups.
 # Keeping this restriction (at least for now) means the graph structure can be represented and serialized
-# simply as a list, each element of which is a processor or a list.
+# simply as a list of processor lists.
 # This also simplifies the UI since the "graph" connectivity is implicit in the positional order.
 # Thus, we don't need to support arbitrary connectivity, and can instead use a simple drag-and-drop UX paradigm.
 
@@ -43,7 +43,7 @@ def tick_buffer_parallel(carry, X, processor_names):
     return carry, Y
 
 
-# `processor_names`, and the params/state tuples in `carry`, are each lists,
+# `processor_names`, and the (params, state) in `carry`, are each lists,
 # each element of which can be a processor or a list.
 # The top-level list is interpreted as a series-connected chain,
 # and every nested list is interpreted as a parallel-connected chain.
