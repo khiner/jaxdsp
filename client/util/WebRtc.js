@@ -1,12 +1,9 @@
 // Adapted from https://github.com/aiortc/aiortc/blob/main/examples/server/client.js#L212-L271
-export function sdpFilterCodec(kind, codec, realSdp) {
-  function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // $& means the whole matched string
-  }
+export const sdpFilterCodec = (kind, codec, realSdp) => {
+  const escapeRegExp = string => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // $& means the whole matched string
 
   const rtxRegex = new RegExp('a=fmtp:(\\d+) apt=(\\d+)\r$')
   const codecRegex = new RegExp(`a=rtpmap:([0-9]+) ${escapeRegExp(codec)}`)
-
   const lines = realSdp.split('\n')
 
   let isKind = false
@@ -50,7 +47,7 @@ export function sdpFilterCodec(kind, codec, realSdp) {
   return sdp
 }
 
-export async function negotiatePeerConnection(peerConnection) {
+export const negotiatePeerConnection = async peerConnection => {
   const offer = await peerConnection.createOffer()
   // TODO somewhere in the chain from here to the server,
   // the stream is getting mixed to mono and split back into identical
@@ -65,7 +62,7 @@ export async function negotiatePeerConnection(peerConnection) {
     if (peerConnection.iceGatheringState === 'complete') {
       resolve()
     } else {
-      function checkState() {
+      const checkState = () => {
         if (peerConnection.iceGatheringState === 'complete') {
           peerConnection.removeEventListener('icegatheringstatechange', checkState)
           resolve()
@@ -95,9 +92,7 @@ export async function negotiatePeerConnection(peerConnection) {
       sdp: peerConnection.localDescription.sdp,
       type: peerConnection.localDescription.type,
     }),
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     method: 'POST',
   })
   const answer = await response.json()

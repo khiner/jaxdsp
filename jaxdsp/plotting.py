@@ -158,6 +158,7 @@ def plot_train(
         subfig_i += 1
 
 
+# TODO fix and keep one example around, since this is neat
 def plot_optimization(
     processor_config, Xs, params_inits, params_target, varying_param_name, steps=50
 ):

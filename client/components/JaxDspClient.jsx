@@ -88,7 +88,7 @@ export default function JaxDspClient({ testSample }) {
       if (peerConnection) return
 
       peerConnection = new RTCPeerConnection()
-      peerConnection.onconnectionstatechange = function () {
+      peerConnection.onconnectionstatechange = () => {
         switch (peerConnection.connectionState) {
           case 'disconnected':
           case 'failed':
@@ -220,7 +220,7 @@ export default function JaxDspClient({ testSample }) {
             <ProcessorGraphBuilder
               processorDefinitions={processorDefinitions}
               selectedProcessors={selectedProcessors}
-              // All heartbeat values are time-series arrays of [epochMillis, value] pairs.
+              // Every heartbeat value is a time-series array of [epochMillis, value] pairs.
               estimatedParams={heartbeat?.trainer?.params?.[0]?.[1]}
               onChange={setSelectedProcessors}
             />

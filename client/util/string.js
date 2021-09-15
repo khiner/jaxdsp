@@ -1,7 +1,6 @@
 // E.g. long_parameter_name => Long parameter name
-export function snakeCaseToSentence(name) {
-  return name
+export const snakeCaseToSentence = name =>
+  name
     ?.split('_')
     .join(' ')
     .replace(/^(.)/, firstLetter => firstLetter.toUpperCase())
-}

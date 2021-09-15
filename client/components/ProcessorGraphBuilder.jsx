@@ -2,14 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
 import { clone } from '../util/object'
 import Processor from './Processor'
-
-// From https://ant.design/docs/spec/colors
-const colors = {
-  blue6: '#1890ff',
-  magenta6: '#eb2f96',
-  gray9: '#434343',
-  gray10: '#262626',
-}
+import colors from '../util/colors'
 
 const wrapInArray = itemOrArray => (Array.isArray(itemOrArray) ? itemOrArray : [itemOrArray])
 
@@ -26,57 +19,55 @@ function Connection({ beginX, beginY, endX, endY }) {
   return <path d={`M ${beginX} ${beginY} C ${midX} ${beginY} ${midX} ${endY} ${endX} ${endY}`} />
 }
 
-function ProcessorDefinition({ name, onDragStart }) {
-  return (
-    <div
-      key={name}
-      style={{
-        margin: 5,
-        padding: 7,
-        border: `1px solid ${colors.gray9}`,
-        borderRadius: 5,
-        background: 'white',
-        textAlign: 'middle',
-      }}
-      draggable={!!onDragStart}
-      onDragStart={onDragStart}
-    >
-      {name}
-    </div>
-  )
-}
+const ProcessorDefinition = ({ name, onDragStart }) => (
+  <div
+    key={name}
+    style={{
+      margin: 5,
+      padding: 7,
+      border: `1px solid ${colors.gray9}`,
+      borderRadius: 5,
+      background: 'white',
+      textAlign: 'middle',
+    }}
+    draggable={!!onDragStart}
+    onDragStart={onDragStart}
+  >
+    {name}
+  </div>
+)
 
 // I miss typescript...
-const ORIENTATION_HORIZONTAL = 0
-const ORIENTATION_VERTICAL = 1
-
-function ProcessorPlaceholder({ orientation }) {
-  return (
-    <div
-      className="processor placeholder"
-      style={{
-        ...(orientation === ORIENTATION_HORIZONTAL
-          ? { minWidth: 80, height: '3em' }
-          : {
-              minHeight: 80,
-              width: '3em',
-              height: '100%',
-            }),
-        alignSelf: 'stretch',
-        padding: 5,
-        background: 'white',
-        border: `2px solid ${colors.magenta6}`,
-        borderRadius: 5,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        margin: '0 10px',
-      }}
-    >
-      <PlusOutlined style={{ color: colors.blue6, fontSize: 20 }} />
-    </div>
-  )
+const orientation = {
+  horizontal: 0,
+  vertical: 1,
 }
+
+const ProcessorPlaceholder = ({ orientation }) => (
+  <div
+    className="processor placeholder"
+    style={{
+      ...(orientation === orientation.horizontal
+        ? { minWidth: 80, height: '3em' }
+        : {
+            minHeight: 80,
+            width: '3em',
+            height: '100%',
+          }),
+      alignSelf: 'stretch',
+      padding: 5,
+      background: 'white',
+      border: `2px solid ${colors.magenta6}`,
+      borderRadius: 5,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      margin: '0 10px',
+    }}
+  >
+    <PlusOutlined style={{ color: colors.blue6, fontSize: 20 }} />
+  </div>
+)
 
 const getRelativeRect = (rect, relativeToRect) => {
   if (!rect || !relativeToRect) return undefined
@@ -220,8 +211,7 @@ function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estim
               .map((element, i) => [element, i])
               .find(([element]) => {
                 const { clientY } = event
-                const rect = element.getBoundingClientRect()
-                const { top, height } = rect
+                const { top, height } = element.getBoundingClientRect()
                 return clientY < top + height / 2
               })?.[1]
 
@@ -240,8 +230,7 @@ function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estim
           .map((element, i) => [element, i])
           .find(([element]) => {
             const { clientX } = event
-            const rect = element.getBoundingClientRect()
-            const { left, width } = rect
+            const { left, width } = element.getBoundingClientRect()
             return clientX < left + width / 2
           })?.[1]
         let newToSerialIndex =
@@ -346,7 +335,7 @@ function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estim
                       <ProcessorPlaceholder
                         key={key}
                         orientation={
-                          draggingToParallelIndex === -1 ? ORIENTATION_VERTICAL : ORIENTATION_HORIZONTAL
+                          draggingToParallelIndex === -1 ? orientation.vertical : orientation.horizontal
                         }
                       />
                     )

@@ -1,6 +1,6 @@
 import jax.numpy as jnp
-from jax import jit
 import jax_spectral
+
 
 # Port of https://github.com/magenta/ddsp/blob/master/ddsp/spectral_ops.py#L33,
 # but using https://github.com/cifkao/jax-spectral instead of tf.signal.stft
