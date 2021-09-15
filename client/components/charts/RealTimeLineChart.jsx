@@ -4,7 +4,7 @@ import { timeFormat } from 'd3-time-format'
 import { last } from '../../util/array'
 
 const DEFAULT_WINDOW_MILLIS = 8 * 1_000
-const formatTime = timeFormat('%M:%S.%L')
+const formatTime = timeFormat('%M:%S')
 const allSeries = []
 
 // `value` is an object, whose keys will be used as labels,
@@ -51,25 +51,41 @@ export default function RealTimeChart({ value, showKeys = [], hideKeys = [] }) {
     <Line
       width={800}
       height={300}
-      margin={{ top: 30, right: 50, bottom: 60, left: 50 }}
+      margin={{ top: 30, right: 50, bottom: 60, left: 80 }}
       data={shownSeries}
       xFormat={formatTime}
       xScale={{ type: 'linear', min: Math.min(...xs), max: Math.max(...xs) }}
       yScale={{ type: 'linear', min: 0, max: Math.max(...ys) * 1.1 }}
+      axisLeft={{
+        orient: 'left',
+        legend: 'Execution duration (ms)',
+        legendOffset: -70,
+        legendPosition: 'middle',
+        format: value => Number(value).toFixed(3),
+      }}
       axisBottom={{ format: formatTime }}
       enablePoints={false}
       enableGridX={true}
       curve="monotoneX"
       animate={false}
-      motionStiffness={120}
-      motionDamping={50}
       isInteractive={false}
-      enableSlices={false}
-      useMesh={false}
       theme={{
         axis: { ticks: { text: { fontSize: 14 } } },
         grid: { line: { stroke: '#ddd', strokeDasharray: '1 2' } },
       }}
+      legends={[
+        {
+          anchor: 'bottom',
+          itemsSpacing: 0,
+          itemDirection: 'left-to-right',
+          translateY: 50,
+          itemWidth: 80,
+          itemHeight: 20,
+          symbolSize: 12,
+          symbolShape: 'circle',
+          symbolBorderColor: 'rgba(0, 0, 0, .5)',
+        },
+      ]}
     />
   )
 }

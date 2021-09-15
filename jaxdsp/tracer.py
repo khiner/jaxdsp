@@ -72,10 +72,10 @@ def trace(f_py=None, key=None, limit=1_000):
 
             start_time = time.perf_counter()
             value = func(*args, **kwargs)
-            execution_duration = time.perf_counter() - start_time
+            execution_duration_s = time.perf_counter() - start_time
             epoch_millis = time.time_ns() // 1_000_000
             trace_series_for_key[effective_key].append(
-                [epoch_millis, execution_duration]
+                [epoch_millis, execution_duration_s * 1_000]
             )
 
             return value
