@@ -38,7 +38,7 @@ const ProcessorDefinition = ({ name, onDragStart }) => (
 )
 
 // I miss typescript...
-const orientation = {
+const ORIENTATION = {
   horizontal: 0,
   vertical: 1,
 }
@@ -47,7 +47,7 @@ const ProcessorPlaceholder = ({ orientation }) => (
   <div
     className="processor placeholder"
     style={{
-      ...(orientation === orientation.horizontal
+      ...(orientation === ORIENTATION.horizontal
         ? { minWidth: 80, height: '3em' }
         : {
             minHeight: 80,
@@ -335,7 +335,7 @@ function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estim
                       <ProcessorPlaceholder
                         key={key}
                         orientation={
-                          draggingToParallelIndex === -1 ? orientation.vertical : orientation.horizontal
+                          draggingToParallelIndex === -1 ? ORIENTATION.vertical : ORIENTATION.horizontal
                         }
                       />
                     )
