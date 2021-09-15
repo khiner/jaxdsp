@@ -29,10 +29,10 @@ def trace(f_py=None, key=None, limit=1_000):
         assert result == 4
         print(timing.get('subtract'))
         > [3.2569999994791488e-06, 8.139999998491021e-07, 6.259999985047671e-07]
-        print(tracer.get_json())
+        print(tracer.get_all())
         > {"subtract": [3.304999999897973e-06, 8.449999988613399e-07, 6.009999999889715e-07]}
         tracer.clear()
-        print(timing.get_json())
+        print(timing.get_all())
         > {}
 
         # Use the function name as the key, and only store the most recent 2 values for this function.
@@ -44,7 +44,7 @@ def trace(f_py=None, key=None, limit=1_000):
         assert result == 4
         print(tracer.get('minus')) # Assuming the execution times were exactly the same for illustration
         > [8.139999998491021e-07, 6.259999985047671e-07]
-        print(tracer.get_json())
+        print(tracer.get_all())
         > {"minus": [8.139999998491021e-07, 6.259999985047671e-07]}
     """
 
@@ -53,12 +53,17 @@ def trace(f_py=None, key=None, limit=1_000):
     def _decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            start_time = time.perf_counter()
-            value = func(*args, **kwargs)
             effective_key = key or func.__name__
             if not execution_durations.get(effective_key):
                 execution_durations[effective_key] = deque([], limit)
-            execution_durations[effective_key].append(time.perf_counter() - start_time)
+
+            start_time = time.perf_counter()
+            value = func(*args, **kwargs)
+            execution_duration = time.perf_counter() - start_time
+            epoch_millis = time.time_ns() // 1_000_000
+            execution_durations[effective_key].append(
+                [epoch_millis, execution_duration]
+            )
 
             return value
 
@@ -71,10 +76,8 @@ def get(key):
     return list(execution_durations[key])
 
 
-def get_json():
-    return json.dumps(
-        {key: list(results) for (key, results) in execution_durations.items()}
-    )
+def get_all():
+    return {key: list(results) for (key, results) in execution_durations.items()}
 
 
 def clear():

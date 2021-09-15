@@ -7,16 +7,18 @@ const formatTime = timeFormat('%M:%S.%L')
 
 const allSeries = []
 
-const DEFAULT_WINDOW_MILLIS = 10 * 1000
+const DEFAULT_WINDOW_MILLIS = 8 * 1000
 
-const append = (value, values, windowMillis = DEFAULT_WINDOW_MILLIS) => {
-  const nowMillis = new Date().getTime()
-  values.push({ x: nowMillis, y: value })
+const append = (epochMillisAndValue, values, windowMillis = DEFAULT_WINDOW_MILLIS) => {
+  const [epochMillis, value] = epochMillisAndValue
+  values.push({ x: epochMillis, y: value })
+  const nowMillis = Date.now()
   while (values[0].x < nowMillis - windowMillis) values.shift()
 }
 
 // `value` is an object, whose keys will be used as labels,
-// and whose numeric (or array-of-numerics) value will be tracked over time
+// and whose values are arrays of two-dimensional [epochMillis, number] vaules
+// These values will be tracked over time.
 // Valid examples:
 //    <RealTimeChart value={{ loss: 0.01 }} showKeys={['loss']} />
 //    <RealTimeChart value={{ process_time: [0.01, 0.2], train_time: 0.21 }} hideKeys={['loss']} />
@@ -31,11 +33,7 @@ export default function RealTimeChart({ value, showKeys = [], hideKeys = [] }) {
           data: [],
         }) &&
           last(allSeries))
-      if (Array.isArray(numericValue)) {
-        numericValue.forEach(v => append(v, series.data))
-      } else {
-        append(numericValue, series.data)
-      }
+      numericValue.forEach(v => append(v, series.data))
     })
   }
 

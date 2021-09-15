@@ -134,12 +134,6 @@ class IterativeTrainer:
     def float_params(self):
         return float_params(self.params)
 
-    def get_state(self):
-        return {
-            "params": self.float_params(),
-            "loss": float(self.loss),
-        }
-
 
 def evaluate(carry_estimated, carry_target, processor, X):
     carry_estimated, Y_estimated = processor.tick_buffer(carry_estimated, X)

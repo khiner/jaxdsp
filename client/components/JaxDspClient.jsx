@@ -220,17 +220,18 @@ export default function JaxDspClient({ testSample }) {
             <ProcessorGraphBuilder
               processorDefinitions={processorDefinitions}
               selectedProcessors={selectedProcessors}
-              estimatedParams={heartbeat?.trainer?.params}
+              // All heartbeat values are time-series arrays of [epochMillis, value] pairs.
+              estimatedParams={heartbeat?.trainer?.params?.[0]?.[1]}
               onChange={setSelectedProcessors}
             />
           )}
-          {heartbeat?.tracer && <RealTimeChart value={JSON.parse(heartbeat.tracer)} hideKeys={['loss']} />}
-          {isEstimatingParams && heartbeat?.trainer?.loss !== undefined && (
+          {heartbeat?.tracer && <RealTimeChart value={heartbeat.tracer} hideKeys={['loss']} />}
+          {isEstimatingParams && (
             <>
-              <RealTimeChart value={{ loss: heartbeat.trainer?.loss }} showKeys={['loss']} />
+              <RealTimeChart value={{ loss: heartbeat.trainer?.loss || [] }} showKeys={['loss']} />
               <div>
                 <span>Loss: </span>
-                {heartbeat.trainer?.loss}
+                {heartbeat.trainer?.loss?.[0]?.[1]}
               </div>
             </>
           )}

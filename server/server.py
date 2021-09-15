@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import ssl
+import time
 import uuid
 from collections import deque
 
@@ -309,17 +310,22 @@ async def register_websocket(websocket, path):
     train_stack = track.train_stack
     while True:
         try:
-            if track.is_estimating_params and track.trainer and len(train_stack) > 0:
-                train_pair = train_stack.pop()
-                X, Y = train_pair
-                X_left = X[0]  # TODO support stereo in
-                track.trainer.step(X_left, Y)
-            heartbeat = {"tracer": tracer.get_json()}
-            tracer.clear()
+            heartbeat = {}
             if track.is_estimating_params and track.trainer:
-                heartbeat["trainer"] = track.trainer.get_state()
+                if len(train_stack) > 0:
+                    train_pair = train_stack.pop()
+                    X, Y = train_pair
+                    X_left = X[0]  # TODO support stereo in
+                    track.trainer.step(X_left, Y)
+                epoch_millis = time.time_ns() // 1_000_000
+                heartbeat["trainer"] = {
+                    "params": [[epoch_millis, track.trainer.float_params()]],
+                    "loss": [[epoch_millis, float(track.trainer.loss)]],
+                }
+            heartbeat["tracer"] = tracer.get_all()
+            tracer.clear()
             await websocket.send(json.dumps(heartbeat))
-            await asyncio.sleep(0.01)  # boo
+            await asyncio.sleep(0.05)  # boo
         except websockets.ConnectionClosed:
             print("ws terminated")
             break
