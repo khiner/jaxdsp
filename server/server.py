@@ -76,6 +76,7 @@ class AudioTransformTrack(MediaStreamTrack):
         self.accumulated_packets = []
         self.processed_packets = []
 
+    @trace
     def set_graph_config(self, graph_config):
         if not graph_config:
             self.params, self.state = None, None

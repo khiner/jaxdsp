@@ -3,8 +3,8 @@ import { Line } from '@nivo/line'
 import { timeFormat } from 'd3-time-format'
 import { last } from '../../util/array'
 
-const DEFAULT_WINDOW_MILLIS = 8 * 1_000
-const formatTime = timeFormat('%M:%S')
+const DEFAULT_WINDOW_MILLIS = 10 * 1_000
+const formatMinutesSeconds = timeFormat('%M:%S')
 const allSeries = []
 
 // `value` is an object, whose keys will be used as labels,
@@ -33,59 +33,51 @@ export default function RealTimeChart({ value, showKeys = [], hideKeys = [] }) {
     })
   }
 
+  if (allSeries.length === 0) return null
+
   const nowMillis = Date.now()
   allSeries.forEach(series => {
     series.data = series.data.filter(({ x }) => x >= nowMillis - DEFAULT_WINDOW_MILLIS)
   })
-
-  if (allSeries.length === 0) return null
-
   const shownSeries = allSeries.filter(
     ({ id }) => !hideKeys.includes(id) && (showKeys.length === 0 || showKeys.includes(id))
   )
-  const allValues = shownSeries.flatMap(({ data }) => data)
-  const xs = allValues.map(({ x }) => x)
-  const ys = allValues.map(({ y }) => y)
+  const maxY = Math.max(...shownSeries.flatMap(({ data }) => data).map(({ y }) => y))
 
   return (
     <Line
       width={800}
       height={300}
-      margin={{ top: 30, right: 50, bottom: 60, left: 80 }}
+      margin={{ top: 30, right: 0, bottom: 50, left: 70 }}
       data={shownSeries}
-      xFormat={formatTime}
-      xScale={{ type: 'linear', min: Math.min(...xs), max: Math.max(...xs) }}
-      yScale={{ type: 'linear', min: 0, max: Math.max(...ys) * 1.1 }}
+      xScale={{ type: 'linear', min: 'auto', max: 'auto' }}
+      yScale={{ type: 'linear', min: 0, max: maxY * 1.1 }}
       axisLeft={{
         orient: 'left',
         legend: 'Execution duration (ms)',
-        legendOffset: -70,
+        legendOffset: -60,
         legendPosition: 'middle',
-        format: value => Number(value).toFixed(3),
+        format: value => Number(value).toFixed(maxY < 0.01 ? 4 : maxY < 0.1 ? 3 : maxY < 1 ? 2 : 1),
       }}
-      axisBottom={{ format: formatTime }}
+      axisBottom={{ format: formatMinutesSeconds }}
       enablePoints={false}
       enableGridX={true}
       curve="monotoneX"
       animate={false}
       isInteractive={false}
-      theme={{
-        axis: { ticks: { text: { fontSize: 14 } } },
-        grid: { line: { stroke: '#ddd', strokeDasharray: '1 2' } },
-      }}
       legends={[
         {
           anchor: 'bottom',
+          direction: 'row',
           itemsSpacing: 0,
-          itemDirection: 'left-to-right',
           translateY: 50,
-          itemWidth: 80,
+          itemWidth: 120,
           itemHeight: 20,
-          symbolSize: 12,
+          symbolSize: 10,
           symbolShape: 'circle',
-          symbolBorderColor: 'rgba(0, 0, 0, .5)',
         },
       ]}
+      layers={['grid', 'lines', 'points', 'axes', 'legends']}
     />
   )
 }
