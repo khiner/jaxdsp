@@ -75,6 +75,7 @@ class AudioTransformTrack(MediaStreamTrack):
         self.packets_per_buffer = 3  # TODO allow changing in realtime by client
         self.accumulated_packets = []
         self.processed_packets = []
+        self.sample_rate = None  # cached and compared on each frame
 
     @trace
     def set_graph_config(self, graph_config):
@@ -89,6 +90,7 @@ class AudioTransformTrack(MediaStreamTrack):
         if self.processor_names != processor_names:
             self.processor_names = processor_names
             self.state = state
+            self.update_sample_rate_state()
             # Don't pass any params to the trainer - that would be cheating ;)
             self.trainer.processor_names = processor_names
             self.trainer.set_carry((None, self.state))
@@ -105,14 +107,18 @@ class AudioTransformTrack(MediaStreamTrack):
     def stop_estimating_params(self):
         self.is_estimating_params = False
 
+    def update_sample_rate_state(self):
+        if self.sample_rate is not None:
+            set_state_recursive(self.state, "sample_rate", self.sample_rate)
+
     # Takes a 2d array and returns a processed 2d array
     def process(self, X, sample_rate):
         X_left = X[0]  # TODO handle stereo in
 
         if self.params and self.state:
-            # TODO can this be done once on negotiate/processor change, instead of each frame?
-            #  or, maybe it can be passed as another arg to tick_buffer
-            set_state_recursive(self.state, "sample_rate", sample_rate)
+            if self.sample_rate != sample_rate:
+                self.sample_rate = sample_rate
+                self.update_sample_rate_state()
             carry, Y = processor_graph.tick_buffer(
                 (self.params, self.state), X_left, self.processor_names
             )
