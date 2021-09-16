@@ -43,10 +43,9 @@ def tick_buffer_parallel(carry, X, processor_names):
     return carry, Y
 
 
-# `processor_names`, and the (params, state) in `carry`, are each lists,
-# each element of which can be a processor or a list.
+# `processor_names`, and the (params, state) in `carry`, are each a list-of-lists.
 # The top-level list is interpreted as a series-connected chain,
-# and every nested list is interpreted as a parallel-connected chain.
+# and each inner list is interpreted as a parallel-connected chain.
 # E.g. `[["Sine Wave", "Sine Wave"], "Allpass Filter"]`
 # is two parallel sine wave processors followed by an allpass filter.
 def tick_buffer(carry, X, processor_names):
@@ -56,12 +55,8 @@ def tick_buffer(carry, X, processor_names):
     for i, processor_name in enumerate(processor_names):
         processor_state = state[i]
         processor_params = params[i]
-        processor_carry, Y = (
-            tick_buffer_parallel((processor_params, processor_state), Y, processor_name)
-            if isinstance(processor_name, list)
-            else processor_by_name[processor_name].tick_buffer(
-                (processor_params, processor_state), Y
-            )
+        processor_carry, Y = tick_buffer_parallel(
+            (processor_params, processor_state), Y, processor_name
         )
         state[i] = processor_carry[1]
 

@@ -1,18 +1,30 @@
 import time
-from functools import partial, wraps
-from collections import defaultdict, deque
+from functools import wraps
+from collections import deque
 
 from inspect import iscoroutinefunction
 from contextlib import contextmanager
 
-# This tracer is intended to publish its in-memory data on stream where a client can consume it,
+# This chart_event_accumulators is intended to publish its in-memory data on stream where a client can consume it,
 # so values are only stored in memory here to allow:
 # * Publishing to the stream in buffers
 # * Resiliency to back-pressure from downstream
 # Client is responsible for longer-term storage as needed.
 MAX_IN_MEMORY_SERIES_LENGTH = 100
 
-trace_series_for_key = defaultdict(partial(deque, maxlen=MAX_IN_MEMORY_SERIES_LENGTH))
+
+class TraceEvent:
+    def __init__(self, function, finish_time_ms, execution_duration_ms, label=None):
+        self.function_name = function.__name__
+        self.label = label or self.function_name
+        self.finish_time_ms = finish_time_ms
+        self.execution_duration_ms = execution_duration_ms
+
+    def serialize(self):
+        return self.__dict__
+
+
+trace_events = deque(maxlen=MAX_IN_MEMORY_SERIES_LENGTH)
 
 
 # Milliseconds since epoch
@@ -27,50 +39,62 @@ def time_ms():
 #   https://stackoverflow.com/a/60832711/780425
 # Using `@contextmanager` to allow decorating either async or non-async functions is from:
 #   https://gist.github.com/anatoly-kussul/f2d7444443399e51e2f83a76f112364d/ff1f94b1bd07741ce209cc61832f920adb49aedf
-def trace(f_py=None, key=None):
+def trace(f_py=None, label=None):
     """
-    Annotation for function timing. A `[finish_time_ms, execution_duration_ms]` pair will be associated with the
-    optional (keyword-only, non-positional) `key` parameter.
-    If no key is provided, it will use the name of the decorated function.
+    A trace event (see above) will be appended upon completion of each call to the decorated function.
+    If no value is provided to the (keyword-only, non-positional) `label` parameter, the `label` property of the event
+    will the be set to the name of the decorated function.
 
-    See `/tests/jaxdsp/tracer/test_tracer.py` for examples.
+    See `/tests/jaxdsp/chart_event_accumulators/test_tracer.py` for examples.
     """
 
     assert callable(f_py) or f_py is None
 
-    def decorator(func):
+    def decorator(function):
         @contextmanager
-        def wrapper(inner_func):
+        def wrapper(inner_function):
             start_time = time.perf_counter()
             yield
-            execution_duration_ms = (time.perf_counter() - start_time) * 1_000
-            finish_time_ms = time_ms()
-            trace_series_for_key[key or inner_func.__name__].append(
-                [finish_time_ms, execution_duration_ms]
+            trace_events.append(
+                TraceEvent(
+                    inner_function,
+                    finish_time_ms=time_ms(),
+                    execution_duration_ms=(time.perf_counter() - start_time) * 1_000,
+                    label=label,
+                )
             )
 
-        @wraps(func)
+        @wraps(function)
         def sync_wrapper(*args, **kwargs):
-            with wrapper(func):
-                return func(*args, **kwargs)
+            with wrapper(function):
+                return function(*args, **kwargs)
 
-        @wraps(func)
+        @wraps(function)
         async def async_wrapper(*args, **kwargs):
-            with wrapper(func):
-                return await func(*args, **kwargs)
+            with wrapper(function):
+                return await function(*args, **kwargs)
 
-        return async_wrapper if iscoroutinefunction(func) else sync_wrapper
+        return async_wrapper if iscoroutinefunction(function) else sync_wrapper
 
     return decorator(f_py) if callable(f_py) else decorator
 
 
-def get(key):
-    return list(trace_series_for_key[key])
+def find_events(label=None, function_name=None):
+    return [
+        event
+        for event in trace_events
+        if (label and event.label == label)
+        or (function_name and event.function_name == function_name)
+    ]
 
 
-def get_all():
-    return {key: list(results) for (key, results) in trace_series_for_key.items()}
+def get_events():
+    return list(trace_events)
 
 
-def clear():
-    trace_series_for_key.clear()
+def get_events_serialized():
+    return [trace_event.serialize() for trace_event in trace_events]
+
+
+def clear_events():
+    trace_events.clear()

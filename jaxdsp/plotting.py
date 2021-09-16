@@ -4,6 +4,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from jaxdsp import training
+from jaxdsp.params import params_to_float
+from jaxdsp.training import TrainChartEventAccumulator
 
 
 def plot_filter(fig, X, Y, Y_estimated, Y_reference, title):
@@ -32,17 +34,7 @@ def plot_filter(fig, X, Y, Y_estimated, Y_reference, title):
         out_plot.set_ylim([Ys[i].min() - 0.1, Ys[i].max() + 0.1])
 
 
-def plot_loss(fig, loss_history):
-    plot = fig.subplots(1, 1)
-    plot.plot(loss_history)
-    plot.set_xlabel("Batch")
-    plot.set_ylabel("Loss")
-    plot.set_title("Loss over time", size=16)
-    plot.set_yscale("log", base=10)
-    plot.autoscale(tight=True)
-
-
-def plot_processor(fig, processor_name, params_target, params_history):
+def plot_processor(fig, params_target, params_history):
     param_groups = []  # list of lists of (key, label, scalar_param_value)
     # All non-list params go into the first (and potentially only) param group (column).
     single_params = [
@@ -69,16 +61,19 @@ def plot_processor(fig, processor_name, params_target, params_history):
         axes = np.expand_dims(axes, axis=0)
     if len(axes.shape) == 1:
         axes = np.expand_dims(axes, axis=1)
-    fig.suptitle(processor_name, fontsize="x-large")
+    fig.suptitle(params_history["label"], fontsize="x-large")
+    params_history_data = params_history["data"]
     for param_group_i, param_group in enumerate(param_groups):
         for param_i, (key, label, param) in enumerate(param_group):
             plot = axes[param_i][param_group_i]
             plot.set_title(label)
             plot.axhline(y=param, c="g", linestyle="--", label="Actual params")
-            param_history = params_history[key]
-            if isinstance(param_history[0], Iterable):
-                param_history = np.asarray(param_history)[:, param_i]
-            plot.plot(param_history, c="b", label="Estimated params")
+            param_history_data = [
+                params_history_i[key] for params_history_i in params_history_data
+            ]
+            if isinstance(param_history_data[0], Iterable):
+                param_history_data = np.asarray(param_history_data)[:, param_i]
+            plot.plot(param_history_data, c="b", label="Estimated params")
             if param_group_i == 0:
                 plot.set_ylabel("Value")
             if param_i == 0:
@@ -109,12 +104,7 @@ def plot_processors(
                 subfig, params_target, params_history, processor_name, not is_row
             )
         else:
-            plot_processor(
-                subfig,
-                processor_name,
-                params_target,
-                params_history,
-            )
+            plot_processor(subfig, params_target, params_history)
 
 
 def plot_train(
@@ -144,15 +134,26 @@ def plot_train(
     plot_filter(subfigs[subfig_i], X, Y, Y_estimated, Y_reference, title)
     subfig_i += 1
 
+    accumulator = TrainChartEventAccumulator()
+    for event in trainer.step_events:
+        accumulator.accumulate(event)
+
     if plot_loss_history:
-        plot_loss(subfigs[subfig_i], trainer.step_evaluator.loss_history)
+        plot = subfigs[subfig_i].subplots(1, 1)
+        loss_series = accumulator.get_loss_series()
+        plot.plot(loss_series["data"])
+        plot.set_xlabel("Batch")
+        plot.set_ylabel(loss_series["label"])
+        plot.set_title("Loss over time", size=16)
+        plot.set_yscale("log", base=10)
+        plot.autoscale(tight=True)
         subfig_i += 1
 
     if plot_params_history:
         plot_processors(
             subfigs[subfig_i],
-            training.float_params(params),
-            trainer.step_evaluator.params_history,
+            params_to_float(params),
+            accumulator.get_params_series()["data"],
             trainer.processor_names,
         )
         subfig_i += 1

@@ -30,7 +30,7 @@ from jaxdsp.processors import (
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp import tracer
-from jaxdsp.tracer import trace, time_ms
+from jaxdsp.tracer import trace
 
 ALL_PROCESSORS = [allpass_filter, clip, delay_line, biquad_lowpass, sine_wave, freeverb]
 # Training frame pairs are queued up for each client, limited to this cap:
@@ -323,13 +323,10 @@ async def register_websocket(websocket, path):
                     X, Y = train_pair
                     X_left = X[0]  # TODO support stereo in
                     track.trainer.step(X_left, Y)
-                epoch_millis = time_ms()
-                heartbeat["trainer"] = {
-                    "params": [[epoch_millis, track.trainer.float_params()]],
-                    "loss": [[epoch_millis, float(track.trainer.loss)]],
-                }
-            heartbeat["tracer"] = tracer.get_all()
-            tracer.clear()
+                heartbeat["train_events"] = track.trainer.get_events_serialized()
+                track.trainer.clear_events()
+            heartbeat["trace_events"] = tracer.get_events_serialized()
+            tracer.clear_events()
             await websocket.send(json.dumps(heartbeat))
             await asyncio.sleep(0.05)  # boo
         except websockets.ConnectionClosed:

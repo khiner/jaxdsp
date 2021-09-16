@@ -9,8 +9,7 @@ import { clone, deepEquals } from '../util/object'
 import { snakeCaseToSentence } from '../util/string'
 
 import 'antd/dist/antd.css'
-import ProcessorGraphBuilder from './ProcessorGraphBuilder'
-import RealTimeChart from './charts/RealTimeLineChart'
+import RealtimeController from './RealtimeController'
 
 const { Title } = Typography
 
@@ -35,7 +34,6 @@ export default function JaxDspClient({ testSample }) {
   const [lossOptions, setLossOptions] = useState(null)
   const [editingOptimizer, setEditingOptimizer] = useState(null)
   const [optimizer, setOptimizer] = useState(null)
-  const [heartbeat, setHeartbeat] = useState({})
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
   const [selectedProcessors, setSelectedProcessors] = useState([])
@@ -59,29 +57,6 @@ export default function JaxDspClient({ testSample }) {
   useEffect(() => {
     sendProcessors()
   }, [selectedProcessors])
-
-  useEffect(() => {
-    if (clientUid === null) return
-
-    // TODO wss? (SSL)
-    const ws = new WebSocket('ws://127.0.0.1:8765/')
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ client_uid: clientUid }))
-    }
-    ws.onmessage = event => {
-      setHeartbeat(JSON.parse(event.data))
-    }
-    ws.onclose = event => {
-      const { wasClean, code } = event
-      if (!wasClean) {
-        setAudioStreamErrorMessage(`WebSocket unexpectedly closed with code ${code}`)
-      }
-    }
-    ws.onerror = () => {
-      setAudioStreamErrorMessage('WebSocket connection error')
-    }
-    return () => ws.close()
-  }, [clientUid])
 
   useEffect(() => {
     const openPeerConnection = () => {
@@ -132,7 +107,6 @@ export default function JaxDspClient({ testSample }) {
       setEditingOptimizer(null)
       setOptimizers(null)
       setIsEstimatingParams(false)
-      setHeartbeat({})
       setClientUid(null)
     }
 
@@ -215,27 +189,13 @@ export default function JaxDspClient({ testSample }) {
         </Select>
       </div>
       {isStreamingAudio && (
-        <div>
-          {processorDefinitions && (
-            <ProcessorGraphBuilder
-              processorDefinitions={processorDefinitions}
-              selectedProcessors={selectedProcessors}
-              // Every heartbeat value is a time-series array of [epochMillis, value] pairs.
-              estimatedParams={heartbeat?.trainer?.params?.[0]?.[1]}
-              onChange={setSelectedProcessors}
-            />
-          )}
-          {heartbeat?.tracer && <RealTimeChart value={heartbeat.tracer} hideKeys={['loss']} />}
-          {isEstimatingParams && (
-            <>
-              <RealTimeChart value={{ loss: heartbeat.trainer?.loss || [] }} showKeys={['loss']} />
-              <div>
-                <span>Loss: </span>
-                {heartbeat.trainer?.loss?.[0]?.[1]}
-              </div>
-            </>
-          )}
-        </div>
+        <RealtimeController
+          clientUid={clientUid}
+          processorDefinitions={processorDefinitions}
+          selectedProcessors={selectedProcessors}
+          setSelectedProcessors={setSelectedProcessors}
+          setAudioStreamErrorMessage={setAudioStreamErrorMessage}
+        />
       )}
       {isEstimatingParams && (
         <>

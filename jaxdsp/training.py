@@ -1,7 +1,7 @@
 from jax import value_and_grad, jit
-from jax.tree_util import tree_map, tree_multimap
 
 from jaxdsp import processor_graph
+from jaxdsp.params import params_to_float
 from jaxdsp.loss import LossOptions, loss_fn
 from jaxdsp.optimizers import create_optimizer
 from jaxdsp.processors import (
@@ -13,30 +13,73 @@ from jaxdsp.processors import (
     processor_names_to_graph_config,
     init_graph_state,
 )
-from jaxdsp.tracer import trace
+from jaxdsp.tracer import trace, time_ms
 
 
-class LossHistoryAccumulator:
-    def __init__(self, params_init):
-        self.params_history = tree_map(lambda param: [param], params_init)
-        self.loss_history = []
+class TrainStepEvent:
+    # `processor_names` and `params` must have the same shape (the shape of the processor graph).
+    # They're only separate here since params are their own isolated thing from the perspective of the trainer.
+    # Processor names are only used for series labels.
+    def __init__(self, processor_names, params, loss):
+        assert len(processor_names) == len(params)
+        for inner_names, inner_params in zip(processor_names, params):
+            assert len(inner_names) == len(inner_params)
 
-    def after_step(self, loss, new_params):
-        self.loss_history.append(loss)
-        self.params_history = tree_multimap(
-            lambda new_param, params: params + [new_param],
-            new_params,
-            self.params_history,
-        )
+        self.time_ms = time_ms()
+        self.processor_names = processor_names
+        self.params = params_to_float(params)
+        self.loss = None if loss is None else float(loss)
+
+    def serialize(self):
+        return self.__dict__
 
 
-def float_params(params):
-    return tree_map(
-        lambda param: param
-        if hasattr(param, "ndim") and param.ndim > 0
-        else float(param),
-        params,
-    )
+class TrainChartEventAccumulator:
+    def __init__(self):
+        self.data = [
+            {"id": "loss", "label": "Loss", "data": []},
+            # "data" within the "params" series will itself be an array-of-arrays of series, with a series for each
+            # processor (in the nested serial->parallel arrays format used for the processor graph throughout JAXdsp).
+            # Note that the "params" series will be entirely cleared each time `accumulate` receives a graph with a
+            # different topology.
+            # The target use-case is tracking how a single graph optimizes over time. If you are interested in past
+            # topologies for a single training run, just create an accumulator and `accumulate` up to the event
+            # at the time of interest!
+            # Also, there's nothing stopping a client from storing a time-series of full `data` instances for each
+            # event, for e.g. scrobbling over full graph/parameter/loss states over time.
+            {"id": "params", "label": "Params", "data": []},
+        ]
+        self.most_recent_processor_names = []
+
+    def accumulate(self, event):
+        self.get_loss_series()["data"].append(event.loss)
+        # If the received event has a different graph topology, replace params series' with ones matching the new graph.
+        if event.processor_names != self.most_recent_processor_names:
+            self.get_params_series()["data"].clear()
+            self.get_params_series()["data"] = [
+                [
+                    {"id": processor_name, "label": processor_name, "data": []}
+                    for processor_name in processor_names_inner
+                ]
+                for processor_names_inner in event.processor_names
+            ]
+
+        for inner_params_data, inner_event_params in zip(
+            self.get_params_series()["data"], event.params
+        ):
+            for processor_params_data, event_param_value in zip(
+                inner_params_data, inner_event_params
+            ):
+                processor_params_data["data"].append(event_param_value)
+
+        self.most_recent_processor_names = event.processor_names
+        return self.data
+
+    def get_loss_series(self):
+        return self.data[0]
+
+    def get_params_series(self):
+        return self.data[1]
 
 
 class IterativeTrainer:
@@ -48,9 +91,14 @@ class IterativeTrainer:
         track_history=False,
     ):
         self.step_num = 0
+        self.step_events = []
         self.loss = 0.0
         self.track_history = track_history
-        self.params = None
+        self.optimizer = None
+        self.grad_fn = None
+        self.opt_state = None
+        self.loss_options = None
+        self.params, self.state = None, None
         self.processor_names = None
         self.set_optimizer_options(optimizer_options)
         self.set_graph_config(graph_config)
@@ -61,15 +109,15 @@ class IterativeTrainer:
         self.set_carry(graph_config_to_carry(graph_config))
 
     def set_carry(self, carry):
+        self.step_events = []
+        self.loss = None
         if carry:
             params, self.state = carry
             self.params = params or get_graph_params(
                 processor_names_to_graph_config(self.processor_names)
             )
-            self.step_evaluator = LossHistoryAccumulator(self.params)
         else:
             self.params, self.state = None, None
-            self.step_evaluator = None
 
         self.update_opt_state()
 
@@ -128,11 +176,21 @@ class IterativeTrainer:
         self.params = params_from_unit_scale(
             self.optimizer.get_params(self.opt_state), self.processor_names
         )
-        if self.step_evaluator:
-            self.step_evaluator.after_step(self.loss, self.params)
+        self.append_step_event()
 
-    def float_params(self):
-        return float_params(self.params)
+    def append_step_event(self):
+        self.step_events.append(
+            TrainStepEvent(self.processor_names, self.params, self.loss)
+        )
+
+    def get_events(self):
+        return self.step_events
+
+    def get_events_serialized(self):
+        return [event.serialize() for event in self.step_events]
+
+    def clear_events(self):
+        self.step_events.clear()
 
 
 def evaluate(carry_estimated, carry_target, processor, X):
