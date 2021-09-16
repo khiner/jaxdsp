@@ -3,7 +3,6 @@ import asyncio
 import json
 import logging
 import ssl
-import time
 import uuid
 from collections import deque
 
@@ -31,7 +30,7 @@ from jaxdsp.processors import (
 )
 from jaxdsp.training import IterativeTrainer
 from jaxdsp import tracer
-from jaxdsp.tracer import trace
+from jaxdsp.tracer import trace, time_ms
 
 ALL_PROCESSORS = [allpass_filter, clip, delay_line, biquad_lowpass, sine_wave, freeverb]
 # Training frame pairs are queued up for each client, limited to this cap:
@@ -324,7 +323,7 @@ async def register_websocket(websocket, path):
                     X, Y = train_pair
                     X_left = X[0]  # TODO support stereo in
                     track.trainer.step(X_left, Y)
-                epoch_millis = time.time_ns() // 1_000_000
+                epoch_millis = time_ms()
                 heartbeat["trainer"] = {
                     "params": [[epoch_millis, track.trainer.float_params()]],
                     "loss": [[epoch_millis, float(track.trainer.loss)]],

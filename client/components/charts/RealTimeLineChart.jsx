@@ -13,6 +13,7 @@ const allSeries = []
 // Valid examples:
 //    <RealTimeChart value={{ loss: 0.01 }} showKeys={['loss']} />
 //    <RealTimeChart value={{ process_time: [0.01, 0.2], train_time: 0.21 }} hideKeys={['loss']} />
+// TODO show points for start/end of contiguous ranges: https://nivo.rocks/storybook/?path=/story/line--custom-line-style
 export default function RealTimeChart({ value, showKeys = [], hideKeys = [] }) {
   if (value !== undefined) {
     Object.entries(value).forEach(([key, value]) => {
