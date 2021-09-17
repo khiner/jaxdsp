@@ -13,6 +13,8 @@ import RealtimeController from './RealtimeController'
 
 const { Title } = Typography
 
+const serverUrl = 'http://localhost:8080'
+
 let peerConnection = null
 let dataChannel = null
 
@@ -23,6 +25,23 @@ const AUDIO_INPUT_SOURCES = {
   testSample: {
     label: 'Test sample',
   },
+}
+
+const get = async (path, clientUid) => {
+  const response = await fetch(`${serverUrl}/${path}/${clientUid}`, {
+    headers: { 'Content-Type': 'application/json' },
+    method: 'GET',
+  })
+  return response.json()
+}
+
+const post = async (path, clientUid, postBody = undefined) => {
+  const response = await fetch(`${serverUrl}/${path}/${clientUid}`, {
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    ...(postBody ? { body: JSON.stringify(postBody) } : {}),
+  })
+  return response.json()
 }
 
 export default function JaxDspClient({ testSample }) {
@@ -40,12 +59,12 @@ export default function JaxDspClient({ testSample }) {
 
   const audioRef = useRef(null)
 
-  const sendProcessors = () => dataChannel?.send(JSON.stringify({ processors: selectedProcessors }))
-  const sendOptimizer = () => {
+  const sendProcessors = async () => post('state', clientUid, { processors: selectedProcessors })
+  const sendOptimizer = async () => {
     setOptimizer(editingOptimizer)
-    return dataChannel?.send(JSON.stringify({ optimizer: editingOptimizer }))
+    return post('state', clientUid, { optimizer: editingOptimizer })
   }
-  const sendLossOptions = () => dataChannel?.send(JSON.stringify({ loss_options: lossOptions }))
+  const sendLossOptions = async () => post('state', clientUid, { loss_options: lossOptions })
 
   const onAudioStreamError = (displayMessage, error) => {
     setIsStreamingAudio(false)
@@ -54,8 +73,26 @@ export default function JaxDspClient({ testSample }) {
     console.error(errorMessage)
   }
 
+  const getState = async () => {
+    const response = await get('state', clientUid)
+    const { processor_definitions, processors, optimizer_definitions, optimizer, loss_options } = response
+
+    if (processor_definitions) setProcessorDefinitions(processor_definitions)
+    if (processors) setSelectedProcessors(processors)
+    if (optimizer_definitions) setOptimizers(optimizer_definitions)
+    if (optimizer) {
+      setEditingOptimizer(optimizer)
+      setOptimizer(optimizer)
+    }
+    if (loss_options) setLossOptions(loss_options)
+  }
+
   useEffect(() => {
-    sendProcessors()
+    if (clientUid) getState()
+  }, [clientUid])
+
+  useEffect(() => {
+    if (clientUid) sendProcessors()
   }, [selectedProcessors])
 
   useEffect(() => {
@@ -75,22 +112,10 @@ export default function JaxDspClient({ testSample }) {
             break
         }
       }
-      peerConnection.addEventListener('track', event => (audioRef.current.srcObject = event.streams[0]))
+      peerConnection.addEventListener('track', async event => {
+        audioRef.current.srcObject = event.streams[0]
+      })
       dataChannel = peerConnection.createDataChannel('jaxdsp-client', { ordered: true })
-      dataChannel.onopen = () => dataChannel.send('get_state')
-      dataChannel.onmessage = event => {
-        const message = JSON.parse(event.data)
-        const { processor_definitions, processors, optimizer_definitions, optimizer, loss_options } = message
-
-        if (processor_definitions) setProcessorDefinitions(processor_definitions)
-        if (processors) setSelectedProcessors(processors)
-        if (optimizer_definitions) setOptimizers(optimizer_definitions)
-        if (optimizer) {
-          setEditingOptimizer(optimizer)
-          setOptimizer(optimizer)
-        }
-        if (loss_options) setLossOptions(loss_options)
-      }
     }
 
     const closePeerConnection = () => {
@@ -117,7 +142,7 @@ export default function JaxDspClient({ testSample }) {
       } else {
         peerConnection.addTrack(track)
         try {
-          const clientUid = await negotiatePeerConnection(peerConnection)
+          const clientUid = await negotiatePeerConnection(peerConnection, `${serverUrl}/offer`)
           setClientUid(clientUid)
         } catch (error) {
           onAudioStreamError('Failed to negotiate RTC peer connection', error)
@@ -162,14 +187,14 @@ export default function JaxDspClient({ testSample }) {
     return () => closePeerConnection()
   }, [isStreamingAudio, audioInputSourceLabel])
 
-  const startEstimatingParams = () => {
+  const startEstimatingParams = async () => {
+    await post('start_estimating', clientUid)
     setIsEstimatingParams(true)
-    if (dataChannel) dataChannel.send('start_estimating_params')
   }
 
-  const stopEstimatingParams = () => {
+  const stopEstimatingParams = async () => {
+    await post('stop_estimating_params', clientUid)
     setIsEstimatingParams(false)
-    if (dataChannel) dataChannel.send('stop_estimating_params')
   }
 
   return (

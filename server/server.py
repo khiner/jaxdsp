@@ -46,14 +46,14 @@ int_max = np.iinfo(np.int16).max
 class AudioTransformTrack(MediaStreamTrack):
     kind = "audio"
 
-    def __init__(self, track, train_stack):
+    def __init__(self):
         super().__init__()
-        self.track = track
+        self.track = None
         self.params, self.state = None, None
         self.processor_names = None
-        self.is_estimating_params = False
+        self.is_estimating = False
         self.trainer = IterativeTrainer()
-        self.train_stack = train_stack
+        self.train_stack = deque([], MAX_TRAIN_FRAMES_PER_CLIENT)
         self.previous_frame = None
 
         # Accumulate `packets_per_buffer` packets before processing them all at once,
@@ -100,11 +100,11 @@ class AudioTransformTrack(MediaStreamTrack):
     def set_optimizer_options(self, optimizer_options):
         self.trainer.set_optimizer_options(optimizer_options)
 
-    def start_estimating_params(self):
-        self.is_estimating_params = True
+    def start_estimating(self):
+        self.is_estimating = True
 
-    def stop_estimating_params(self):
-        self.is_estimating_params = False
+    def stop_estimating(self):
+        self.is_estimating = False
 
     def update_sample_rate_state(self):
         if self.sample_rate is not None:
@@ -151,7 +151,7 @@ class AudioTransformTrack(MediaStreamTrack):
             Y = self.process(X, frame.sample_rate)
             self.processed_packets = np.split(Y, self.packets_per_buffer, axis=1)
             self.accumulated_packets = []
-            if self.is_estimating_params:
+            if self.is_estimating:
                 self.train_stack.append([X, Y])
 
         if len(self.processed_packets) > 0:
@@ -172,6 +172,18 @@ class AudioTransformTrack(MediaStreamTrack):
         return frame
 
 
+def get_track_for_client_uid(client_uid):
+    track = track_for_client_uid.get(client_uid)
+    if not track:
+        raise Exception(f"No track found for client UID {client_uid}")
+
+    return track
+
+
+def get_track_for_request(request):
+    return get_track_for_client_uid(request.match_info.get("client_uid"))
+
+
 async def index(request):
     return web.Response(
         content_type="text/plain",
@@ -181,76 +193,16 @@ async def index(request):
 
 async def offer(request):
     client_uid = str(uuid.uuid4())
-    audio_transform_track = AudioTransformTrack(
-        None, deque([], MAX_TRAIN_FRAMES_PER_CLIENT)
-    )
+    audio_transform_track = AudioTransformTrack()
 
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
     peer_connection = RTCPeerConnection()
     peer_connections.add(peer_connection)
-
-    print(f"pcs: {len(peer_connections)}")
     peer_connection_id = "PeerConnection(%s)" % uuid.uuid4()
 
     def log_info(msg, *args):
         logger.info(peer_connection_id + " " + msg, *args)
-
-    log_info("Created for %s", request.remote)
-
-    @peer_connection.on("datachannel")
-    def on_datachannel(channel):
-        @channel.on("message")
-        def on_message(message):
-            if message == "get_state":
-                channel.send(
-                    json.dumps(
-                        {
-                            "processor_definitions": [
-                                serialize_processor(processor)
-                                for processor in ALL_PROCESSORS
-                            ],
-                            "optimizer_definitions": [
-                                create_optimizer(definition.NAME).serialize()
-                                for definition in all_optimizer_definitions
-                            ],
-                            "optimizer": audio_transform_track.trainer.optimizer.serialize(),
-                            "processors": [
-                                serialize_processor(
-                                    processor_by_name[processor_name], processor_params
-                                )
-                                for processor_name, processor_params in zip(
-                                    audio_transform_track.trainer.processor_names,
-                                    audio_transform_track.trainer.params,
-                                )
-                            ]
-                            if audio_transform_track.trainer.processor_names
-                            and audio_transform_track.trainer.params
-                            else None,
-                            "loss_options": audio_transform_track.trainer.loss_options.serialize(),
-                        }
-                    )
-                )
-            elif message == "start_estimating_params":
-                audio_transform_track.start_estimating_params()
-            elif message == "stop_estimating_params":
-                audio_transform_track.stop_estimating_params()
-            else:
-                message_dict = json.loads(message)
-                if "processors" in message_dict:
-                    audio_transform_track.set_graph_config(message_dict["processors"])
-                if "loss_options" in message_dict:
-                    loss_options = message_dict["loss_options"]
-                    audio_transform_track.set_loss_options(
-                        LossOptions(
-                            weights=loss_options.get("weights"),
-                            distance_types=loss_options.get("distance_types"),
-                            fft_sizes=loss_options.get("fft_sizes"),
-                        )
-                    )
-                optimizer_options = message_dict.get("optimizer")
-                if optimizer_options:
-                    audio_transform_track.set_optimizer_options(optimizer_options)
 
     @peer_connection.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
@@ -295,6 +247,65 @@ async def offer(request):
     )
 
 
+async def get_state(request):
+    track = get_track_for_request(request)
+    return web.Response(
+        content_type="application/json",
+        text=json.dumps(
+            {
+                "processor_definitions": [
+                    serialize_processor(processor) for processor in ALL_PROCESSORS
+                ],
+                "optimizer_definitions": [
+                    create_optimizer(definition.NAME).serialize()
+                    for definition in all_optimizer_definitions
+                ],
+                "optimizer": track.trainer.optimizer.serialize(),
+                "processors": [
+                    serialize_processor(
+                        processor_by_name[processor_name], processor_params
+                    )
+                    for processor_name, processor_params in zip(
+                        track.trainer.processor_names,
+                        track.trainer.params,
+                    )
+                ]
+                if track.trainer.processor_names and track.trainer.params
+                else None,
+                "loss_options": track.trainer.loss_options.serialize(),
+            }
+        ),
+    )
+
+
+async def set_state(request):
+    track = get_track_for_request(request)
+    state = await request.json()
+    if "processors" in state:
+        track.set_graph_config(state["processors"])
+    if "loss_options" in state:
+        loss_options = state["loss_options"]
+        track.set_loss_options(
+            LossOptions(
+                weights=loss_options.get("weights"),
+                distance_types=loss_options.get("distance_types"),
+                fft_sizes=loss_options.get("fft_sizes"),
+            )
+        )
+    if "optimizer" in state:
+        track.set_optimizer_options(state["optimizer"])
+
+
+async def start_estimating(request):
+    track = get_track_for_request(request)
+    track.start_estimating()
+
+
+async def stop_estimating(request):
+    track = get_track_for_request(request)
+    track.stop_estimating()
+
+
 async def on_shutdown(app):
     # close peer connections
     coros = [pc.close() for pc in peer_connections]
@@ -309,15 +320,12 @@ async def register_websocket(websocket, path):
         message_object = json.loads(message)
         client_uid = message_object.get("client_uid")
 
-    track = track_for_client_uid.get(client_uid)
-    if not track:
-        print(f"No track cached for client_uid {client_uid}")
-
+    track = get_track_for_client_uid(client_uid)
     train_stack = track.train_stack
     while True:
         try:
             heartbeat = {}
-            if track.is_estimating_params and track.trainer:
+            if track.is_estimating and track.trainer:
                 if len(train_stack) > 0:
                     train_pair = train_stack.pop()
                     X, Y = train_pair
@@ -357,8 +365,18 @@ if __name__ == "__main__":
 
     app = web.Application()
     app.on_shutdown.append(on_shutdown)
-    app.router.add_get("/", index)
-    app.router.add_post("/offer", offer)
+    router = app.router
+    router.add_routes(
+        [
+            web.get("/", index),
+            web.post("/offer", offer),
+            web.post("/start_estimating/{client_uid}", start_estimating),
+            web.post("/stop_estimating/{client_uid}", stop_estimating),
+            web.post("/state/{client_uid}", set_state),
+            web.get("/state/{client_uid}", get_state),
+        ]
+    )
+
     cors = aiohttp_cors.setup(
         app,
         defaults={
@@ -368,7 +386,6 @@ if __name__ == "__main__":
             )
         },
     )
-    # Configure CORS on all routes.
-    for route in list(app.router.routes()):
+    for route in list(router.routes()):
         cors.add(route)
     web.run_app(app, access_log=None, port=args.port, ssl_context=ssl_context)

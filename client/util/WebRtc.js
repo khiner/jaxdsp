@@ -29,7 +29,6 @@ export const sdpFilterCodec = (kind, codec, realSdp) => {
 
   const skipRegex = 'a=(fmtp|rtcp-fb|rtpmap):([0-9]+)'
   let sdp = ''
-
   isKind = false
   lines.forEach(line => {
     if (line.startsWith(`m=${kind} `)) {
@@ -47,7 +46,7 @@ export const sdpFilterCodec = (kind, codec, realSdp) => {
   return sdp
 }
 
-export const negotiatePeerConnection = async peerConnection => {
+export const negotiatePeerConnection = async (peerConnection, offerUrl) => {
   const offer = await peerConnection.createOffer()
   // TODO somewhere in the chain from here to the server,
   // the stream is getting mixed to mono and split back into identical
@@ -77,6 +76,7 @@ export const negotiatePeerConnection = async peerConnection => {
     'opus/48000/2',
     peerConnection.localDescription.sdp
   )
+
   // Currently 20ms at 44kHz results in 960-sample packets (per-channel).
   // This limits the max power-of-2 fft size to 512, which limits the lowest resolved frequency to 44100 / 512 = 87Hz
   // It would be nice (maybe even crucial?) to increase the packet size from 20ms to 40ms, to allow for >= 1024 sample fft sizes.
@@ -87,7 +87,7 @@ export const negotiatePeerConnection = async peerConnection => {
   // introducing P - 1 packets of processing delay. (See `server.py::AudioTransformTrack::__init__` for more details.)
   // peerConnection.localDescription.sdp = peerConnection.localDescription.sdp.replace(/minptime=\d+/, 'minptime=40')
   // peerConnection.localDescription.sdp += 'a=ptime:40\n';
-  const response = await fetch('http://localhost:8080/offer', {
+  const response = await fetch(offerUrl, {
     body: JSON.stringify({
       sdp: peerConnection.localDescription.sdp,
       type: peerConnection.localDescription.type,
