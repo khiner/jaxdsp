@@ -35,14 +35,12 @@ const get = async (path, clientUid) => {
   return response.json()
 }
 
-const post = async (path, clientUid, postBody = undefined) => {
-  const response = await fetch(`${serverUrl}/${path}/${clientUid}`, {
+const post = async (path, clientUid, postBody = undefined) =>
+  await fetch(`${serverUrl}/${path}/${clientUid}`, {
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
     ...(postBody ? { body: JSON.stringify(postBody) } : {}),
   })
-  return response.json()
-}
 
 export default function JaxDspClient({ testSample }) {
   const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.testSample.label)
@@ -59,12 +57,16 @@ export default function JaxDspClient({ testSample }) {
 
   const audioRef = useRef(null)
 
-  const sendProcessors = async () => post('state', clientUid, { processors: selectedProcessors })
+  const sendProcessors = async () => {
+    await post('state', clientUid, { processors: selectedProcessors })
+  }
   const sendOptimizer = async () => {
     setOptimizer(editingOptimizer)
-    return post('state', clientUid, { optimizer: editingOptimizer })
+    await post('state', clientUid, { optimizer: editingOptimizer })
   }
-  const sendLossOptions = async () => post('state', clientUid, { loss_options: lossOptions })
+  const sendLossOptions = async () => {
+    await post('state', clientUid, { loss_options: lossOptions })
+  }
 
   const onAudioStreamError = (displayMessage, error) => {
     setIsStreamingAudio(false)
@@ -219,7 +221,7 @@ export default function JaxDspClient({ testSample }) {
           processorDefinitions={processorDefinitions}
           selectedProcessors={selectedProcessors}
           setSelectedProcessors={setSelectedProcessors}
-          setAudioStreamErrorMessage={setAudioStreamErrorMessage}
+          onError={setAudioStreamErrorMessage}
         />
       )}
       {isEstimatingParams && (

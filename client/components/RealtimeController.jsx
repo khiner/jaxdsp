@@ -13,7 +13,7 @@ export default function ({
   processorDefinitions,
   selectedProcessors,
   setSelectedProcessors,
-  setAudioStreamErrorMessage,
+  onError,
 }) {
   const [estimatedParams, setEstimatedParams] = useState(null)
   const [trainChartData, setTrainChartData] = useState([])
@@ -39,11 +39,11 @@ export default function ({
     ws.onclose = event => {
       const { wasClean, code } = event
       if (!wasClean) {
-        setAudioStreamErrorMessage(`WebSocket unexpectedly closed with code ${code}`)
+        onError(`WebSocket unexpectedly closed with code ${code}`)
       }
     }
     ws.onerror = () => {
-      setAudioStreamErrorMessage('WebSocket connection error')
+      onError('WebSocket connection error')
     }
     return () => ws.close()
   }, [clientUid])

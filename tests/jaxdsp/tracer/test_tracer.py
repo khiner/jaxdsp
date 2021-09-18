@@ -17,10 +17,10 @@ events = tracer.find_events("subtract")
 assert len(events) == 3
 for event in events:
     print(event.serialize())
-    assert type(event.finish_time_ms) == int
-    assert len(str(event.finish_time_ms)) == 13
-    assert type(event.execution_duration_ms) == float
-    assert event.execution_duration_ms < 1  # sanity check
+    assert type(event.end_time_ms) == int
+    assert len(str(event.end_time_ms)) == 13
+    assert type(event.duration_ms) == float
+    assert event.duration_ms < 1  # sanity check
 
 assert type(tracer.get_events()) == list
 assert len(tracer.get_events()) == 3

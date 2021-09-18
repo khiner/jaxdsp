@@ -14,14 +14,22 @@ MAX_IN_MEMORY_SERIES_LENGTH = 100
 
 
 class TraceEvent:
-    def __init__(self, function, finish_time_ms, execution_duration_ms, label=None):
+    def __init__(
+        self,
+        function,
+        start_time_ms=None,
+        end_time_ms=None,
+        duration_ms=None,
+        label=None,
+    ):
         self.function_name = function.__name__
         self.label = label or self.function_name
-        self.finish_time_ms = finish_time_ms
-        self.execution_duration_ms = execution_duration_ms
+        self.start_time_ms = start_time_ms
+        self.end_time_ms = end_time_ms
+        self.duration_ms = duration_ms
 
     def serialize(self):
-        return self.__dict__
+        return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
 trace_events = deque(maxlen=MAX_IN_MEMORY_SERIES_LENGTH)
@@ -53,13 +61,20 @@ def trace(f_py=None, label=None):
     def decorator(function):
         @contextmanager
         def wrapper(inner_function):
-            start_time = time.perf_counter()
+            start_time_ms = time.perf_counter()
+            trace_events.append(
+                TraceEvent(
+                    inner_function,
+                    start_time_ms=start_time_ms,
+                    label=label,
+                )
+            )
             yield
             trace_events.append(
                 TraceEvent(
                     inner_function,
-                    finish_time_ms=time_ms(),
-                    execution_duration_ms=(time.perf_counter() - start_time) * 1_000,
+                    end_time_ms=time_ms(),
+                    duration_ms=(time.perf_counter() - start_time_ms) * 1_000,
                     label=label,
                 )
             )

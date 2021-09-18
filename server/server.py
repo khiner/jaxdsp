@@ -138,7 +138,7 @@ class AudioTransformTrack(MediaStreamTrack):
         assert num_channels == 2, "Processing assumes frames have 2 channels"
 
         X_interleaved = (
-            np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32) / int_max
+                np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32) / int_max
         )
         X_deinterleaved = [
             X_interleaved[channel_num::num_channels]
@@ -295,15 +295,19 @@ async def set_state(request):
     if "optimizer" in state:
         track.set_optimizer_options(state["optimizer"])
 
+    return web.Response(status=201)
+
 
 async def start_estimating(request):
     track = get_track_for_request(request)
     track.start_estimating()
+    return web.Response(status=201)
 
 
 async def stop_estimating(request):
     track = get_track_for_request(request)
     track.stop_estimating()
+    return web.Response(status=201)
 
 
 async def on_shutdown(app):
