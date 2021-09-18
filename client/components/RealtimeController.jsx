@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import ProcessorGraphBuilder from './ProcessorGraphBuilder'
 import TimeSeriesChart from './charts/TimeSeriesChart'
-import TrainChartEventAccumulator from '../chart_event_accumulators/TrainChartEventAccumulator'
-import TraceChartEventAccumulator from '../chart_event_accumulators/TraceChartEventAccumulator'
+import TrainTimeSeriesAccumulator from '../chart_event_accumulators/TrainTimeSeriesAccumulator'
 import { last } from '../util/array'
+import FlameChart from './charts/FlameChart'
+import TraceFlameChartAccumulator from '../chart_event_accumulators/TraceFlameChartAccumulator'
 
-const trainChartEventAccumulator = new TrainChartEventAccumulator()
-const traceChartEventAccumulator = new TraceChartEventAccumulator()
+const trainChartEventAccumulator = new TrainTimeSeriesAccumulator()
+// const traceChartEventAccumulator = new TraceTimeSeriesAccumulator()
+const traceChartEventAccumulator = new TraceFlameChartAccumulator()
 
 export default function ({
   clientUid,
@@ -58,8 +60,9 @@ export default function ({
           onChange={setSelectedProcessors}
         />
       )}
-      {traceChartData && <TimeSeriesChart data={traceChartData} />}
-      {trainChartData && <TimeSeriesChart data={trainChartData} />}
+      {/*{traceChartData && <TimeSeriesChart data={traceChartData} yAxisLabel="Execution duration (ms)" />}*/}
+      {traceChartData && <FlameChart data={traceChartData} />}
+      {trainChartData && <TimeSeriesChart data={trainChartData} yAxisLabel="Loss" />}
     </div>
   )
 }

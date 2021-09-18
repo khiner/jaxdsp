@@ -1,6 +1,6 @@
 import ChartEventAccumulator from './ChartEventAccumulator'
 
-export default class TraceChartEventAccumulator extends ChartEventAccumulator {
+export default class TraceTimeSeriesAccumulator extends ChartEventAccumulator {
   doAccumulate(events = []) {
     events
       .filter(({ duration_ms }) => duration_ms)

@@ -7,9 +7,9 @@ const formatMinutesSeconds = timeFormat('%M:%S')
 // `data` is a list of objects as expected by [nivo line charts](https://nivo.rocks/line/),
 // with `x` values assumed to be milliseconds since epoch.
 // Example:
-//    <TimeSeriesChart data={[{ id: 0.01, label: 'Test', data: [{ x: 1631772930783, y: loss: 0.01 }]}]} />
+//    <TimeSeriesChart data={[{ id: 'test', label: 'Test', data: [{ x: 1631772930783, y: 0.01 }]}]} />
 // TODO show points for start/end of contiguous ranges: https://nivo.rocks/storybook/?path=/story/line--custom-line-style
-function TimeSeriesChart({ data }) {
+function TimeSeriesChart({ data, yAxisLabel }) {
   if (!data?.length) return null
 
   const allPoints = data.flatMap(({ data }) => data)
@@ -27,7 +27,7 @@ function TimeSeriesChart({ data }) {
       yScale={{ type: 'linear', min: 0, max: maxY * 1.1 }}
       axisLeft={{
         orient: 'left',
-        legend: 'Execution duration (ms)',
+        legend: yAxisLabel,
         legendOffset: -60,
         legendPosition: 'middle',
         format: value => Number(value).toFixed(maxY < 0.01 ? 4 : maxY < 0.1 ? 3 : maxY < 1 ? 2 : 1),
@@ -38,18 +38,22 @@ function TimeSeriesChart({ data }) {
       curve="monotoneX"
       animate={false}
       isInteractive={false}
-      legends={[
-        {
-          anchor: 'bottom',
-          direction: 'row',
-          itemsSpacing: 0,
-          translateY: 50,
-          itemWidth: 120,
-          itemHeight: 20,
-          symbolSize: 10,
-          symbolShape: 'circle',
-        },
-      ]}
+      legends={
+        data.length <= 1 && yAxisLabel
+          ? []
+          : [
+              {
+                anchor: 'bottom',
+                direction: 'row',
+                itemsSpacing: 0,
+                translateY: 50,
+                itemWidth: 120,
+                itemHeight: 20,
+                symbolSize: 10,
+                symbolShape: 'circle',
+              },
+            ]
+      }
       layers={['grid', 'lines', 'points', 'axes', 'legends']}
     />
   )

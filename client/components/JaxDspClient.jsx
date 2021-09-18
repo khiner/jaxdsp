@@ -195,7 +195,7 @@ export default function JaxDspClient({ testSample }) {
   }
 
   const stopEstimatingParams = async () => {
-    await post('stop_estimating_params', clientUid)
+    await post('stop_estimating', clientUid)
     setIsEstimatingParams(false)
   }
 

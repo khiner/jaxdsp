@@ -65,7 +65,7 @@ def trace(f_py=None, label=None):
             trace_events.append(
                 TraceEvent(
                     inner_function,
-                    start_time_ms=start_time_ms,
+                    start_time_ms=time_ms(),
                     label=label,
                 )
             )

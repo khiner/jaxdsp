@@ -1,9 +1,9 @@
 import ChartEventAccumulator from './ChartEventAccumulator'
 
-export default class TrainChartEventAccumulator extends ChartEventAccumulator {
+export default class TrainTimeSeriesAccumulator extends ChartEventAccumulator {
   constructor() {
     super()
-    this.data = [{ id: 'loss', label: 'Loss', data: [] }]
+    this.data = [{ id: 'loss', label: 'Loss', data: [], permanent: true }]
   }
 
   doAccumulate(events = []) {
