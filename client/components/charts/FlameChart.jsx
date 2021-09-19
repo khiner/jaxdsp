@@ -9,7 +9,7 @@ const percent = ratio => `${100 * ratio}%`
 //    />
 // Note that `duration_ms` could be different than end_time_ms - start_time_ms, since it's
 // calculated using Python's more accurate `time.perf_counter`.
-function FlameChart({ data }) {
+export default React.memo(({ data }) => {
   if (!data?.length) return null
 
   const [hoveringDatumId, setHoveringDatumId] = useState(undefined)
@@ -51,6 +51,4 @@ function FlameChart({ data }) {
       </svg>
     </div>
   )
-}
-
-export default React.memo(FlameChart)
+})

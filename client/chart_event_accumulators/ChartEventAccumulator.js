@@ -1,7 +1,7 @@
 import { last } from '../util/array'
 import { getChartColor } from '../util/colors'
 
-const DEFAULT_EXPIRATION_MILLIS = 2 * 1_000
+const DEFAULT_EXPIRATION_MILLIS = 10 * 1_000
 export default class ChartEventAccumulator {
   constructor() {
     this.data = []

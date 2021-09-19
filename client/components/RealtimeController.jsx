@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import ProcessorGraphBuilder from './ProcessorGraphBuilder'
-import TimeSeriesChart from './charts/TimeSeriesChart'
 import TrainTimeSeriesAccumulator from '../chart_event_accumulators/TrainTimeSeriesAccumulator'
 import { last } from '../util/array'
 import FlameChart from './charts/FlameChart'
 import TraceFlameChartAccumulator from '../chart_event_accumulators/TraceFlameChartAccumulator'
+import TimeSeriesChartWebGl from './charts/TimeSeriesChartWebGl'
 
 const trainChartEventAccumulator = new TrainTimeSeriesAccumulator()
 // const traceChartEventAccumulator = new TraceTimeSeriesAccumulator()
@@ -62,7 +62,7 @@ export default function ({
       )}
       {/*{traceChartData && <TimeSeriesChart data={traceChartData} yAxisLabel="Execution duration (ms)" />}*/}
       {traceChartData && <FlameChart data={traceChartData} />}
-      {trainChartData && <TimeSeriesChart data={trainChartData} yAxisLabel="Loss" />}
+      {trainChartData && <TimeSeriesChartWebGl data={trainChartData} />}
     </div>
   )
 }
