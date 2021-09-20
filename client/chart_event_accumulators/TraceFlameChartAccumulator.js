@@ -48,9 +48,9 @@ export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
       if (last(series.data)?.start_time_ms === start_time_ms) series.data.pop()
 
       series.data.push({ id: `${series.id}-${start_time_ms}`, start_time_ms, end_time_ms, duration_ms })
-      this.data.sort(
-        (seriesA, seriesB) => cumulativeSeriesDuration(seriesA) - cumulativeSeriesDuration(seriesB)
-      )
     })
+    this.allSeries().sort(
+      (seriesA, seriesB) => cumulativeSeriesDuration(seriesA) - cumulativeSeriesDuration(seriesB)
+    )
   }
 }

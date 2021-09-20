@@ -18,8 +18,8 @@ export default function ({
   onError,
 }) {
   const [estimatedParams, setEstimatedParams] = useState(null)
-  const [trainChartData, setTrainChartData] = useState([])
-  const [traceChartData, setTraceChartData] = useState([])
+  const [trainChartData, setTrainChartData] = useState({})
+  const [traceChartData, setTraceChartData] = useState({})
 
   useEffect(() => {
     if (clientUid === null) return
@@ -33,8 +33,8 @@ export default function ({
       const heartbeat = JSON.parse(event.data)
       const { train_events, trace_events } = heartbeat
 
-      setTraceChartData([...traceChartEventAccumulator.accumulate(trace_events)])
-      setTrainChartData([...trainChartEventAccumulator.accumulate(train_events)])
+      setTraceChartData({ ...traceChartEventAccumulator.accumulate(trace_events) })
+      setTrainChartData({ ...trainChartEventAccumulator.accumulate(train_events) })
       const lastEstimatedParams = last(train_events)?.params
       if (lastEstimatedParams) setEstimatedParams(lastEstimatedParams)
     }
