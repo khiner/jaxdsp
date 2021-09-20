@@ -7,10 +7,10 @@ const percent = ratio => `${100 * ratio}%`
 //    <FlameChart data={
 //      xDomain: [1631772930783, 1631772941650],
 //      data: [
-//        { id: 'test', label: 'Test', data: [{ start_time_ms: 1631772930783, end_time_ms: 1631772941650  }]}
+//        { id: 'test', label: 'Test', data: [{ x1: 1631772930783, x2: 1631772941650  }]}
 //      ]
 //    }/>
-// Note that `duration_ms` could be different than end_time_ms - start_time_ms, since it's
+// Note that `duration_ms` could be different than x1 - x2, since it's
 // calculated using Python's more accurate `time.perf_counter`.
 export default React.memo(({ data }) => {
   const [hoveringDatumId, setHoveringDatumId] = useState(undefined)
@@ -35,7 +35,7 @@ export default React.memo(({ data }) => {
       </div>
       <svg width="50%" height={height}>
         {allSeries.map(({ data, color }, seriesIndex) =>
-          data.map(({ id, start_time_ms, end_time_ms }) => (
+          data.map(({ id, x1, x2 }) => (
             <rect
               key={id}
               onMouseOver={() => setHoveringDatumId(id)}
@@ -43,9 +43,9 @@ export default React.memo(({ data }) => {
                 if (hoveringDatumId === id) setHoveringDatumId(undefined)
               }}
               fill={hoveringDatumId === id ? '#00FF00' : color}
-              x={percent(xScale(start_time_ms))}
+              x={percent(xScale(x1))}
               y={percent(seriesIndex / numSeries)}
-              width={percent(Math.max(xScale(end_time_ms) - xScale(start_time_ms), 0.002))}
+              width={percent(Math.max(xScale(x2) - xScale(x1), 0.002))}
               height={percent(1.0 / numSeries)}
             />
           ))

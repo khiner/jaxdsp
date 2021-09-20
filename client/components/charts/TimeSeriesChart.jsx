@@ -1,8 +1,9 @@
 import React from 'react'
 import { Canvas } from '@react-three/fiber'
-import Line from './webgl/Line'
+import LineSeries from './series/LineSeries'
 import { timeFormat } from 'd3-time-format'
 import { scaleLinear } from 'd3-scale'
+import BoxSeries from './series/BoxSeries'
 
 const formatMinutesSeconds = timeFormat('%M:%S')
 
@@ -59,7 +60,10 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       {/*  </g>*/}
       {/*</svg>*/}
       {allSeries.map(series => (
-        <Line key={series.id} series={series} />
+        <LineSeries key={series.id} series={series} />
+      ))}
+      {allSeries.map(series => (
+        <BoxSeries key={series.id} series={series} />
       ))}
     </Canvas>
   )

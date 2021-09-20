@@ -1,12 +1,27 @@
 import { last } from '../util/array'
 import { getChartColor } from '../util/colors'
+import { min, max, p25, median, p75 } from '../util/stats'
 
 const DEFAULT_EXPIRATION_MILLIS = 10 * 1_000
 
+const getMinTimeMillis = datum => {
+  if (!datum) return 0
+  const { x1, x } = datum
+  return x1 || x
+}
+
+const getMaxTimeMillis = datum => {
+  if (!datum) return 0
+  const { x2, x } = datum
+  return x2 || x
+}
+
 export default class ChartEventAccumulator {
-  constructor() {
+  // If `summarize` is true, for each series, accumulate statistics for box plots into an additional `summaryData` field
+  constructor(summarize = false) {
     this.data = { xDomain: [0, 0], yDomain: [0, 0], data: [] }
     this.allSeenSeriesIds = [] // Used to maintain color associations for series IDs that are removed and come back
+    this.summarize = summarize
   }
 
   allSeries() {
@@ -29,21 +44,47 @@ export default class ChartEventAccumulator {
   }
 
   // Note: be sure to call `expireData` and `refreshDomain` after pushing all data!
-  push(seriesId, x, y) {
+  push(seriesId, datum) {
     const series = this.findOrAddSeries(seriesId)
-    series.data.push({ x, y })
-  }
+    if (getMinTimeMillis(last(series.data)) === getMinTimeMillis(datum)) series.data.pop()
+    series.data.push(datum)
 
-  getMinTimeMillis(datum) {
-    if (!datum) return 0
-    const { start_time_ms, x } = datum
-    return start_time_ms || x
-  }
+    if (this.summarize) {
+      if (series.summaryData === undefined) series.summaryData = []
+      const lastSummaryDatum = last(series.summaryData)
+      let active
+      if (lastSummaryDatum?.values !== undefined) {
+        active = lastSummaryDatum
+      } else {
+        active = {
+          values: [], // when full, this will be deleted
+          x1: getMinTimeMillis(datum),
+          x2: getMaxTimeMillis(datum),
+          count: 0,
+          min: 0.0,
+          p25: 0.0,
+          median: 0.0,
+          p75: 0.0,
+          max: 0.0,
+        }
+        series.summaryData.push(active)
+      }
 
-  getMaxTimeMillis(datum) {
-    if (!datum) return 0
-    const { end_time_ms, x } = datum
-    return end_time_ms || x
+      const { values } = active
+      values.push(datum.y)
+      active.x2 = getMaxTimeMillis(datum)
+      active.min = min(values)
+      active.p25 = p25(values)
+      active.median = median(values)
+      active.p75 = p75(values)
+      active.max = max(values)
+      active.count = values.length
+
+      if (values.length === 10) {
+        active.numValues = values.length
+        delete active.values
+      }
+    }
   }
 
   expireData(expirationDurationMillis) {
@@ -51,7 +92,7 @@ export default class ChartEventAccumulator {
     const allSeries = this.allSeries()
     allSeries.forEach(({ data }) => {
       // Assuming events come in time-order
-      while (this.getMinTimeMillis(data[0]) && this.getMinTimeMillis(data[0]) < expirationMillis) {
+      while (getMinTimeMillis(data[0]) && getMinTimeMillis(data[0]) < expirationMillis) {
         data.shift()
       }
     })
@@ -64,20 +105,20 @@ export default class ChartEventAccumulator {
     allSeries.forEach(series => {
       const { data } = series
       series.xDomain = [
-        Math.min(...data.map(datum => this.getMinTimeMillis(datum))),
-        Math.max(...data.map(datum => this.getMaxTimeMillis(datum))),
+        min(data.map(datum => getMinTimeMillis(datum))),
+        max(data.map(datum => getMaxTimeMillis(datum))),
       ]
       const ys = data.map(({ y }) => y)
-      series.yDomain = [Math.min(...ys), Math.max(...ys)]
+      series.yDomain = [min(ys), max(ys)]
     })
     // Cross-series domains
     this.data.xDomain = [
-      Math.min(...allSeries.map(({ xDomain }) => xDomain[0])),
-      Math.max(...allSeries.map(({ xDomain }) => xDomain[1])),
+      min(allSeries.map(({ xDomain }) => xDomain[0])),
+      max(allSeries.map(({ xDomain }) => xDomain[1])),
     ]
     this.data.yDomain = [
-      Math.min(...allSeries.map(({ yDomain }) => yDomain[0])),
-      Math.max(...allSeries.map(({ yDomain }) => yDomain[1])),
+      min(allSeries.map(({ yDomain }) => yDomain[0])),
+      max(allSeries.map(({ yDomain }) => yDomain[1])),
     ]
   }
 

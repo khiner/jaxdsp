@@ -4,11 +4,12 @@ import TrainTimeSeriesAccumulator from '../chart_event_accumulators/TrainTimeSer
 import { last } from '../util/array'
 import FlameChart from './charts/FlameChart'
 import TraceFlameChartAccumulator from '../chart_event_accumulators/TraceFlameChartAccumulator'
-import TimeSeriesChartWebGl from './charts/TimeSeriesChartWebGl'
+import TimeSeriesChart from './charts/TimeSeriesChart'
+import TraceTimeSeriesAccumulator from '../chart_event_accumulators/TraceTimeSeriesAccumulator'
 
-const trainChartEventAccumulator = new TrainTimeSeriesAccumulator()
-// const traceChartEventAccumulator = new TraceTimeSeriesAccumulator()
-const traceChartEventAccumulator = new TraceFlameChartAccumulator()
+const trainChartEventAccumulator = new TrainTimeSeriesAccumulator(true)
+const traceChartEventAccumulator = new TraceTimeSeriesAccumulator()
+// const traceChartEventAccumulator = new TraceFlameChartAccumulator()
 
 export default function ({
   clientUid,
@@ -60,9 +61,8 @@ export default function ({
           onChange={setSelectedProcessors}
         />
       )}
-      {/*{traceChartData && <TimeSeriesChart data={traceChartData} yAxisLabel="Execution duration (ms)" />}*/}
-      {traceChartData && <FlameChart data={traceChartData} />}
-      {trainChartData && <TimeSeriesChartWebGl data={trainChartData} />}
+      {/*{traceChartData && <FlameChart data={traceChartData} />}*/}
+      {trainChartData && <TimeSeriesChart data={trainChartData} />}
     </div>
   )
 }
