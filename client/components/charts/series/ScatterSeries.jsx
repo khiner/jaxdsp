@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { scaleLinear } from 'd3-scale'
 import { useThree } from '@react-three/fiber'
 
-export default React.memo(({ series, pointRadius = 2, pointColor = '#F66', maxNumPoints = 10_000 }) => {
+export default React.memo(({ series, pointRadius = 3, pointColor = '#F66', maxNumPoints = 10_000 }) => {
   const ref = useRef()
   const { size } = useThree()
   const { width, height } = size

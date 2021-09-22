@@ -4,6 +4,7 @@ import LineSeries from './series/LineSeries'
 import { timeFormat } from 'd3-time-format'
 import { scaleLinear } from 'd3-scale'
 import BoxSeries from './series/BoxSeries'
+import ScatterSeries from './series/ScatterSeries'
 
 const formatMinutesSeconds = timeFormat('%M:%S')
 
@@ -64,6 +65,9 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       ))}
       {allSeries.map(series => (
         <BoxSeries key={series.id} series={series} />
+      ))}
+      {allSeries.map(series => (
+        <ScatterSeries key={series.id} series={series} />
       ))}
     </Canvas>
   )

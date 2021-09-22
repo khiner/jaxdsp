@@ -19,8 +19,8 @@ const whiskerStrokeColor = new Color('#666')
 
 // Each datum in `series.summaryData` should have the numeric properties: `x1, x2, min, p25, median, p75, max`
 export default React.memo(({ series, strokeWidth = 3, fillColor = '#ccc', maxNumPoints = 10_000 }) => {
-  const [positions, setPositions] = useState(new Float32Array(3 * maxNumPoints))
-  const [colors, setColors] = useState(new Float32Array(3 * maxNumPoints))
+  const [positions, setPositions] = useState(new Float32Array(VERTICES_PER_POSITION * maxNumPoints))
+  const [colors, setColors] = useState(new Float32Array(VERTICES_PER_POSITION * maxNumPoints))
 
   const ref = useRef()
   const { size } = useThree()
@@ -78,17 +78,15 @@ export default React.memo(({ series, strokeWidth = 3, fillColor = '#ccc', maxNum
     })
 
     const geometry = ref.current
-    geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
-    geometry.setAttribute('color', new Float32BufferAttribute(colors, 3))
+    geometry.setAttribute('position', new Float32BufferAttribute(positions, VERTICES_PER_POSITION))
+    geometry.setAttribute('color', new Float32BufferAttribute(colors, VERTICES_PER_POSITION))
     geometry.setDrawRange(0, (data.length - 1) * SQUARES_PER_DATUM * POSITIONS_PER_RECTANGLE)
   })
 
   return (
-    <group>
-      <mesh>
-        <bufferGeometry ref={ref} />
-        <meshBasicMaterial vertexColors={VertexColors} />
-      </mesh>
-    </group>
+    <mesh>
+      <bufferGeometry ref={ref} />
+      <meshBasicMaterial vertexColors={VertexColors} />
+    </mesh>
   )
 })

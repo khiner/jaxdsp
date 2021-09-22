@@ -4,7 +4,7 @@ export const POSITIONS_PER_RECTANGLE = 6
 // For brevity throughout,
 // `ps`: positions; array of position floats
 // `cs`: colors; array of color floats.
-// `i`: positions start index
+// `i`: positions/colors start index
 
 export const setPosition = (ps, cs, i, x, y, color) => {
   ps[i] = x
@@ -19,7 +19,6 @@ export const setPosition = (ps, cs, i, x, y, color) => {
   return i + VERTICES_PER_POSITION
 }
 
-// `i`: positions & colors start index
 export const addRectangleVertices = (ps, cs, i, x, y, width, height, color) => {
   i = setPosition(ps, cs, i, x, y, color)
   i = setPosition(ps, cs, i, x + width, y, color)
