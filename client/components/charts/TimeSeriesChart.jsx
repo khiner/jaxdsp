@@ -28,6 +28,10 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
   const [yStart, yEnd] = yScale.range()
   const ticks = xScale.ticks()
 
+  const axisWidth = 80
+  const seriesWidth = width - axisWidth
+  const seriesDimensions = { x: axisWidth, y: 0, width: seriesWidth, height: height }
+
   return (
     <Canvas
       style={{ width, height }}
@@ -61,13 +65,13 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       {/*  </g>*/}
       {/*</svg>*/}
       {allSeries.map(series => (
-        <LineSeries key={series.id} series={series} />
+        <LineSeries key={series.id} series={series} dimensions={seriesDimensions} />
       ))}
       {allSeries.map(series => (
-        <BoxSeries key={series.id} series={series} />
+        <BoxSeries key={series.id} series={series} dimensions={seriesDimensions} />
       ))}
       {allSeries.map(series => (
-        <ScatterSeries key={series.id} series={series} />
+        <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} />
       ))}
     </Canvas>
   )
