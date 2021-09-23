@@ -6,6 +6,7 @@ import { scaleLinear } from 'd3-scale'
 import BoxSeries from './series/BoxSeries'
 import ScatterSeries from './series/ScatterSeries'
 import Axis from './axes/Axis'
+import { Line } from '@react-three/drei'
 
 const formatMinutesSeconds = timeFormat('%M:%S')
 
@@ -28,6 +29,19 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
   const seriesWidth = width - axisWidth
   const seriesDimensions = { x: axisWidth, y: 0, width: seriesWidth, height: height }
 
+  const Border = () => (
+    <Line
+      points={[
+        [axisWidth, 0, 0],
+        [width, 0, 0],
+        [width, height, 0],
+        [axisWidth, height, 0],
+        [axisWidth, 0, 0],
+      ]}
+      color="black"
+      lineWidth={2}
+    />
+  )
   return (
     <Canvas
       style={{ width, height }}
@@ -43,6 +57,7 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       dpr={window.devicePixelRatio}
       frameLoop="demand"
     >
+      <Border />
       <Axis
         side="y"
         xDomain={xDomain}

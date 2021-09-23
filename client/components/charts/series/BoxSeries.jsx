@@ -39,8 +39,12 @@ export default React.memo(
 
       const { x, y, width, height } = dimensions
       const { xDomain, yDomain } = series
-      const xScale = scaleLinear().domain(xDomain).range([x, width])
-      const yScale = scaleLinear().domain(yDomain).range([y, height])
+      const xScale = scaleLinear()
+        .domain(xDomain)
+        .range([x, x + width])
+      const yScale = scaleLinear()
+        .domain(yDomain)
+        .range([y, y + height])
       const fill = new Color(fillColor)
 
       let i = 0

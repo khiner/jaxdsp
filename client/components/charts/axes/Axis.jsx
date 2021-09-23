@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Float32BufferAttribute } from 'three'
 import { scaleLinear } from 'd3-scale'
+import { Html } from '@react-three/drei'
 import { addRectangleVertices, POSITIONS_PER_RECTANGLE, VERTICES_PER_POSITION } from '../primitives/Rectangle'
 
 const { Color, VertexColors } = THREE
@@ -14,6 +15,9 @@ export default React.memo(
     side = 'y',
     strokeWidth = 2,
     strokeColor = '#333',
+    textColor = '#333',
+    fontSize = 12,
+    tickLength = 10,
     maxNumPoints = 1_000,
   }) => {
     const ref = useRef()
@@ -26,22 +30,33 @@ export default React.memo(
     }, [maxNumPoints])
 
     const { x, y, width, height } = dimensions
+    const xScale = scaleLinear().domain(xDomain).range([x, width])
+    const yScale = scaleLinear().domain(yDomain).range([y, height])
+    const tickFormat = yScale.tickFormat(10)
+    const ticks = yScale.ticks().map(t => ({
+      position: yScale(t),
+      text: tickFormat(t),
+    }))
+
+    const [xStart, xEnd] = xScale.range()
+    const [yStart, yEnd] = yScale.range()
 
     useLayoutEffect(() => {
-      const xScale = scaleLinear().domain(xDomain).range([x, width])
-      const yScale = scaleLinear().domain(yDomain).range([y, height])
-
-      const [xStart, xEnd] = xScale.range()
-      const [yStart, yEnd] = yScale.range()
-      const ticks = yScale.ticks()
       if (ticks.length === 0) return
 
       const strokeFill = new Color(strokeColor)
       let i = 0
-      ticks.forEach(t => {
-        const y = yScale(t)
-        const tickLength = 10
-        i = addRectangleVertices(positions, colors, i, xStart, y, tickLength, strokeWidth, strokeFill)
+      ticks.forEach(({ position }) => {
+        i = addRectangleVertices(
+          positions,
+          colors,
+          i,
+          xStart + 40,
+          position - strokeWidth,
+          tickLength,
+          strokeWidth,
+          strokeFill
+        )
       })
 
       const geometry = ref.current
@@ -51,10 +66,22 @@ export default React.memo(
     })
 
     return (
-      <mesh>
-        <bufferGeometry ref={ref} />
-        <meshBasicMaterial vertexColors={VertexColors} />
-      </mesh>
+      <>
+        {ticks.map(({ position, text }) => (
+          <Html
+            key={`${position}`}
+            center={false}
+            position={[xStart, position + fontSize / 2, 0]}
+            style={{ fontSize }}
+          >
+            {text}
+          </Html>
+        ))}
+        <mesh>
+          <bufferGeometry ref={ref} />
+          <meshBasicMaterial vertexColors={VertexColors} />
+        </mesh>
+      </>
     )
   }
 )
