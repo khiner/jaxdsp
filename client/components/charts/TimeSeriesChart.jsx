@@ -5,6 +5,7 @@ import { timeFormat } from 'd3-time-format'
 import { scaleLinear } from 'd3-scale'
 import BoxSeries from './series/BoxSeries'
 import ScatterSeries from './series/ScatterSeries'
+import Axis from './axes/Axis'
 
 const formatMinutesSeconds = timeFormat('%M:%S')
 
@@ -22,11 +23,6 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
   if (!allSeries?.length) return null
 
   const { xDomain, yDomain } = data
-  const xScale = scaleLinear().domain(xDomain).range([0, width])
-  const yScale = scaleLinear().domain(yDomain).range([0, height])
-  const [xStart, xEnd] = xScale.range()
-  const [yStart, yEnd] = yScale.range()
-  const ticks = xScale.ticks()
 
   const axisWidth = 80
   const seriesWidth = width - axisWidth
@@ -47,23 +43,12 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       dpr={window.devicePixelRatio}
       frameLoop="demand"
     >
-      {/*<svg width={width} height={height}>*/}
-      {/*  <line x1={xStart} x2={xEnd} y1={yEnd} y2={yEnd} stroke="lack" />*/}
-      {/*  <line x1={xStart} x2={xStart} y1={yEnd} y2={yStart} stroke="red" />*/}
-      {/*  <g className="ticks">*/}
-      {/*    {ticks.map((t, i) => {*/}
-      {/*      const x = xScale(t)*/}
-      {/*      return (*/}
-      {/*        <React.Fragment key={i}>*/}
-      {/*          <line x1={x} x2={x} y1={yEnd} y2={yEnd + 5} stroke="red" />*/}
-      {/*          <text x={x} y={yEnd + 20} fill="red" textAnchor="middle" fontSize={10}>*/}
-      {/*            {t}*/}
-      {/*          </text>*/}
-      {/*        </React.Fragment>*/}
-      {/*      )*/}
-      {/*    })}*/}
-      {/*  </g>*/}
-      {/*</svg>*/}
+      <Axis
+        side="y"
+        xDomain={xDomain}
+        yDomain={yDomain}
+        dimensions={{ x: 0, y: 0, width: axisWidth, height: height }}
+      />
       {allSeries.map(series => (
         <LineSeries key={series.id} series={series} dimensions={seriesDimensions} />
       ))}

@@ -11,10 +11,12 @@ export const setPosition = (ps, cs, i, x, y, color) => {
   ps[i + 1] = y
   ps[i + 2] = 0
 
-  const { r, g, b } = color
-  cs[i] = r
-  cs[i + 1] = g
-  cs[i + 2] = b
+  if (cs && color) {
+    const { r, g, b } = color
+    cs[i] = r
+    cs[i + 1] = g
+    cs[i + 2] = b
+  }
 
   return i + VERTICES_PER_POSITION
 }
