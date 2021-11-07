@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { scaleLinear } from 'd3-scale'
 import {
@@ -9,7 +9,7 @@ import {
   VERTICES_PER_POSITION,
 } from '../primitives/Rectangle'
 
-const { Color, VertexColors, Float32BufferAttribute } = THREE
+const { Color, VertexColors, BufferAttribute } = THREE
 const SQUARES_PER_DATUM = 6 // rect + 4 border lines + 1 mid line
 
 const medianStrokeColor = new Color('#333')
@@ -18,20 +18,19 @@ const whiskerStrokeColor = new Color('#666')
 
 // Each datum in `series.summaryData` should have the numeric properties: `x1, x2, min, p25, median, p75, max`
 export default React.memo(
-  ({ series, dimensions, strokeWidth = 3, fillColor = '#ccc', maxNumPoints = 10_000 }) => {
-    const [positions, setPositions] = useState(new Float32Array(VERTICES_PER_POSITION * maxNumPoints))
-    const [colors, setColors] = useState(new Float32Array(VERTICES_PER_POSITION * maxNumPoints))
+  ({ series, dimensions, strokeWidth = 3, fillColor = '#ccc', maxNumPoints = 1_000 }) => {
+    const positions = useMemo(
+      () =>
+        new Float32Array(VERTICES_PER_POSITION * POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * maxNumPoints),
+      [maxNumPoints]
+    )
+    const colors = useMemo(
+      () =>
+        new Float32Array(VERTICES_PER_POSITION * POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * maxNumPoints),
+      [maxNumPoints]
+    )
 
     const ref = useRef()
-
-    useEffect(() => {
-      setPositions(
-        new Float32Array(VERTICES_PER_POSITION * POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * maxNumPoints)
-      )
-      setColors(
-        new Float32Array(VERTICES_PER_POSITION * POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * maxNumPoints)
-      )
-    }, [maxNumPoints])
 
     useLayoutEffect(() => {
       const { summaryData: data } = series
@@ -46,10 +45,11 @@ export default React.memo(
         .domain(yDomain)
         .range([y, y + height])
       const fill = new Color(fillColor)
+      const ps = positions
+      const cs = colors
+      const sw = strokeWidth
 
-      let i = 0
-      data.forEach(datum => {
-        const { x1, x2, min, p25, median, p75, max } = datum
+      data.reduce((i, { x1, x2, min, p25, median, p75, max }) => {
         const left = xScale(x1)
         const right = xScale(x2)
         const xMid = left + (right - left) / 2
@@ -59,8 +59,6 @@ export default React.memo(
         const yMaxInner = yScale(p75)
         const yMin = yScale(min) - 1
         const yMax = yScale(max) + 1
-        const ps = positions
-        const cs = colors
 
         i = addRectangleVertices(
           ps,
@@ -72,17 +70,16 @@ export default React.memo(
           Math.max(2, Math.abs(yMaxInner - yMinInner)),
           fill
         )
-        const sw = strokeWidth
         i = addVerticalLineVertices(ps, cs, i, yMaxInner, yMax, xMid, sw, whiskerStrokeColor)
         i = addVerticalLineVertices(ps, cs, i, yMin, yMinInner, xMid, sw, whiskerStrokeColor)
         i = addHorizontalLineVertices(ps, cs, i, xMid - xw / 3, xMid + xw / 3, yMax, sw, minMaxStrokeColor)
         i = addHorizontalLineVertices(ps, cs, i, xMid - xw / 3, xMid + xw / 3, yMin, sw, minMaxStrokeColor)
-        i = addHorizontalLineVertices(ps, cs, i, xMid - xw / 2, xMid + xw / 2, yMed, sw, medianStrokeColor)
-      })
+        return addHorizontalLineVertices(ps, cs, i, xMid - xw / 2, xMid + xw / 2, yMed, sw, medianStrokeColor)
+      }, 0)
 
       const geometry = ref.current
-      geometry.setAttribute('position', new Float32BufferAttribute(positions, VERTICES_PER_POSITION))
-      geometry.setAttribute('color', new Float32BufferAttribute(colors, VERTICES_PER_POSITION))
+      geometry.setAttribute('position', new BufferAttribute(positions, VERTICES_PER_POSITION))
+      geometry.setAttribute('color', new BufferAttribute(colors, VERTICES_PER_POSITION))
       geometry.setDrawRange(0, (data.length - 1) * SQUARES_PER_DATUM * POSITIONS_PER_RECTANGLE)
     })
 

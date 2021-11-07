@@ -2,7 +2,7 @@ import { last } from '../util/array'
 import { getChartColor } from '../util/colors'
 import { min, max, p25, median, p75 } from '../util/stats'
 
-const DEFAULT_EXPIRATION_MILLIS = 10 * 1_000
+const DEFAULT_EXPIRATION_MILLIS = 5 * 1_000
 
 const getMinTimeMillis = datum => {
   if (!datum) return 0
