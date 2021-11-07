@@ -43,7 +43,13 @@ export default class Vertices {
     this.vertexIndex += 1
   }
 
-  addRectangle(x, y, width, height, color) {
+  draw(drawFunction) {
+    this.start()
+    drawFunction(this)
+    this.end()
+  }
+
+  rectangle(x, y, width, height, color) {
     this.addPosition(x, y, color)
     this.addPosition(x + width, y, color)
     this.addPosition(x + width, y + height, color)
@@ -52,11 +58,11 @@ export default class Vertices {
     this.addPosition(x, y, color)
   }
 
-  addHorizontalLine(x1, x2, y, strokeWidth, strokeColor) {
-    return this.addRectangle(x1, y - strokeWidth / 2, x2 - x1, strokeWidth, strokeColor)
+  horizontalLine(x1, x2, y, strokeWidth, strokeColor) {
+    return this.rectangle(x1, y - strokeWidth / 2, x2 - x1, strokeWidth, strokeColor)
   }
 
-  addVerticalLine(y1, y2, x, strokeWidth, strokeColor) {
-    return this.addRectangle(x - strokeWidth / 2, y1, strokeWidth, y2 - y1, strokeColor)
+  verticalLine(y1, y2, x, strokeWidth, strokeColor) {
+    return this.rectangle(x - strokeWidth / 2, y1, strokeWidth, y2 - y1, strokeColor)
   }
 }

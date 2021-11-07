@@ -39,11 +39,11 @@ export default React.memo(
       if (ticks.length === 0) return
 
       const strokeFill = new Color(strokeColor)
-      vertices.start()
-      ticks.forEach(({ position }) =>
-        vertices.addRectangle(xStart + 40, position - strokeWidth, tickLength, strokeWidth, strokeFill)
-      )
-      vertices.end()
+      vertices.draw(v => {
+        ticks.forEach(({ position }) =>
+          v.rectangle(xStart + 40, position - strokeWidth, tickLength, strokeWidth, strokeFill)
+        )
+      })
     })
 
     return (

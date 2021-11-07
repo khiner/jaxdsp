@@ -35,32 +35,26 @@ export default React.memo(
       const fill = new Color(fillColor)
       const sw = strokeWidth
 
-      vertices.start()
-      data.forEach(({ x1, x2, min, p25, median, p75, max }) => {
-        const left = xScale(x1)
-        const right = xScale(x2)
-        const xMid = left + (right - left) / 2
-        const xw = Math.min(Math.max(2, right - left - 4), 10)
-        const yMed = yScale(median)
-        const yMinInner = yScale(p25)
-        const yMaxInner = yScale(p75)
-        const yMin = yScale(min) - 1
-        const yMax = yScale(max) + 1
+      vertices.draw(v => {
+        data.forEach(({ x1, x2, min, p25, median, p75, max }) => {
+          const left = xScale(x1)
+          const right = xScale(x2)
+          const xMid = left + (right - left) / 2
+          const xw = Math.min(Math.max(2, right - left - 4), 10)
+          const yMed = yScale(median)
+          const yMinInner = yScale(p25)
+          const yMaxInner = yScale(p75)
+          const yMin = yScale(min) - 1
+          const yMax = yScale(max) + 1
 
-        vertices.addRectangle(
-          xMid - xw / 2,
-          yMinInner,
-          xw,
-          Math.max(2, Math.abs(yMaxInner - yMinInner)),
-          fill
-        )
-        vertices.addVerticalLine(yMaxInner, yMax, xMid, sw, whiskerStrokeColor)
-        vertices.addVerticalLine(yMin, yMinInner, xMid, sw, whiskerStrokeColor)
-        vertices.addHorizontalLine(xMid - xw / 3, xMid + xw / 3, yMax, sw, minMaxStrokeColor)
-        vertices.addHorizontalLine(xMid - xw / 3, xMid + xw / 3, yMin, sw, minMaxStrokeColor)
-        vertices.addHorizontalLine(xMid - xw / 2, xMid + xw / 2, yMed, sw, medianStrokeColor)
+          v.rectangle(xMid - xw / 2, yMinInner, xw, Math.max(2, Math.abs(yMaxInner - yMinInner)), fill)
+          v.verticalLine(yMaxInner, yMax, xMid, sw, whiskerStrokeColor)
+          v.verticalLine(yMin, yMinInner, xMid, sw, whiskerStrokeColor)
+          v.horizontalLine(xMid - xw / 3, xMid + xw / 3, yMax, sw, minMaxStrokeColor)
+          v.horizontalLine(xMid - xw / 3, xMid + xw / 3, yMin, sw, minMaxStrokeColor)
+          v.horizontalLine(xMid - xw / 2, xMid + xw / 2, yMed, sw, medianStrokeColor)
+        })
       })
-      vertices.end()
     })
 
     return (
