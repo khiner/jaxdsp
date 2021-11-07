@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { BufferAttribute } from 'three'
 import { scaleLinear } from 'd3-scale'
 import { Html } from '@react-three/drei'
-import { addRectangleVertices, POSITIONS_PER_RECTANGLE, VERTICES_PER_POSITION } from '../primitives/Rectangle'
+import { setRectangleVertices, POSITIONS_PER_RECTANGLE } from '../primitives/Rectangle'
 
 const { Color, VertexColors } = THREE
 
@@ -22,11 +22,11 @@ export default React.memo(
   }) => {
     const ref = useRef()
     const positions = useMemo(
-      () => new Float32Array(VERTICES_PER_POSITION * POSITIONS_PER_RECTANGLE * maxNumPoints),
+      () => new BufferAttribute(new Float32Array(3 * POSITIONS_PER_RECTANGLE * maxNumPoints), 3),
       [maxNumPoints]
     )
     const colors = useMemo(
-      () => new Float32Array(VERTICES_PER_POSITION * POSITIONS_PER_RECTANGLE * maxNumPoints),
+      () => new BufferAttribute(new Float32Array(3 * POSITIONS_PER_RECTANGLE * maxNumPoints), 3),
       [maxNumPoints]
     )
 
@@ -43,12 +43,18 @@ export default React.memo(
     const [yStart, yEnd] = yScale.range()
 
     useLayoutEffect(() => {
+      const geometry = ref.current
+      geometry.setAttribute('position', positions)
+      geometry.setAttribute('color', colors)
+    }, [maxNumPoints])
+
+    useLayoutEffect(() => {
       if (ticks.length === 0) return
 
       const strokeFill = new Color(strokeColor)
       ticks.reduce(
         (i, { position }) =>
-          addRectangleVertices(
+          setRectangleVertices(
             positions,
             colors,
             i,
@@ -62,9 +68,9 @@ export default React.memo(
       )
 
       const geometry = ref.current
-      geometry.setAttribute('position', new BufferAttribute(positions, VERTICES_PER_POSITION))
-      geometry.setAttribute('color', new BufferAttribute(colors, VERTICES_PER_POSITION))
       geometry.setDrawRange(0, (ticks.length - 1) * POSITIONS_PER_RECTANGLE)
+      positions.needsUpdate = true
+      colors.needsUpdate = true
     })
 
     return (

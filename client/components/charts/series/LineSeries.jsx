@@ -1,7 +1,6 @@
 import React from 'react'
 
 import { scaleLinear } from 'd3-scale'
-import { setPosition, VERTICES_PER_POSITION } from '../primitives/Rectangle'
 import { Line } from '@react-three/drei'
 
 export default React.memo(({ series, dimensions, strokeWidth = 3, strokeColor = '#666' }) => {
@@ -17,8 +16,12 @@ export default React.memo(({ series, dimensions, strokeWidth = 3, strokeColor = 
     .domain(yDomain)
     .range([y, y + height])
 
-  const positions = new Array(data.length * VERTICES_PER_POSITION)
-  data.reduce((i, { x, y }) => setPosition(positions, undefined, i, xScale(x), yScale(y)), 0)
+  const positions = new Array(data.length * 3)
+  data.forEach(({ x, y }, i) => {
+    positions[i * 3] = xScale(x)
+    positions[i * 3 + 1] = yScale(y)
+    positions[i * 3 + 2] = 0
+  })
 
   return <Line points={positions} lineWidth={strokeWidth} color={strokeColor} />
 })
