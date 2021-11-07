@@ -16,6 +16,16 @@ const getMaxTimeMillis = datum => {
   return x2 || x
 }
 
+const expireSeriesData = (data, expirationDurationMillis) => {
+  if (!data) return
+
+  const expirationMillis = Date.now() - expirationDurationMillis
+  // Assuming events come in time-ordered
+  while (getMaxTimeMillis(data[0]) && getMaxTimeMillis(data[0]) < expirationMillis) {
+    data.shift()
+  }
+}
+
 export default class ChartEventAccumulator {
   // If `summarize` is true, for each series, accumulate statistics for box plots into an additional `summaryData` field
   constructor(summarize = false) {
@@ -88,13 +98,10 @@ export default class ChartEventAccumulator {
   }
 
   expireData(expirationDurationMillis) {
-    const expirationMillis = Date.now() - expirationDurationMillis
     const allSeries = this.allSeries()
-    allSeries.forEach(({ data }) => {
-      // Assuming events come in time-order
-      while (getMinTimeMillis(data[0]) && getMinTimeMillis(data[0]) < expirationMillis) {
-        data.shift()
-      }
+    allSeries.forEach(({ data, summaryData }) => {
+      expireSeriesData(data, expirationDurationMillis)
+      expireSeriesData(summaryData, expirationDurationMillis)
     })
     this.setAllSeries(allSeries.filter(({ data, permanent }) => permanent || data.length > 0))
   }
