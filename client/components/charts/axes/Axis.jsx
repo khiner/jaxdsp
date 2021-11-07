@@ -1,9 +1,8 @@
 import React, { useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { BufferAttribute } from 'three'
 import { scaleLinear } from 'd3-scale'
 import { Html } from '@react-three/drei'
-import { setRectangleVertices, POSITIONS_PER_RECTANGLE } from '../primitives/Rectangle'
+import Vertices, { POSITIONS_PER_RECTANGLE } from '../util/Vertices'
 
 const { Color, VertexColors } = THREE
 
@@ -18,17 +17,11 @@ export default React.memo(
     textColor = '#333',
     fontSize = 12,
     tickLength = 10,
-    maxNumPoints = 100,
+    maxLength = 100,
   }) => {
     const ref = useRef()
-    const positions = useMemo(
-      () => new BufferAttribute(new Float32Array(3 * POSITIONS_PER_RECTANGLE * maxNumPoints), 3),
-      [maxNumPoints]
-    )
-    const colors = useMemo(
-      () => new BufferAttribute(new Float32Array(3 * POSITIONS_PER_RECTANGLE * maxNumPoints), 3),
-      [maxNumPoints]
-    )
+    const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * maxLength), [maxLength])
+    useLayoutEffect(() => vertices.setGeometryRef(ref), [maxLength])
 
     const { x, y, width, height } = dimensions
     const xScale = scaleLinear().domain(xDomain).range([x, width])
@@ -43,34 +36,16 @@ export default React.memo(
     const [yStart, yEnd] = yScale.range()
 
     useLayoutEffect(() => {
-      const geometry = ref.current
-      geometry.setAttribute('position', positions)
-      geometry.setAttribute('color', colors)
-    }, [maxNumPoints])
-
-    useLayoutEffect(() => {
       if (ticks.length === 0) return
 
       const strokeFill = new Color(strokeColor)
       ticks.reduce(
         (i, { position }) =>
-          setRectangleVertices(
-            positions,
-            colors,
-            i,
-            xStart + 40,
-            position - strokeWidth,
-            tickLength,
-            strokeWidth,
-            strokeFill
-          ),
+          vertices.setRectangle(i, xStart + 40, position - strokeWidth, tickLength, strokeWidth, strokeFill),
         0
       )
 
-      const geometry = ref.current
-      geometry.setDrawRange(0, (ticks.length - 1) * POSITIONS_PER_RECTANGLE)
-      positions.needsUpdate = true
-      colors.needsUpdate = true
+      vertices.setDrawLength((ticks.length - 1) * POSITIONS_PER_RECTANGLE)
     })
 
     return (
