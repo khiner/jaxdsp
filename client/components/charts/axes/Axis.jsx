@@ -39,13 +39,11 @@ export default React.memo(
       if (ticks.length === 0) return
 
       const strokeFill = new Color(strokeColor)
-      ticks.reduce(
-        (i, { position }) =>
-          vertices.setRectangle(i, xStart + 40, position - strokeWidth, tickLength, strokeWidth, strokeFill),
-        0
+      vertices.start()
+      ticks.forEach(({ position }) =>
+        vertices.addRectangle(xStart + 40, position - strokeWidth, tickLength, strokeWidth, strokeFill)
       )
-
-      vertices.setDrawLength((ticks.length - 1) * POSITIONS_PER_RECTANGLE)
+      vertices.end()
     })
 
     return (

@@ -35,7 +35,8 @@ export default React.memo(
       const fill = new Color(fillColor)
       const sw = strokeWidth
 
-      data.reduce((i, { x1, x2, min, p25, median, p75, max }) => {
+      vertices.start()
+      data.forEach(({ x1, x2, min, p25, median, p75, max }) => {
         const left = xScale(x1)
         const right = xScale(x2)
         const xMid = left + (right - left) / 2
@@ -46,22 +47,20 @@ export default React.memo(
         const yMin = yScale(min) - 1
         const yMax = yScale(max) + 1
 
-        i = vertices.setRectangle(
-          i,
+        vertices.addRectangle(
           xMid - xw / 2,
           yMinInner,
           xw,
           Math.max(2, Math.abs(yMaxInner - yMinInner)),
           fill
         )
-        i = vertices.setVerticalLine(i, yMaxInner, yMax, xMid, sw, whiskerStrokeColor)
-        i = vertices.setVerticalLine(i, yMin, yMinInner, xMid, sw, whiskerStrokeColor)
-        i = vertices.setHorizontalLine(i, xMid - xw / 3, xMid + xw / 3, yMax, sw, minMaxStrokeColor)
-        i = vertices.setHorizontalLine(i, xMid - xw / 3, xMid + xw / 3, yMin, sw, minMaxStrokeColor)
-        return vertices.setHorizontalLine(i, xMid - xw / 2, xMid + xw / 2, yMed, sw, medianStrokeColor)
-      }, 0)
-
-      vertices.setDrawLength((data.length - 1) * SQUARES_PER_DATUM * POSITIONS_PER_RECTANGLE)
+        vertices.addVerticalLine(yMaxInner, yMax, xMid, sw, whiskerStrokeColor)
+        vertices.addVerticalLine(yMin, yMinInner, xMid, sw, whiskerStrokeColor)
+        vertices.addHorizontalLine(xMid - xw / 3, xMid + xw / 3, yMax, sw, minMaxStrokeColor)
+        vertices.addHorizontalLine(xMid - xw / 3, xMid + xw / 3, yMin, sw, minMaxStrokeColor)
+        vertices.addHorizontalLine(xMid - xw / 2, xMid + xw / 2, yMed, sw, medianStrokeColor)
+      })
+      vertices.end()
     })
 
     return (
