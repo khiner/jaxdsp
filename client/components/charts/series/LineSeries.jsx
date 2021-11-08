@@ -1,9 +1,9 @@
 import React from 'react'
-
 import { scaleLinear } from 'd3-scale'
 import { Line } from '@react-three/drei'
+import colors from '../colors'
 
-export default React.memo(({ series, dimensions, strokeWidth = 3, strokeColor = '#666' }) => {
+export default React.memo(({ series, dimensions, strokeWidth = 3 }) => {
   const { data } = series
   if (!data?.length) return null
 
@@ -23,5 +23,5 @@ export default React.memo(({ series, dimensions, strokeWidth = 3, strokeColor = 
     positions[i * 3 + 2] = 0
   })
 
-  return <Line points={positions} lineWidth={strokeWidth} color={strokeColor} />
+  return <Line points={positions} lineWidth={strokeWidth} color={colors.series.line.stroke} />
 })

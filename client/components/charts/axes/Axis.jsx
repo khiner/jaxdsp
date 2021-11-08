@@ -3,8 +3,9 @@ import * as THREE from 'three'
 import { scaleLinear } from 'd3-scale'
 import { Html } from '@react-three/drei'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../util/Vertices'
+import colors from '../colors'
 
-const { Color, VertexColors } = THREE
+const { VertexColors } = THREE
 
 export default React.memo(
   ({
@@ -13,8 +14,6 @@ export default React.memo(
     dimensions,
     side = 'y',
     strokeWidth = 2,
-    strokeColor = '#333',
-    textColor = '#333',
     fontSize = 12,
     tickLength = 10,
     maxLength = 100,
@@ -38,10 +37,10 @@ export default React.memo(
     useLayoutEffect(() => {
       if (ticks.length === 0) return
 
-      const strokeFill = new Color(strokeColor)
       vertices.draw(v => {
+        v.rectangle(x, y, width, height, colors.background)
         ticks.forEach(({ position }) =>
-          v.rectangle(xStart + 40, position - strokeWidth, tickLength, strokeWidth, strokeFill)
+          v.rectangle(xStart + 40, position - strokeWidth, tickLength, strokeWidth, colors.axis.stroke)
         )
       })
     })
@@ -53,7 +52,7 @@ export default React.memo(
             key={`${position}`}
             center={false}
             position={[xStart, position + fontSize / 2, 0]}
-            style={{ fontSize }}
+            style={{ fontSize, color: colors.axis.text }}
           >
             {text}
           </Html>

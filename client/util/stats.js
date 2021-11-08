@@ -26,3 +26,5 @@ export const p25 = array => percentile(array, 0.25)
 export const p50 = array => percentile(array, 0.5)
 export const p75 = array => percentile(array, 0.75)
 export const median = array => p50(array)
+
+export const formatRatioAsPercent = ratio => `${100 * ratio}%`

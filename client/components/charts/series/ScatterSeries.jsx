@@ -1,8 +1,11 @@
 import React, { useLayoutEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { scaleLinear } from 'd3-scale'
+import colors from '../colors'
 
-export default React.memo(({ series, dimensions, pointRadius = 3, pointColor = '#F66' }) => {
+const { fill } = colors.series.scatter
+
+export default React.memo(({ series, dimensions, pointRadius = 3 }) => {
   const ref = useRef()
 
   useLayoutEffect(() => {
@@ -31,7 +34,7 @@ export default React.memo(({ series, dimensions, pointRadius = 3, pointColor = '
   // Should be able to do something like this to avoid refs, but it lags behind for me:
   // <Instances limit={1_000}>
   //   <circleBufferGeometry args={[pointRadius]} />
-  //   <meshBasicMaterial color={pointColor} />
+  //   <meshBasicMaterial color={fill} />
   //   {data.map(({ x, y }) => (
   //     <Instance position={[xScale(x), yScale(y), 0]} />
   //   ))}
@@ -39,7 +42,7 @@ export default React.memo(({ series, dimensions, pointRadius = 3, pointColor = '
   return (
     <instancedMesh ref={ref} args={[null, null, 1_000]}>
       <circleBufferGeometry args={[pointRadius]} />
-      <meshBasicMaterial color={pointColor} />
+      <meshBasicMaterial color={fill} />
     </instancedMesh>
   )
 })

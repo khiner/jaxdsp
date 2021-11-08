@@ -45,6 +45,8 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
     <Canvas
       style={{ width, height }}
       onCreated={({ camera }) => {
+        // renderer.setClearColor(0xffffff, 0)
+
         // Calculate camera z so that the top and bottom are exactly at the edges of the fov
         // Based on https://stackoverflow.com/a/13351534/780425
         // Adding height for extra space to not clip horizontal lines exactly at 0/height in half.
@@ -56,13 +58,6 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       dpr={window.devicePixelRatio}
       frameLoop="demand"
     >
-      <Border />
-      <Axis
-        side="y"
-        xDomain={xDomain}
-        yDomain={yDomain}
-        dimensions={{ x: 0, y: 0, width: axisWidth, height: height }}
-      />
       {allSeries.map(series => (
         <LineSeries key={series.id} series={series} dimensions={seriesDimensions} />
       ))}
@@ -72,6 +67,13 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       {allSeries.map(series => (
         <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} />
       ))}
+      <Border />
+      <Axis
+        side="y"
+        xDomain={xDomain}
+        yDomain={yDomain}
+        dimensions={{ x: 0, y: 0, width: axisWidth, height: height }}
+      />
     </Canvas>
   )
 })

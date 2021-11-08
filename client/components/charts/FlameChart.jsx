@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { scaleLinear } from 'd3-scale'
+import { formatRatioAsPercent } from '../../util/stats'
 
-const percent = ratio => `${100 * ratio}%`
+const percent = formatRatioAsPercent
 
 // Example:
 //    <FlameChart data={
