@@ -1,22 +1,17 @@
 import React, { useLayoutEffect, useMemo, useRef } from 'react'
-import * as THREE from 'three'
+import { VertexColors } from 'three'
 import { scaleLinear } from 'd3-scale'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../util/Vertices'
 import colors from '../colors'
 
-const { VertexColors } = THREE
 const SQUARES_PER_DATUM = 6 // rect + 4 border lines + 1 mid line
-
 const { fill, whiskerStroke, minMaxStroke } = colors.series.box
 
 // Each datum in `series.summaryData` should have the numeric properties: `x1, x2, min, p25, median, p75, max`
-export default React.memo(({ series, dimensions, strokeWidth = 3, maxLength = 1_000 }) => {
+export default React.memo(({ series, dimensions, strokeWidth = 3 }) => {
   const ref = useRef()
-  const vertices = useMemo(
-    () => new Vertices(POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * maxLength),
-    [maxLength]
-  )
-  useLayoutEffect(() => vertices.setGeometryRef(ref), [maxLength])
+  const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * 1_000), [])
+  useLayoutEffect(() => vertices.setGeometryRef(ref), [])
 
   useLayoutEffect(() => {
     const { summaryData: data } = series

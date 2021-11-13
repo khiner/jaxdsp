@@ -1,26 +1,15 @@
 import React, { useLayoutEffect, useMemo, useRef } from 'react'
-import * as THREE from 'three'
+import { VertexColors } from 'three'
 import { scaleLinear } from 'd3-scale'
 import { Html } from '@react-three/drei'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../util/Vertices'
 import colors from '../colors'
 
-const { VertexColors } = THREE
-
 export default React.memo(
-  ({
-    xDomain,
-    yDomain,
-    dimensions,
-    side = 'y',
-    strokeWidth = 2,
-    fontSize = 12,
-    tickLength = 10,
-    maxLength = 100,
-  }) => {
+  ({ xDomain, yDomain, dimensions, side = 'y', strokeWidth = 2, fontSize = 12, tickLength = 10 }) => {
     const ref = useRef()
-    const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * maxLength), [maxLength])
-    useLayoutEffect(() => vertices.setGeometryRef(ref), [maxLength])
+    const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 100), [])
+    useLayoutEffect(() => vertices.setGeometryRef(ref), [])
 
     const { x, y, width, height } = dimensions
     const xScale = scaleLinear().domain(xDomain).range([x, width])

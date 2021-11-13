@@ -1,13 +1,13 @@
 import React from 'react'
 import { Canvas } from '@react-three/fiber'
 import LineSeries from './series/LineSeries'
-import { timeFormat } from 'd3-time-format'
 import BoxSeries from './series/BoxSeries'
 import ScatterSeries from './series/ScatterSeries'
 import Axis from './axes/Axis'
 import { Line } from '@react-three/drei'
+import colors from './colors'
 
-const formatMinutesSeconds = timeFormat('%M:%S')
+// const formatMinutesSeconds = timeFormat('%M:%S')
 
 // `data` is a list of with `x` values assumed to be milliseconds since epoch.
 // Example:
@@ -18,15 +18,14 @@ const formatMinutesSeconds = timeFormat('%M:%S')
 //    }/>
 // TODO show points for start/end of contiguous ranges
 export default React.memo(({ data, width = 400, height = 200 }) => {
+  const axisWidth = 80
+  const seriesDimensions = { x: axisWidth, y: 0, width: width - axisWidth, height }
+
   if (!data) return null
   const { data: allSeries } = data
   if (!allSeries?.length) return null
 
   const { xDomain, yDomain } = data
-
-  const axisWidth = 80
-  const seriesWidth = width - axisWidth
-  const seriesDimensions = { x: axisWidth, y: 0, width: seriesWidth, height: height }
 
   const Border = () => (
     <Line
@@ -37,10 +36,11 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
         [axisWidth, height, 0],
         [axisWidth, 0, 0],
       ]}
-      color="black"
+      color={colors.border}
       lineWidth={2}
     />
   )
+
   return (
     <Canvas
       style={{ width, height }}
@@ -72,7 +72,7 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
         side="y"
         xDomain={xDomain}
         yDomain={yDomain}
-        dimensions={{ x: 0, y: 0, width: axisWidth, height: height }}
+        dimensions={{ x: 0, y: 0, width: axisWidth, height }}
       />
     </Canvas>
   )

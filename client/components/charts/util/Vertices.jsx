@@ -2,11 +2,6 @@ import { BufferAttribute } from 'three'
 
 export const POSITIONS_PER_RECTANGLE = 6
 
-// For brevity throughout,
-// `ps`: positions; Float32BufferAttribute of positions
-// `cs`: colors; Float32BufferAttribute of colors
-// `i`: positions/colors start index
-
 export default class Vertices {
   constructor(maxLength) {
     this.positions = new BufferAttribute(new Float32Array(3 * maxLength), 3)

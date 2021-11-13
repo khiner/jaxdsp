@@ -1,6 +1,4 @@
-import * as THREE from 'three'
-
-const { Color } = THREE
+import { Color } from 'three'
 
 const mapValuesRecursive = (obj, func) =>
   Object.fromEntries(
@@ -11,6 +9,7 @@ const toThreeColors = colors => mapValuesRecursive(colors, color => new Color(co
 
 export default toThreeColors({
   background: 'white',
+  border: 'black',
   axis: {
     text: '#333',
     stroke: '#333',
