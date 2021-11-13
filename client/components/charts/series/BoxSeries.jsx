@@ -3,6 +3,7 @@ import { VertexColors } from 'three'
 import { scaleLinear } from 'd3-scale'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../util/Vertices'
 import colors from '../colors'
+import ClipArea from '../ClipArea'
 
 const SQUARES_PER_DATUM = 6 // rect + 4 border lines + 1 mid line
 const { fill, whiskerStroke, minMaxStroke } = colors.series.box
@@ -52,7 +53,9 @@ export default React.memo(({ series, dimensions, strokeWidth = 3 }) => {
   return (
     <mesh>
       <bufferGeometry ref={ref} />
-      <meshBasicMaterial vertexColors={VertexColors} />
+      <meshBasicMaterial vertexColors={VertexColors}>
+        <ClipArea dimensions={dimensions} />
+      </meshBasicMaterial>
     </mesh>
   )
 })

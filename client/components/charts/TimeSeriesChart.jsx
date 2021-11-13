@@ -44,9 +44,8 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
   return (
     <Canvas
       style={{ width, height }}
-      onCreated={({ camera }) => {
-        // renderer.setClearColor(0xffffff, 0)
-
+      onCreated={({ camera, gl }) => {
+        gl.localClippingEnabled = true
         // Calculate camera z so that the top and bottom are exactly at the edges of the fov
         // Based on https://stackoverflow.com/a/13351534/780425
         // Adding height for extra space to not clip horizontal lines exactly at 0/height in half.

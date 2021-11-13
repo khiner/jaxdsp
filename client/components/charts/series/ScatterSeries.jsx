@@ -1,7 +1,8 @@
 import React, { useLayoutEffect, useRef } from 'react'
-import * as THREE from 'three'
+import { Matrix4 } from 'three'
 import { scaleLinear } from 'd3-scale'
 import colors from '../colors'
+import ClipArea from '../ClipArea'
 
 const { fill } = colors.series.scatter
 
@@ -22,7 +23,7 @@ export default React.memo(({ series, dimensions, pointRadius = 3 }) => {
       .range([y, y + height])
 
     const mesh = ref.current
-    const transform = new THREE.Matrix4()
+    const transform = new Matrix4()
     data.forEach(({ x, y }, i) => {
       transform.setPosition(xScale(x), yScale(y), 0)
       mesh.setMatrixAt(i, transform)
@@ -42,7 +43,9 @@ export default React.memo(({ series, dimensions, pointRadius = 3 }) => {
   return (
     <instancedMesh ref={ref} args={[null, null, 1_000]}>
       <circleBufferGeometry args={[pointRadius]} />
-      <meshBasicMaterial color={fill} />
+      <meshBasicMaterial color={fill}>
+        <ClipArea dimensions={dimensions} />
+      </meshBasicMaterial>
     </instancedMesh>
   )
 })

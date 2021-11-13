@@ -26,12 +26,11 @@ export default React.memo(
     useLayoutEffect(() => {
       if (ticks.length === 0) return
 
-      vertices.draw(v => {
-        v.rectangle(x, y, width, height, colors.background)
+      vertices.draw(v =>
         ticks.forEach(({ position }) =>
           v.rectangle(xStart + 40, position - strokeWidth, tickLength, strokeWidth, colors.axis.stroke)
         )
-      })
+      )
     })
 
     return (
