@@ -12,13 +12,10 @@ export default React.memo(
     useLayoutEffect(() => vertices.setGeometryRef(ref), [])
 
     const { x, y, width, height } = dimensions
-    const xScale = scaleLinear().domain(xDomain).range([x, width])
-    const yScale = scaleLinear().domain(yDomain).range([y, height])
+    const xScale = scaleLinear().domain(xDomain).range([x, width]).nice()
+    const yScale = scaleLinear().domain(yDomain).range([y, height]).nice()
     const tickFormat = yScale.tickFormat(10)
-    const ticks = yScale.ticks().map(t => ({
-      position: yScale(t),
-      text: tickFormat(t),
-    }))
+    const ticks = yScale.ticks().map(t => ({ position: yScale(t), text: tickFormat(t) }))
 
     const [xStart, xEnd] = xScale.range()
     const [yStart, yEnd] = yScale.range()
@@ -28,7 +25,13 @@ export default React.memo(
 
       vertices.draw(v =>
         ticks.forEach(({ position }) =>
-          v.rectangle(xStart + 40, position - strokeWidth, tickLength, strokeWidth, colors.axis.stroke)
+          v.rectangle(
+            width - tickLength,
+            position - strokeWidth / 2,
+            tickLength,
+            strokeWidth,
+            colors.axis.stroke
+          )
         )
       )
     })

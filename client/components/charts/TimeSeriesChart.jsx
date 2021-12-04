@@ -37,7 +37,7 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
         [axisWidth, 0, 0],
       ]}
       color={colors.border}
-      lineWidth={2}
+      lineWidth={1}
     />
   )
 
