@@ -18,8 +18,14 @@ import colors from './colors'
 //    }/>
 // TODO show points for start/end of contiguous ranges
 export default React.memo(({ data, width = 400, height = 200 }) => {
-  const axisWidth = 80
-  const seriesDimensions = { x: axisWidth, y: 0, width: width - axisWidth, height }
+  const xAxisHeight = 40
+  const yAxisWidth = 80
+  const seriesDimensions = {
+    x: yAxisWidth,
+    y: xAxisHeight,
+    width: width - yAxisWidth,
+    height: height - xAxisHeight,
+  }
 
   if (!data) return null
   const { data: allSeries } = data
@@ -30,11 +36,11 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
   const Border = () => (
     <Line
       points={[
-        [axisWidth, 0, 0],
-        [width, 0, 0],
+        [yAxisWidth, xAxisHeight, 0],
+        [width, xAxisHeight, 0],
         [width, height, 0],
-        [axisWidth, height, 0],
-        [axisWidth, 0, 0],
+        [yAxisWidth, height, 0],
+        [yAxisWidth, xAxisHeight, 0],
       ]}
       color={colors.border}
       lineWidth={1}
@@ -68,10 +74,16 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       ))}
       <Border />
       <Axis
-        side="y"
+        side="left"
         xDomain={xDomain}
         yDomain={yDomain}
-        dimensions={{ x: 0, y: 0, width: axisWidth, height }}
+        dimensions={{ x: 0, y: xAxisHeight, width: yAxisWidth, height: height - xAxisHeight }}
+      />
+      <Axis
+        side="bottom"
+        xDomain={xDomain}
+        yDomain={yDomain}
+        dimensions={{ x: yAxisWidth, y: height - xAxisHeight, width: width, height: xAxisHeight }}
       />
     </Canvas>
   )
