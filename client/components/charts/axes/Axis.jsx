@@ -5,6 +5,7 @@ import { Html } from '@react-three/drei'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../util/Vertices'
 import colors from '../colors'
 
+// Currently assumes `side` is either 'left' or 'bottom'
 export default React.memo(
   ({ xDomain, yDomain, dimensions, side = 'left', strokeWidth = 2, fontSize = 12, tickLength = 10 }) => {
     const ref = useRef()

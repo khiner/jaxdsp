@@ -4,8 +4,8 @@ import LineSeries from './series/LineSeries'
 import BoxSeries from './series/BoxSeries'
 import ScatterSeries from './series/ScatterSeries'
 import Axis from './axes/Axis'
-import { Line } from '@react-three/drei'
 import colors from './colors'
+import Rectangle from './Rectangle'
 
 // const formatMinutesSeconds = timeFormat('%M:%S')
 
@@ -18,6 +18,11 @@ import colors from './colors'
 //    }/>
 // TODO show points for start/end of contiguous ranges
 export default React.memo(({ data, width = 400, height = 200 }) => {
+  if (!data) return null
+  const { data: allSeries } = data
+  if (!allSeries?.length) return null
+
+  const { xDomain, yDomain } = data
   const xAxisHeight = 40
   const yAxisWidth = 80
   const seriesDimensions = {
@@ -26,26 +31,8 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
     width: width - yAxisWidth,
     height: height - xAxisHeight,
   }
-
-  if (!data) return null
-  const { data: allSeries } = data
-  if (!allSeries?.length) return null
-
-  const { xDomain, yDomain } = data
-
-  const Border = () => (
-    <Line
-      points={[
-        [yAxisWidth, xAxisHeight, 0],
-        [width, xAxisHeight, 0],
-        [width, height, 0],
-        [yAxisWidth, height, 0],
-        [yAxisWidth, xAxisHeight, 0],
-      ]}
-      color={colors.border}
-      lineWidth={1}
-    />
-  )
+  const leftAxisDimensions = { x: 0, y: xAxisHeight, width: yAxisWidth, height: height - xAxisHeight }
+  const bottomAxisDimensions = { x: yAxisWidth, y: height - xAxisHeight, width: width, height: xAxisHeight }
 
   return (
     <Canvas
@@ -72,19 +59,9 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       {allSeries.map(series => (
         <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} />
       ))}
-      <Border />
-      <Axis
-        side="left"
-        xDomain={xDomain}
-        yDomain={yDomain}
-        dimensions={{ x: 0, y: xAxisHeight, width: yAxisWidth, height: height - xAxisHeight }}
-      />
-      <Axis
-        side="bottom"
-        xDomain={xDomain}
-        yDomain={yDomain}
-        dimensions={{ x: yAxisWidth, y: height - xAxisHeight, width: width, height: xAxisHeight }}
-      />
+      <Rectangle dimensions={seriesDimensions} color={colors.border} />
+      <Axis side="left" xDomain={xDomain} yDomain={yDomain} dimensions={leftAxisDimensions} />
+      <Axis side="bottom" xDomain={xDomain} yDomain={yDomain} dimensions={bottomAxisDimensions} />
     </Canvas>
   )
 })
