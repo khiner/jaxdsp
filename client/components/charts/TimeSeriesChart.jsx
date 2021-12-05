@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import LineSeries from './series/LineSeries'
 import BoxSeries from './series/BoxSeries'
 import ScatterSeries from './series/ScatterSeries'
-import Axis from './axes/Axis'
+import Axis from './Axis'
 import colors from './colors'
 import Rectangle from './Rectangle'
 
