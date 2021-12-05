@@ -19,7 +19,6 @@ export default React.memo(
     const xScale = scaleLinear()
       .domain(xDomain)
       .range([x, x + width])
-      .nice()
     const yScale = scaleLinear()
       .domain(yDomain)
       .range([y, y + height])
@@ -59,9 +58,9 @@ export default React.memo(
         {ticks.map(({ position, text }) => (
           <Html
             key={`${position}`}
-            center={false}
+            center={side === 'bottom'}
             position={
-              side === 'left' ? [x, position + fontSize / 2, 0] : [position, height - fontSize / 2, 0]
+              side === 'left' ? [x, position + fontSize / 2, 0] : [position, height - (3 * fontSize) / 2, 0]
             }
             style={{ fontSize, color: colors.axis.text }}
           >
