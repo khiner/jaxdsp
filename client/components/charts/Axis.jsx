@@ -27,9 +27,6 @@ export default React.memo(
         ? yScale.ticks().map(t => ({ position: yScale(t), text: tickFormat(t) }))
         : xScale.ticks().map(t => ({ position: xScale(t), text: tickFormat(t) }))
 
-    const [xStart, xEnd] = xScale.range()
-    const [yStart, yEnd] = yScale.range()
-
     useLayoutEffect(() => {
       if (ticks.length === 0) return
 
@@ -61,7 +58,7 @@ export default React.memo(
             key={`${position}`}
             center={false}
             position={
-              side === 'left' ? [xStart, position + fontSize / 2, 0] : [position, height - fontSize / 2, 0]
+              side === 'left' ? [x, position + fontSize / 2, 0] : [position, height - fontSize / 2, 0]
             }
             style={{ fontSize, color: colors.axis.text }}
           >
