@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useMemo, useRef } from 'react'
 import { VertexColors } from 'three'
 import { scaleLinear } from 'd3-scale'
 import { Html } from '@react-three/drei'
-import Vertices, { POSITIONS_PER_RECTANGLE } from './util/Vertices'
+import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
 import colors from './colors'
 
 // Currently assumes `side` is either 'left' or 'bottom'
