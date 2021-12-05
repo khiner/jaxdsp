@@ -7,8 +7,6 @@ import Axis from './Axis'
 import colors from './colors'
 import Rectangle from './Rectangle'
 
-// const formatMinutesSeconds = timeFormat('%M:%S')
-
 // `data` is a list of with `x` values assumed to be milliseconds since epoch.
 // Example:
 //    <TimeSeriesChart data={{

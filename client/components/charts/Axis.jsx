@@ -4,6 +4,9 @@ import { scaleLinear } from 'd3-scale'
 import { Html } from '@react-three/drei'
 import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
 import colors from './colors'
+import { timeFormat } from 'd3-time-format'
+
+const formatMinutesSeconds = timeFormat('%M:%S')
 
 // Currently assumes `side` is either 'left' or 'bottom'
 export default React.memo(
@@ -21,11 +24,11 @@ export default React.memo(
       .domain(yDomain)
       .range([y, y + height])
       .nice()
-    const tickFormat = yScale.tickFormat(10)
+    const yTickFormat = yScale.tickFormat(10)
     const ticks =
       side === 'left'
-        ? yScale.ticks().map(t => ({ position: yScale(t), text: tickFormat(t) }))
-        : xScale.ticks().map(t => ({ position: xScale(t), text: tickFormat(t) }))
+        ? yScale.ticks().map(t => ({ position: yScale(t), text: yTickFormat(t) }))
+        : xScale.ticks().map(t => ({ position: xScale(t), text: formatMinutesSeconds(t) }))
 
     useLayoutEffect(() => {
       if (ticks.length === 0) return
