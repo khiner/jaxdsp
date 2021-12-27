@@ -16,16 +16,16 @@ export default toThreeColors({
   },
   series: {
     line: {
-      stroke: '#666',
+      stroke: '#1890ff',
     },
     box: {
-      fill: '#ccc',
-      medianStroke: '#333',
-      minMaxStroke: '#333',
-      whiskerStroke: '#666',
+      fill: '#777',
+      medianStroke: '#111',
+      minMaxStroke: '#111',
+      whiskerStroke: '#222',
     },
     scatter: {
-      fill: '#F66',
+      fill: '#0050b3',
     },
   },
 })

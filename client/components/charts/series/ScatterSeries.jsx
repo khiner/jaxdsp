@@ -6,7 +6,7 @@ import ClipArea from '../ClipArea'
 
 const { fill } = colors.series.scatter
 
-export default React.memo(({ series, dimensions, pointRadius = 3 }) => {
+export default React.memo(({ series, dimensions, pointRadius = 2, renderOrder = 0 }) => {
   const ref = useRef()
 
   useLayoutEffect(() => {
@@ -41,9 +41,9 @@ export default React.memo(({ series, dimensions, pointRadius = 3 }) => {
   //   ))}
   // </Instances>
   return (
-    <instancedMesh ref={ref} args={[null, null, 1_000]}>
+    <instancedMesh ref={ref} args={[null, null, 1_000]} renderOrder={renderOrder}>
       <circleBufferGeometry args={[pointRadius]} />
-      <meshBasicMaterial color={fill}>
+      <meshBasicMaterial color={fill} transparent={true} opacity={0.8}>
         <ClipArea dimensions={dimensions} />
       </meshBasicMaterial>
     </instancedMesh>

@@ -22,7 +22,7 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
 
   const { xDomain, yDomain } = data
   const xAxisHeight = 40
-  const yAxisWidth = 80
+  const yAxisWidth = 60
   const seriesDimensions = {
     x: yAxisWidth,
     y: xAxisHeight,
@@ -49,13 +49,13 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       frameLoop="demand"
     >
       {allSeries.map(series => (
-        <LineSeries key={series.id} series={series} dimensions={seriesDimensions} />
+        <LineSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={-1} />
       ))}
       {allSeries.map(series => (
-        <BoxSeries key={series.id} series={series} dimensions={seriesDimensions} />
+        <BoxSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={1} />
       ))}
       {allSeries.map(series => (
-        <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} />
+        <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={2} />
       ))}
       <Rectangle dimensions={seriesDimensions} color={colors.border} />
       <Axis side="left" xDomain={xDomain} yDomain={yDomain} dimensions={leftAxisDimensions} />
