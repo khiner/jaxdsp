@@ -36,7 +36,7 @@ export default React.memo(
         ticks.forEach(({ position }) =>
           side === 'left'
             ? v.rectangle(
-                width - tickLength,
+                x + width - tickLength,
                 position - strokeWidth / 2,
                 tickLength,
                 strokeWidth,
@@ -44,7 +44,7 @@ export default React.memo(
               )
             : v.rectangle(
                 position - strokeWidth / 2,
-                height - tickLength,
+                y + height - tickLength,
                 strokeWidth,
                 tickLength,
                 colors.axis.stroke
@@ -60,7 +60,9 @@ export default React.memo(
             key={`${position}`}
             center={side === 'bottom'}
             position={
-              side === 'left' ? [x, position + fontSize / 2, 0] : [position, height - (3 * fontSize) / 2, 0]
+              side === 'left'
+                ? [x, position + fontSize / 2, 0]
+                : [position, y + height - (3 * fontSize) / 2, 0]
             }
             style={{ fontSize, color: colors.axis.text }}
           >

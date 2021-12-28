@@ -1,5 +1,4 @@
 import React from 'react'
-import { Canvas } from '@react-three/fiber'
 import LineSeries from './series/LineSeries'
 import BoxSeries from './series/BoxSeries'
 import ScatterSeries from './series/ScatterSeries'
@@ -15,39 +14,32 @@ import Rectangle from './Rectangle'
 //      data: [{ id: 'test', label: 'Test', data: [{ x: 1631772930783, y: 0.01 }]}]
 //    }/>
 // TODO show points for start/end of contiguous ranges
-export default React.memo(({ data, width = 400, height = 200 }) => {
+export default React.memo(({ data, dimensions }) => {
   if (!data) return null
   const { data: allSeries } = data
   if (!allSeries?.length) return null
 
   const { xDomain, yDomain } = data
+
+  const { x, y, width, height } = dimensions
   const xAxisHeight = 40
   const yAxisWidth = 60
   const seriesDimensions = {
-    x: yAxisWidth,
-    y: xAxisHeight,
+    x: x + yAxisWidth,
+    y: y + xAxisHeight,
     width: width - yAxisWidth,
     height: height - xAxisHeight,
   }
-  const leftAxisDimensions = { x: 0, y: xAxisHeight, width: yAxisWidth, height: height - xAxisHeight }
-  const bottomAxisDimensions = { x: yAxisWidth, y: height - xAxisHeight, width: width, height: xAxisHeight }
+  const leftAxisDimensions = { x, y: y + xAxisHeight, width: yAxisWidth, height: height - xAxisHeight }
+  const bottomAxisDimensions = {
+    x: x + yAxisWidth,
+    y,
+    width: width,
+    height: xAxisHeight,
+  }
 
   return (
-    <Canvas
-      style={{ width, height }}
-      onCreated={({ camera, gl }) => {
-        gl.localClippingEnabled = true
-        // Calculate camera z so that the top and bottom are exactly at the edges of the fov
-        // Based on https://stackoverflow.com/a/13351534/780425
-        // Adding height for extra space to not clip horizontal lines exactly at 0/height in half.
-        const maxLineWidth = 4
-        const z = (height + maxLineWidth) / (2 * Math.tan((camera.fov / 360) * Math.PI))
-        camera.position.set(width / 2, height / 2, z)
-        return camera.lookAt(width / 2, height / 2, 0)
-      }}
-      dpr={window.devicePixelRatio}
-      frameLoop="demand"
-    >
+    <>
       {allSeries.map(series => (
         <LineSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={-1} />
       ))}
@@ -60,6 +52,6 @@ export default React.memo(({ data, width = 400, height = 200 }) => {
       <Rectangle dimensions={seriesDimensions} color={colors.border} />
       <Axis side="left" xDomain={xDomain} yDomain={yDomain} dimensions={leftAxisDimensions} />
       <Axis side="bottom" xDomain={xDomain} yDomain={yDomain} dimensions={bottomAxisDimensions} />
-    </Canvas>
+    </>
   )
 })
