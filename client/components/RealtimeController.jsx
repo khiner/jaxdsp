@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import ProcessorGraphBuilder from './ProcessorGraphBuilder'
 import TrainTimeSeriesAccumulator from '../chart_event_accumulators/TrainTimeSeriesAccumulator'
-import { last } from '../util/array'
-import FlameChart from './charts/FlameChart'
 import TraceFlameChartAccumulator from '../chart_event_accumulators/TraceFlameChartAccumulator'
-import TimeSeriesChart from './charts/TimeSeriesChart'
 import TraceTimeSeriesAccumulator from '../chart_event_accumulators/TraceTimeSeriesAccumulator'
+import { last } from '../util/array'
+import Monitor from './Monitor'
 
 const trainTimeSeriesAccumulator = new TrainTimeSeriesAccumulator(true)
 const traceTimeSeriesAccumulator = new TraceTimeSeriesAccumulator()
@@ -64,9 +63,11 @@ export default function ({
           onChange={setSelectedProcessors}
         />
       )}
-      {trainTimeSeriesData && <TimeSeriesChart data={trainTimeSeriesData} />}
-      {traceTimeSeriesData && <TimeSeriesChart data={traceTimeSeriesData} />}
-      {traceFlameData && <FlameChart data={traceFlameData} />}
+      <Monitor
+        trainTimeSeriesData={trainTimeSeriesData}
+        traceTimeSeriesData={traceTimeSeriesData}
+        traceFlameData={traceFlameData}
+      />
     </div>
   )
 }
