@@ -7,9 +7,9 @@ import TraceFlameChartAccumulator from '../chart_event_accumulators/TraceFlameCh
 import TimeSeriesChart from './charts/TimeSeriesChart'
 import TraceTimeSeriesAccumulator from '../chart_event_accumulators/TraceTimeSeriesAccumulator'
 
-const trainChartEventAccumulator = new TrainTimeSeriesAccumulator(true)
-const traceChartEventAccumulator = new TraceTimeSeriesAccumulator()
-// const traceChartEventAccumulator = new TraceFlameChartAccumulator()
+const trainTimeSeriesAccumulator = new TrainTimeSeriesAccumulator(true)
+const traceTimeSeriesAccumulator = new TraceTimeSeriesAccumulator()
+const traceFlameAccumulator = new TraceFlameChartAccumulator()
 
 export default function ({
   clientUid,
@@ -19,8 +19,9 @@ export default function ({
   onError,
 }) {
   const [estimatedParams, setEstimatedParams] = useState(null)
-  const [trainChartData, setTrainChartData] = useState({})
-  const [traceChartData, setTraceChartData] = useState({})
+  const [trainTimeSeriesData, setTrainTimeSeriesData] = useState({})
+  const [traceTimeSeriesData, setTraceTimeSeriesData] = useState({})
+  const [traceFlameData, setTraceFlameData] = useState({})
 
   useEffect(() => {
     if (clientUid === null) return
@@ -34,8 +35,10 @@ export default function ({
       const heartbeat = JSON.parse(event.data)
       const { train_events, trace_events } = heartbeat
 
-      setTraceChartData({ ...traceChartEventAccumulator.accumulate(trace_events) })
-      setTrainChartData({ ...trainChartEventAccumulator.accumulate(train_events) })
+      setTrainTimeSeriesData({ ...trainTimeSeriesAccumulator.accumulate(train_events) })
+      setTraceTimeSeriesData({ ...traceTimeSeriesAccumulator.accumulate(trace_events) })
+      setTraceFlameData({ ...traceFlameAccumulator.accumulate(trace_events) })
+
       const lastEstimatedParams = last(train_events)?.params
       if (lastEstimatedParams) setEstimatedParams(lastEstimatedParams)
     }
@@ -61,8 +64,9 @@ export default function ({
           onChange={setSelectedProcessors}
         />
       )}
-      {/*{traceChartData && <FlameChart data={traceChartData} />}*/}
-      {trainChartData && <TimeSeriesChart data={trainChartData} />}
+      {trainTimeSeriesData && <TimeSeriesChart data={trainTimeSeriesData} />}
+      {traceTimeSeriesData && <TimeSeriesChart data={traceTimeSeriesData} />}
+      {traceFlameData && <FlameChart data={traceFlameData} />}
     </div>
   )
 }
