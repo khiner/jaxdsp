@@ -5,7 +5,7 @@ import ChartContext from './charts/ChartContext'
 
 export default function Monitor({
   width = 400,
-  height = 400,
+  height = 500,
   trainTimeSeriesData,
   traceTimeSeriesData,
   traceFlameData,
@@ -18,14 +18,19 @@ export default function Monitor({
         {trainTimeSeriesData && (
           <TimeSeriesChart
             data={trainTimeSeriesData}
-            dimensions={{ x: 0, y: 200, width: 400, height: 200 }}
+            dimensions={{ x: 0, y: 300, width: 400, height: 200 }}
           />
         )}
         {traceTimeSeriesData && (
-          <TimeSeriesChart data={traceTimeSeriesData} dimensions={{ x: 0, y: 0, width: 400, height: 200 }} />
+          <TimeSeriesChart
+            data={traceTimeSeriesData}
+            dimensions={{ x: 0, y: 100, width: 400, height: 200 }}
+          />
+        )}
+        {traceFlameData && (
+          <FlameChart data={traceFlameData} dimensions={{ x: 0, y: 0, width: 400, height: 100 }} />
         )}
       </ChartContext>
-      {traceFlameData && <FlameChart data={traceFlameData} />}
     </div>
   )
 }

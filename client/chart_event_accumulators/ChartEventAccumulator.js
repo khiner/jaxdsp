@@ -54,8 +54,8 @@ export default class ChartEventAccumulator {
   }
 
   // Note: be sure to call `expireData` and `refreshDomain` after pushing all data!
-  push(seriesId, datum) {
-    const series = this.findOrAddSeries(seriesId)
+  push(seriesId, datum, label = undefined) {
+    const series = this.findOrAddSeries(seriesId, label)
     if (getMinTimeMillis(last(series.data)) === getMinTimeMillis(datum)) series.data.pop()
     series.data.push(datum)
 

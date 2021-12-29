@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Html } from '@react-three/drei'
 import { scaleLinear } from 'd3-scale'
-import { formatRatioAsPercent } from '../../util/stats'
-
-const percent = formatRatioAsPercent
+import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
+import ClipArea from './ClipArea'
+import { VertexColors } from 'three'
+import colors from './colors'
 
 // Example:
 //    <FlameChart data={
@@ -13,45 +15,66 @@ const percent = formatRatioAsPercent
 //    }/>
 // Note that `duration_ms` could be different than x1 - x2, since it's
 // calculated using Python's more accurate `time.perf_counter`.
-export default React.memo(({ data }) => {
+export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12 }) => {
+  const ref = useRef()
+  const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 1_000), [])
   const [hoveringDatumId, setHoveringDatumId] = useState(undefined)
-
-  if (!data) return null
 
   const { data: allSeries, xDomain } = data
   const numSeries = allSeries?.length
-  if (!numSeries) return null
+  const { x, y, width, height } = dimensions
+  const labelWidth = 130
 
-  const xScale = scaleLinear().domain(xDomain).range([0, 1])
-  const height = 40 * numSeries
+  useLayoutEffect(() => vertices.setGeometryRef(ref), [])
+  useLayoutEffect(() => {
+    vertices.draw(v => {
+      allSeries?.forEach(({ data, color }, i) =>
+        data.forEach(({ id, x1, x2 }) => {
+          const xScale = scaleLinear()
+            .domain(xDomain)
+            .range([x + labelWidth, x + width])
+          v.rectangle(
+            xScale(x1),
+            y + height - (height * (i + 1)) / numSeries,
+            Math.max(xScale(x2) - xScale(x1), 4), // 4px min
+            height / numSeries,
+            hoveringDatumId === id ? '#00FF00' : color
+          )
+          // onMouseOver={() => setHoveringDatumId(id)}
+          // onMouseLeave={() => {
+          //   if (hoveringDatumId === id) setHoveringDatumId(undefined)
+          // }}
+        })
+      )
+    })
+  })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around' }}>
-        {allSeries.map(({ label }) => (
-          <div key={label} style={{ padding: '0 1em', fontWeight: 'bold', textAlign: 'right' }}>
+    <>
+      <>
+        {allSeries?.map(({ label }, i) => (
+          <Html
+            key={label}
+            position={[x, y + height - (height * (i + 0.5)) / numSeries + fontSize, 0]}
+            style={{
+              width: labelWidth,
+              color: colors.axis.text,
+              fontSize,
+              fontWeight: 'bold',
+              textAlign: 'right',
+              paddingRight: '1em',
+            }}
+          >
             {label}
-          </div>
+          </Html>
         ))}
-      </div>
-      <svg width="50%" height={height}>
-        {allSeries.map(({ data, color }, seriesIndex) =>
-          data.map(({ id, x1, x2 }) => (
-            <rect
-              key={id}
-              onMouseOver={() => setHoveringDatumId(id)}
-              onMouseLeave={() => {
-                if (hoveringDatumId === id) setHoveringDatumId(undefined)
-              }}
-              fill={hoveringDatumId === id ? '#00FF00' : color}
-              x={percent(xScale(x1))}
-              y={percent(seriesIndex / numSeries)}
-              width={percent(Math.max(xScale(x2) - xScale(x1), 0.002))}
-              height={percent(1.0 / numSeries)}
-            />
-          ))
-        )}
-      </svg>
-    </div>
+      </>
+      <mesh renderOrder={renderOrder}>
+        <bufferGeometry ref={ref} />
+        <meshBasicMaterial vertexColors={VertexColors}>
+          <ClipArea dimensions={dimensions} />
+        </meshBasicMaterial>
+      </mesh>
+    </>
   )
 })

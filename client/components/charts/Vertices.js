@@ -1,4 +1,4 @@
-import { BufferAttribute } from 'three'
+import { BufferAttribute, Color } from 'three'
 
 export const POSITIONS_PER_RECTANGLE = 6
 
@@ -32,6 +32,7 @@ export default class Vertices {
   addPosition(x, y, color) {
     this.positions.setXYZ(this.vertexIndex, x, y, 0)
     if (color) {
+      if (typeof color === 'string') color = new Color(color)
       const { r, g, b } = color
       this.colors.setXYZ(this.vertexIndex, r, g, b)
     }
