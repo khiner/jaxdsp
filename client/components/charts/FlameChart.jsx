@@ -15,7 +15,7 @@ import colors from './colors'
 //    }/>
 // Note that `duration_ms` could be different than x1 - x2, since it's
 // calculated using Python's more accurate `time.perf_counter`.
-export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12 }) => {
+export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, yAxisWidth = 60 }) => {
   const ref = useRef()
   const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 1_000), [])
   const [hoveringDatumId, setHoveringDatumId] = useState(undefined)
@@ -23,7 +23,6 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12 })
   const { data: allSeries, xDomain } = data
   const numSeries = allSeries?.length
   const { x, y, width, height } = dimensions
-  const labelWidth = 130
 
   useLayoutEffect(() => vertices.setGeometryRef(ref), [])
   useLayoutEffect(() => {
@@ -32,11 +31,11 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12 })
         data.forEach(({ id, x1, x2 }) => {
           const xScale = scaleLinear()
             .domain(xDomain)
-            .range([x + labelWidth, x + width])
+            .range([x + yAxisWidth, x + width])
           v.rectangle(
             xScale(x1),
             y + height - (height * (i + 1)) / numSeries,
-            Math.max(xScale(x2) - xScale(x1), 4), // 4px min
+            Math.max(xScale(x2) - xScale(x1), 2), // 2px min
             height / numSeries,
             hoveringDatumId === id ? '#00FF00' : color
           )
@@ -57,7 +56,7 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12 })
             key={label}
             position={[x, y + height - (height * (i + 0.5)) / numSeries + fontSize, 0]}
             style={{
-              width: labelWidth,
+              width: yAxisWidth,
               color: colors.axis.text,
               fontSize,
               fontWeight: 'bold',
