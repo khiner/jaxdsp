@@ -1,6 +1,8 @@
 # JAXdsp
 
-**Still working on this and will make a blog post soon!**
+**I'm still working on improvements and an interactive browser client, after which I'll write up a blog post. In the
+meantime, the `docs` directory has several Jupyter notebooks with plenty of examples.
+The `Differentiable Audio Processors` shows many real DSP examples, along with loss/parameter time-series.** _(`Differentiable Array Indexing` and `Log Normal Distribution` are just working notes.)_
 
 Fast, differentiable audio processors on the CPU or GPU, controlled from the browser.
 
