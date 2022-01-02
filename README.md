@@ -1,14 +1,17 @@
 # JAXdsp
 
-**I'm still working on improvements and an interactive browser client, after which I'll write up a blog post. In the
-meantime, the `docs` directory has several Jupyter notebooks with plenty of examples.
-The `Differentiable Audio Processors` shows many real DSP examples, along with loss/parameter time-series.** _(`Differentiable Array Indexing` and `Log Normal Distribution` are just working notes.)_
-
 Fast, differentiable audio processors on the CPU or GPU, controlled from the browser.
 
-The goal is to parameterize audio graphs, in real-time, to produce an audio stream resembling incoming audio.
+**I'm still working on improvements and an interactive browser client, after which I'll write up a blog post.
+In the meantime, the `docs` directory has several Jupyter notebooks with plenty of examples.
+The `Differentiable Audio Processors` notebook shows many real DSP examples, along with loss/parameter time-series.**
+_(All files under `docs/scratch` are working notes, and can be ignored.)_
+g
+The goal of this project is to parameterize audio graphs, in real-time, to produce an audio stream resembling incoming audio.
 
-Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets and React.
+Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets, and React.
+[`react-three-fiber`](https://github.com/pmndrs/react-three-fiber) provides the WebGL backbone for
+performant real-time clientside monitoring of the system.
 
 _**Note:** The `requirements.txt` file at the root of this repo was generated with `pip freeze > requirements.txt`, and
 it likely contains more than what's strictly needed!_
