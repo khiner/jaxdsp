@@ -1,0 +1,6 @@
+numpy
+websockets
+aiortc
+aiohttp
+aiohttp_cors
+../

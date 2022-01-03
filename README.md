@@ -13,10 +13,16 @@ Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets, and React.
 [`react-three-fiber`](https://github.com/pmndrs/react-three-fiber) provides the WebGL backbone for
 performant real-time clientside monitoring of the system.
 
-_**Note:** The `requirements.txt` file at the root of this repo was generated with `pip freeze > requirements.txt`, and
-it likely contains more than what's strictly needed!_
-
 ## Server
+
+### Docker
+
+To build and run the server in a Linux container:
+
+```shell
+$ docker build . -t jaxdsp_server
+$ docker run -p 8080:8080 jaxdsp_server
+```
 
 ```shell
 $ cd server
