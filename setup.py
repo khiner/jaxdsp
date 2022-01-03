@@ -20,4 +20,5 @@ setuptools.setup(
     ],
     python_requires=">=3.6",
     # install_requires=['jaxlib', 'jax[cpu]'],
+    install_requires=['jax-spectral @ git+https://github.com/cifkao/jax-spectral.git@43085eb9b094145cd15b559c6c882fe162d75a01'],
 )
