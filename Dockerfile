@@ -3,16 +3,19 @@
 # TODO ENV PIP_NO_CACHE_DIR=1 instead of `--no-cache-dir`
 #   https://stackoverflow.com/questions/45594707/what-is-pips-no-cache-dir-good-for#comment106648551_57490475
 #   "in docker for python 3.6.10 or higher"
-FROM nvidia/cuda:11.1-cudnn8-devel-ubuntu18.04
+FROM nvidia/cuda:11.4.2-cudnn8-devel-ubuntu20.04
 
-# ffmpeg-4 update needed to resolve https://stackoverflow.com/a/66235550/780425
-RUN apt update && apt install software-properties-common -y
-RUN add-apt-repository ppa:jonathonf/ffmpeg-4
-RUN apt upgrade -y
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections # Avoid hanging on any install prompts
+RUN apt update -y && apt upgrade -y
 RUN apt install -y python3-pip
 RUN ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip
-RUN pip --no-cache-dir install --upgrade pip setuptools_rust
+RUN pip --no-cache-dir install --upgrade pip setuptools_rust pyOpenSSL
 RUN ln -s /usr/lib/cuda /usr/local/cuda-11.1 # Needed for some libs? (This is copy-pasta and I haven't tested with a GPU-enabled host yet.)
+# Using an older version of jax/jaxlib due to:
+#   ```
+#   RuntimeError: This version of jaxlib was built using AVX instructions, which your CPU and/or operating system do not support.
+#   You may be able work around this issue by building jaxlib from source.
+#   ```
 RUN pip --no-cache-dir install --upgrade jax==0.2.6 jaxlib==0.1.57+cuda111 -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
 # aiortc requirements: https://github.com/aiortc/aiortc#linux
