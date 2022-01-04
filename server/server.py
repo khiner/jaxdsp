@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import json
-import logging
 import ssl
 import uuid
 from collections import deque
@@ -36,7 +35,6 @@ ALL_PROCESSORS = [allpass_filter, clip, delay_line, biquad_lowpass, sine_wave, f
 # Training frame pairs are queued up for each client, limited to this cap:
 MAX_TRAIN_FRAMES_PER_CLIENT = 100
 
-logger = logging.getLogger("pc")
 track_for_client_uid = {}
 peer_connections = set()
 
@@ -195,19 +193,14 @@ async def offer(request):
     client_uid = str(uuid.uuid4())
     audio_transform_track = AudioTransformTrack()
 
-    params = await request.json()
-    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
     peer_connection = RTCPeerConnection()
     peer_connections.add(peer_connection)
     peer_connection_id = "PeerConnection(%s)" % uuid.uuid4()
 
-    def log_info(msg, *args):
-        logger.info(peer_connection_id + " " + msg, *args)
-
     @peer_connection.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
         state = peer_connection.iceConnectionState
-        log_info("ICE connection state is %s", state)
+        print("ICE connection state is %s", state)
         if state == "failed" or state == "closed":
             await peer_connection.close()
             peer_connections.discard(peer_connection)
@@ -217,7 +210,7 @@ async def offer(request):
         if track.kind != "audio":
             return
 
-        log_info("Track %s received", track.kind)
+        print("Track %s received", track.kind)
 
         audio_transform_track.track = track
         track_for_client_uid[client_uid] = audio_transform_track
@@ -225,11 +218,13 @@ async def offer(request):
 
         @track.on("ended")
         async def on_ended():
-            log_info("Track %s ended", track.kind)
+            print("Track %s ended", track.kind)
             del track_for_client_uid[client_uid]
 
     # handle offer
-    await peer_connection.setRemoteDescription(offer)
+    params = await request.json()
+    offer_description = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    await peer_connection.setRemoteDescription(offer_description)
 
     # send answer
     answer = await peer_connection.createAnswer()
@@ -346,23 +341,30 @@ async def register_websocket(websocket, path):
             break
 
 
+def create_ssl_context(cert_file, key_file):
+    if not cert_file:
+        return None
+
+    context = ssl.SSLContext()
+    context.load_cert_chain(cert_file, key_file)
+    return context
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="JAXdsp server")
-    parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
-    parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
     parser.add_argument(
         "--port", type=int, default=8080, help="Port for HTTP server (default: 8080)"
     )
-    parser.add_argument("--verbose", "-v", action="count")
+    parser.add_argument(
+        "--ws-port", type=int, default=8765, help="Port for WebSocket server (default: 8765)"
+    )
+    parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
+    parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
+
     args = parser.parse_args()
-    logging.basicConfig(level=(logging.DEBUG if args.verbose else logging.INFO))
 
-    ssl_context = None
-    if args.cert_file:
-        ssl_context = ssl.SSLContext()
-        ssl_context.load_cert_chain(args.cert_file, args.key_file)
-
-    start_server = websockets.serve(register_websocket, "127.0.0.1", 8765, ssl=ssl_context)
+    ssl_context = create_ssl_context(args.cert_file, args.key_file)
+    start_server = websockets.serve(register_websocket, port=args.ws_port, ssl=ssl_context)
     asyncio.get_event_loop().run_until_complete(start_server)
 
     app = web.Application()
@@ -382,10 +384,7 @@ if __name__ == "__main__":
     cors = aiohttp_cors.setup(
         app,
         defaults={
-            "*": aiohttp_cors.ResourceOptions(
-                expose_headers="*",
-                allow_headers="*",
-            )
+            "*": aiohttp_cors.ResourceOptions(expose_headers="*", allow_headers="*")
         },
     )
     for route in list(router.routes()):
