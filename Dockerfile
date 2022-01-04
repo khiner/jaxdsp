@@ -28,6 +28,7 @@ WORKDIR /workspace/server
 
 RUN pip install -r requirements.txt
 
-EXPOSE 8080
+# 8080->HTTP (REST API); 8765->WebSocket (signaling and monitoring)
+EXPOSE 8080 8765
 CMD ["server.py"]
 ENTRYPOINT ["python"]

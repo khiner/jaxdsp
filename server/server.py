@@ -364,8 +364,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     ssl_context = create_ssl_context(args.cert_file, args.key_file)
-    start_server = websockets.serve(register_websocket, port=args.ws_port, ssl=ssl_context)
-    asyncio.get_event_loop().run_until_complete(start_server)
+    start_ws_server = websockets.serve(register_websocket, "0.0.0.0", port=args.ws_port, ssl=ssl_context)
+    asyncio.get_event_loop().run_until_complete(start_ws_server)
 
     app = web.Application()
     app.on_shutdown.append(on_shutdown)
