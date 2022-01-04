@@ -362,9 +362,7 @@ if __name__ == "__main__":
         ssl_context = ssl.SSLContext()
         ssl_context.load_cert_chain(args.cert_file, args.key_file)
 
-    start_server = websockets.serve(
-        register_websocket, "localhost", 8765, ssl=ssl_context
-    )
+    start_server = websockets.serve(register_websocket, "127.0.0.1", 8765, ssl=ssl_context)
     asyncio.get_event_loop().run_until_complete(start_server)
 
     app = web.Application()

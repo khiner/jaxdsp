@@ -17,7 +17,6 @@ RUN pip --no-cache-dir install --upgrade jax==0.2.6 jaxlib==0.1.57+cuda111 -f ht
 
 # aiortc requirements: https://github.com/aiortc/aiortc#linux
 RUN apt install libavdevice-dev libavfilter-dev libopus-dev libvpx-dev pkg-config libsrtp2-dev -y
-
 RUN apt install git -y # Needed for a package dependency specified with a git URL (`jax_spectral`)
 
 COPY setup.py README.md /workspace/
@@ -28,4 +27,5 @@ WORKDIR /workspace/server
 RUN pip install -r requirements.txt
 
 EXPOSE 8080
-CMD python ./server.py
+CMD ["server.py"]
+ENTRYPOINT ["python"]

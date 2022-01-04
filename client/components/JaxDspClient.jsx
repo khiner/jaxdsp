@@ -27,16 +27,14 @@ const AUDIO_INPUT_SOURCES = {
   },
 }
 
-const get = async (path, clientUid) => {
-  const response = await fetch(`${serverUrl}/${path}/${clientUid}`, {
+const get = async (path, clientUid) =>
+  fetch(`${serverUrl}/${path}/${clientUid}`, {
     headers: { 'Content-Type': 'application/json' },
     method: 'GET',
   })
-  return response.json()
-}
 
 const post = async (path, clientUid, postBody = undefined) =>
-  await fetch(`${serverUrl}/${path}/${clientUid}`, {
+  fetch(`${serverUrl}/${path}/${clientUid}`, {
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
     ...(postBody ? { body: JSON.stringify(postBody) } : {}),
@@ -77,6 +75,11 @@ export default function JaxDspClient({ testSample }) {
 
   const getState = async () => {
     const response = await get('state', clientUid)
+    if (!response.ok) {
+      onAudioStreamError('Failed to get state from server', response.statusText)
+      return
+    }
+
     const { processor_definitions, processors, optimizer_definitions, optimizer, loss_options } = response
 
     if (processor_definitions) setProcessorDefinitions(processor_definitions)
