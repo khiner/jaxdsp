@@ -139,11 +139,7 @@ class LossOptions:
             # Every key should be present in serialized options.
             "weights": {
                 label: self.weights_options.get(label) or 0.0
-                for label in sample_loss_labels
-            }
-            | {
-                label: self.weights_options.get(label) or 0.0
-                for label in frequency_loss_labels
+                for label in sample_loss_labels + frequency_loss_labels
             },
             "distance_types": {
                 "sample": self.sample_distance_type,
