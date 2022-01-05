@@ -11,10 +11,7 @@ RUN pip install --upgrade pip setuptools_rust
 RUN pip install pyOpenSSL --upgrade
 RUN ln -s /usr/lib/cuda /usr/local/cuda-11.1 # Needed for some libs? (This is copy-pasta and I haven't tested with a GPU-enabled host yet.)
 # Using an older version of jax/jaxlib due to:
-#   ```
-#   RuntimeError: This version of jaxlib was built using AVX instructions, which your CPU and/or operating system do not support.
-#   You may be able work around this issue by building jaxlib from source.
-#   ```
+#   `RuntimeError: This version of jaxlib was built using AVX instructions, which your CPU and/or operating system do not support.`
 RUN pip install --upgrade jax==0.2.6 jaxlib==0.1.57+cuda111 -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
 # aiortc requirements: https://github.com/aiortc/aiortc#linux
@@ -22,11 +19,13 @@ RUN apt install libavdevice-dev libavfilter-dev libopus-dev libvpx-dev pkg-confi
 RUN apt install git -y # Needed for a package dependency specified with a git URL (`jax_spectral`)
 
 COPY setup.py README.md /workspace/
-COPY ./server /workspace/server
+COPY ./server/requirements.txt /workspace/server/
 COPY ./jaxdsp /workspace/jaxdsp
 WORKDIR /workspace/server
-
 RUN pip install -r requirements.txt
+
+# Copy the server script last to avoid slow docker rebuilds every time it changes
+COPY ./server/server.py /workspace/server/
 
 # 8080->HTTP (REST API); 8765->WebSocket (signaling and monitoring)
 EXPOSE 8080 8765
