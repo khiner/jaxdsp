@@ -21,7 +21,7 @@ To build and run the server in a Linux container:
 
 ```shell
 $ docker build . -t jaxdsp_server
-$ docker run -p 8080:8080 jaxdsp_server
+$ docker run -p 8080:8080 -p 8765:8765 --platform linux/amd64 --init jaxdsp_server
 ```
 
 ```shell
