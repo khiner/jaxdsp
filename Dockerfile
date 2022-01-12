@@ -27,6 +27,9 @@ RUN pip install -r requirements.txt
 # Copy the server script last to avoid slow docker rebuilds every time it changes
 COPY ./server/server.py /workspace/server/
 
+# Make `print` work
+ENV PYTHONUNBUFFERED=1
+
 # 8080->HTTP (REST API); 8765->WebSocket (signaling and monitoring)
 EXPOSE 8080 8765
 CMD ["server.py"]
