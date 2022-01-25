@@ -3,10 +3,10 @@ import asyncio
 import json
 import ssl
 import uuid
-from collections import deque
-
 import aiohttp_cors
 import numpy as np
+from collections import deque
+
 import websockets
 from aiohttp import web
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
@@ -31,14 +31,15 @@ from jaxdsp.training import IterativeTrainer
 from jaxdsp import tracer
 from jaxdsp.tracer import trace
 
+
+INT_MAX = np.iinfo(np.int16).max
 ALL_PROCESSORS = [allpass_filter, clip, delay_line, biquad_lowpass, sine_wave, freeverb]
 # Training frame pairs are queued up for each client, limited to this cap:
 MAX_TRAIN_FRAMES_PER_CLIENT = 100
 
-track_for_client_uid = {}
-peer_connections = set()
-
-int_max = np.iinfo(np.int16).max
+# Every client is assigned a single `AudioTransformTrack` when it first connects with a WebRTC audio track.
+TRACK_FOR_CLIENT_UID = {}
+PEER_CONNECTIONS = set()
 
 
 class AudioTransformTrack(MediaStreamTrack):
@@ -133,10 +134,13 @@ class AudioTransformTrack(MediaStreamTrack):
         assert (
             frame.format.is_packed
         ), "Processing assumes frames are packed, but frame is planar"
-        assert num_channels == 2, "Processing assumes frames have 2 channels"
+        assert num_channels == 2, (
+            "Processing assumes frames have 2 channels, but frame has %s channels"
+            % num_channels
+        )
 
         X_interleaved = (
-                np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32) / int_max
+            np.frombuffer(frame.planes[0], dtype=np.int16).astype(np.float32) / INT_MAX
         )
         X_deinterleaved = [
             X_interleaved[channel_num::num_channels]
@@ -154,16 +158,16 @@ class AudioTransformTrack(MediaStreamTrack):
 
         if len(self.processed_packets) > 0:
             Y_deinterleaved = self.processed_packets.pop(0)
+            # TODO reuse `Y_interleaved`
             Y_interleaved = np.empty(
                 (Y_deinterleaved.shape[1] * 2,), dtype=Y_deinterleaved.dtype
             )
             Y_interleaved[0::2] = Y_deinterleaved[0]
             Y_interleaved[1::2] = Y_deinterleaved[1]
 
-            out_samples = (Y_interleaved * int_max).astype(np.int16)
+            out_samples = (Y_interleaved * INT_MAX).astype(np.int16)
         else:
             # Fill with silence while waiting to receive enough packets to process.
-            # Should only hit this case for the first `packets_per_buffer - 1` packets.
             out_samples = np.zeros(X_interleaved.size, dtype="int16")
 
         frame.planes[0].update(out_samples)
@@ -171,7 +175,7 @@ class AudioTransformTrack(MediaStreamTrack):
 
 
 def get_track_for_client_uid(client_uid):
-    track = track_for_client_uid.get(client_uid)
+    track = TRACK_FOR_CLIENT_UID.get(client_uid)
     if not track:
         raise Exception(f"No track found for client UID {client_uid}")
 
@@ -194,8 +198,7 @@ async def offer(request):
     audio_transform_track = AudioTransformTrack()
 
     peer_connection = RTCPeerConnection()
-    peer_connections.add(peer_connection)
-    peer_connection_id = "PeerConnection(%s)" % uuid.uuid4()
+    PEER_CONNECTIONS.add(peer_connection)
 
     @peer_connection.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
@@ -203,7 +206,7 @@ async def offer(request):
         print("ICE connection state is %s", state)
         if state == "failed" or state == "closed":
             await peer_connection.close()
-            peer_connections.discard(peer_connection)
+            PEER_CONNECTIONS.discard(peer_connection)
 
     @peer_connection.on("track")
     def on_track(track):
@@ -213,13 +216,13 @@ async def offer(request):
         print("Track %s received", track.kind)
 
         audio_transform_track.track = track
-        track_for_client_uid[client_uid] = audio_transform_track
+        TRACK_FOR_CLIENT_UID[client_uid] = audio_transform_track
         peer_connection.addTrack(audio_transform_track)
 
         @track.on("ended")
         async def on_ended():
             print("Track %s ended", track.kind)
-            del track_for_client_uid[client_uid]
+            del TRACK_FOR_CLIENT_UID[client_uid]
 
     # handle offer
     params = await request.json()
@@ -305,14 +308,7 @@ async def stop_estimating(request):
     return web.Response(status=201)
 
 
-async def on_shutdown(app):
-    # close peer connections
-    coros = [pc.close() for pc in peer_connections]
-    await asyncio.gather(*coros)
-    peer_connections.clear()
-
-
-async def register_websocket(websocket, path):
+async def ws_main(websocket, path):
     client_uid = None
     while client_uid is None:
         message = await websocket.recv()
@@ -320,13 +316,12 @@ async def register_websocket(websocket, path):
         client_uid = message_object.get("client_uid")
 
     track = get_track_for_client_uid(client_uid)
-    train_stack = track.train_stack
     while True:
         try:
             heartbeat = {}
             if track.is_estimating and track.trainer:
-                if len(train_stack) > 0:
-                    train_pair = train_stack.pop()
+                if len(track.train_stack) > 0:
+                    train_pair = track.train_stack.pop()
                     X, Y = train_pair
                     X_left = X[0]  # TODO support stereo in
                     track.trainer.step(X_left, Y)
@@ -339,6 +334,18 @@ async def register_websocket(websocket, path):
         except websockets.ConnectionClosed:
             print("ws terminated")
             break
+
+
+async def on_startup(app):
+    start_ws_server = websockets.serve(ws_main, "0.0.0.0", port=app["ws_port"], ssl=app["ssl_context"])
+    await start_ws_server
+
+
+async def on_shutdown(app):
+    # close peer connections
+    coros = [pc.close() for pc in PEER_CONNECTIONS]
+    await asyncio.gather(*coros)
+    PEER_CONNECTIONS.clear()
 
 
 def create_ssl_context(cert_file, key_file):
@@ -356,7 +363,10 @@ if __name__ == "__main__":
         "--port", type=int, default=8080, help="Port for HTTP server (default: 8080)"
     )
     parser.add_argument(
-        "--ws-port", type=int, default=8765, help="Port for WebSocket server (default: 8765)"
+        "--ws-port",
+        type=int,
+        default=8765,
+        help="Port for WebSocket server (default: 8765)",
     )
     parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
     parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
@@ -364,10 +374,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     ssl_context = create_ssl_context(args.cert_file, args.key_file)
-    start_ws_server = websockets.serve(register_websocket, "0.0.0.0", port=args.ws_port, ssl=ssl_context)
-    asyncio.get_event_loop().run_until_complete(start_ws_server)
 
     app = web.Application()
+    app["ws_port"] = args.ws_port
+    app["ssl_context"] = ssl_context
+    app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     router = app.router
     router.add_routes(
