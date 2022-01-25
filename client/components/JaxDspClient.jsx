@@ -80,7 +80,8 @@ export default function JaxDspClient({ testSample }) {
       return
     }
 
-    const { processor_definitions, processors, optimizer_definitions, optimizer, loss_options } = response
+    const { processor_definitions, processors, optimizer_definitions, optimizer, loss_options } =
+      await response.json()
 
     if (processor_definitions) setProcessorDefinitions(processor_definitions)
     if (processors) setSelectedProcessors(processors)
