@@ -1,5 +1,5 @@
 # Using a CUDA image as a base, even though only this project only requires a CPU, so a GPU will be available if the host supports it.
-FROM nvidia/cuda:11.4.2-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.4.2-cudnn8-runtime-ubuntu20.04
 
 ENV PIP_NO_CACHE_DIR=1
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections # Avoid hanging on any install prompts
