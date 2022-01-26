@@ -19,6 +19,7 @@ RUN pip install -r requirements.txt
 
 # Using an older version of jax/jaxlib due to:
 #   `RuntimeError: This version of jaxlib was built using AVX instructions, which your CPU and/or operating system do not support.`
+# See `Dockerfile-buildjax` for a work-in-progress attempt at a Dockerfile that builds jaxlib from source.
 RUN pip install --upgrade jax==0.2.9 jaxlib==0.1.59 -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
 # Copy the server script last to avoid slow docker rebuilds every time it changes

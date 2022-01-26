@@ -1,0 +1,40 @@
+# This is a working attempt at a Dcokerfile that builds jaxlib from source, since newer versions of jax wheels
+# require CPUs with AVX, which don't work when running Docker on an M1 Mac.
+# Using a CUDA base image, even though only this project only requires a CPU, so a GPU will be available if the host supports it.
+# Also, see https://github.com/google/jax/issues/6340 for why using a cudnn8 image is a good choice for building jax.
+FROM nvidia/cuda:11.4.2-cudnn8-runtime-ubuntu20.04
+
+ENV PIP_NO_CACHE_DIR=1
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections # Avoid hanging on any install prompts
+RUN apt update -y && apt upgrade -y
+RUN apt install -y python3-pip git # git needed for a package dependency specified with a git URL (`jax_spectral`)
+RUN pip install --upgrade pip
+
+# aiortc requirements: https://github.com/aiortc/aiortc#linux
+RUN apt install libavdevice-dev libavfilter-dev libopus-dev libvpx-dev pkg-config libsrtp2-dev -y
+
+COPY setup.py README.md /workspace/
+COPY ./server/requirements.txt /workspace/server/
+COPY ./jaxdsp /workspace/jaxdsp
+RUN pip3 install -r /workspace/server/requirements.txt
+
+# https://jax.readthedocs.io/en/latest/developer.html#building-from-source
+RUN apt install -y git g++ python3-dev
+RUN pip install numpy six wheel
+RUN git clone https://github.com/google/jax
+WORKDIR ./jax
+# Failing with: FATAL: Failed to open '/proc/self/exe' as a zip file: (error: 9): Bad file descriptor
+# until https://github.com/bazelbuild/bazel/pull/14391 is merged.
+RUN python3 build/build.py  # no cuda
+RUN pip install dist/*.whl  # installs jaxlib (includes XLA)
+RUN pip install jax
+
+WORKDIR ../workspace/server
+
+# Make `print` work
+ENV PYTHONUNBUFFERED=1
+
+# 8080->HTTP (REST API); 8765->WebSocket (signaling and monitoring)
+EXPOSE 8080 8765
+CMD ["server.py"]
+ENTRYPOINT ["python3"]
