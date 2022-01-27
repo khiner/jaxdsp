@@ -35,7 +35,7 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, y
           v.rectangle(
             xScale(x1),
             y + height - (height * (i + 1)) / numSeries,
-            Math.max(xScale(x2) - xScale(x1), 2), // 2px min
+            xScale(x2) - xScale(x1),
             height / numSeries,
             hoveringDatumId === id ? '#00FF00' : color
           )

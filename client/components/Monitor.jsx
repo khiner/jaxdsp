@@ -4,7 +4,7 @@ import FlameChart from './charts/TraceChart'
 import ChartContext from './charts/ChartContext'
 import Axis, { BOTTOM, LEFT } from './charts/Axis'
 
-const [chartWidth, chartHeight, flameChartHeight, xAxisHeight, yAxisWidth] = [400, 200, 100, 40, 60]
+const [chartWidth, chartHeight, flameChartHeight, xAxisHeight, yAxisWidth] = [600, 200, 100, 40, 100]
 
 export default function Monitor({
   width = chartWidth,
