@@ -1,6 +1,6 @@
 import React from 'react'
 import TimeSeriesChart from './charts/TimeSeriesChart'
-import FlameChart from './charts/FlameChart'
+import FlameChart from './charts/TraceChart'
 import ChartContext from './charts/ChartContext'
 import Axis, { BOTTOM, LEFT } from './charts/Axis'
 

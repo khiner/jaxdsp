@@ -7,13 +7,13 @@ import { VertexColors } from 'three'
 import colors from './colors'
 
 // Example:
-//    <FlameChart data={
+//    <TraceChart data={
 //      xDomain: [1631772930783, 1631772941650],
 //      data: [
 //        { id: 'test', label: 'Test', data: [{ x1: 1631772930783, x2: 1631772941650  }]}
 //      ]
 //    }/>
-// Note that `duration_ms` could be different than x1 - x2, since it's
+// Note that `duration_ms` could be different from x1 - x2, since it's
 // calculated using Python's more accurate `time.perf_counter`.
 export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, yAxisWidth = 60 }) => {
   const ref = useRef()
