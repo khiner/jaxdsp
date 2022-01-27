@@ -62,6 +62,7 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, y
               fontWeight: 'bold',
               textAlign: 'right',
               paddingRight: '1em',
+              overflowWrap: 'break-word',
             }}
           >
             {label}
