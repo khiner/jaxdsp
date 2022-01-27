@@ -4,3 +4,5 @@ export const snakeCaseToSentence = name =>
     ?.split('_')
     .join(' ')
     .replace(/^(.)/, firstLetter => firstLetter.toUpperCase())
+
+export const capitalize = s => `${s[0].toUpperCase()}${s.slice(1)}`
