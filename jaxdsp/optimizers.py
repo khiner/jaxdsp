@@ -1,6 +1,6 @@
 import jax.numpy as jnp
-from jax.experimental import optimizers
-from jax.experimental.optimizers import optimizer
+from jax.example_libraries import optimizers
+from jax.example_libraries.optimizers import optimizer
 from jax.tree_util import tree_map
 
 from jaxdsp.param import Param
