@@ -2,20 +2,23 @@
 
 Python WebRTC server for applying audio effects and learning effect parameters from audio examples.
 
-Note: lots of code taken from [the aiortc server example](https://github.com/aiortc/aiortc/tree/main/examples/server).
+_To run via Docker, see [the main JAXdsp readme](../README.md)._
 
-## Running
+## Install requirements
 
-Install the required packages:
+### MacOS
+
+Install [aiortc requirements](https://github.com/aiortc/aiortc#os-x) & install packages:
 
 ```console
-$ pip install aiohttp aiohttp_cors aiortc opencv-python
+$ brew install ffmpeg@4 opus libvpx pkg-config
+$ pip install -r requirements.txt
 ```
 
-Start the server:
+## Running
 
 ```console
 $ python server.py
 ```
 
-This will create an HTTP server which you can connect to from your browser at [location](http://localhost:8080).
+The server will be running at [location](http://localhost:8080).

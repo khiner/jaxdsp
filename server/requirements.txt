@@ -3,4 +3,5 @@ websockets
 aiortc
 aiohttp
 aiohttp_cors
+opencv-python
 ../

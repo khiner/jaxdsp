@@ -15,7 +15,7 @@ performant real-time clientside monitoring of the system.
 
 ## Server
 
-### Docker
+### Docker server
 
 To build and run the server in a Linux container:
 
@@ -24,10 +24,10 @@ $ docker build . -t jaxdsp_server
 $ docker run -p 8080:8080 -p 8765:8765 --platform linux/amd64 --init jaxdsp_server
 ```
 
-```shell
-$ cd server
-$ python server.py
-```
+### Local server
+
+See the [server instructions](server/README.md) for how to run locally.
+
 
 ## Client
 
