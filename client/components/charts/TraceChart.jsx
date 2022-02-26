@@ -23,7 +23,7 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, y
   const { data: allSeries, xDomain } = data
   const numSeries = allSeries?.length
   const { x, y, width, height } = dimensions
-
+  const seriesHeight = height / numSeries
   useLayoutEffect(() => vertices.setGeometryRef(ref), [])
   useLayoutEffect(() => {
     vertices.draw(v => {
@@ -34,9 +34,9 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, y
             .range([x + yAxisWidth, x + width])
           v.rectangle(
             xScale(x1),
-            y + height - (height * (i + 1)) / numSeries,
+            y + height - (i + 1) * seriesHeight,
             xScale(x2) - xScale(x1),
-            height / numSeries,
+            seriesHeight,
             hoveringDatumId === id ? '#00FF00' : color
           )
           // onMouseOver={() => setHoveringDatumId(id)}
@@ -54,7 +54,7 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, y
         {allSeries?.map(({ label }, i) => (
           <Html
             key={label}
-            position={[x, y + height - (height * (i + 0.5)) / numSeries + fontSize, 0]}
+            position={[x, y + height - (i + 0.5) * seriesHeight + fontSize, 0]}
             style={{
               width: yAxisWidth,
               color: colors.axis.text,

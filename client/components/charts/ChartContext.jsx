@@ -1,6 +1,31 @@
+import React, { Children } from 'react'
 import { Canvas } from '@react-three/fiber'
 
-export default function ChartContext({ width = 400, height = 200, children }) {
+const DEFAULT_CHART_HEIGHT = 200
+
+/**
+ All explicit child `dimensions` fields except `y` (x/width/height) will be respected, and not modified.
+ Child `y` positions will be calculated assuming children are provided in top-to-bottom order, and should be
+ stacked directly on top of each other.
+ Any missing `dimensions` fields will be automatically filled, using the following rules:
+   - Children receive a `width` of `ChartContext::width` (fill the `ChartContext` parent).
+   - Children will be provided a default `x` of `0`, and a default `height` of `200px`.
+*/
+export default function ChartContext({ width = 400, children }) {
+  // Learned the hard way that `Children.map`, unlike `Array.map`, removes `undefined` values.
+  children = Children.map(children, child => (React.isValidElement(child) ? child : undefined))
+  const childrenDimensions = Children.map(children, child => {
+    const { x, width: chartWidth, height: chartHeight } = child.props.dimensions || {}
+    return { x: x || 0, width: chartWidth || width, height: chartHeight || DEFAULT_CHART_HEIGHT }
+  })
+  let y = 0
+  for (let i = childrenDimensions.length - 1; i >= 0; i -= 1) {
+    const childDimensions = childrenDimensions[i]
+    childDimensions.y = y
+    y += childDimensions.height
+  }
+
+  const height = y
   return (
     <Canvas
       style={{ width, height }}
@@ -17,7 +42,7 @@ export default function ChartContext({ width = 400, height = 200, children }) {
       dpr={window.devicePixelRatio}
       frameLoop="demand"
     >
-      {children}
+      {Children.map(children, (child, i) => React.cloneElement(child, { dimensions: childrenDimensions[i] }))}
     </Canvas>
   )
 }
