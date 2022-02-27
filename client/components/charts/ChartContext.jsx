@@ -1,7 +1,25 @@
-import React, { Children } from 'react'
-import { Canvas } from '@react-three/fiber'
+import React, { Children, useEffect } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 
 const DEFAULT_CHART_HEIGHT = 200
+
+function AdaptiveCamera() {
+  const {
+    camera,
+    size: { width, height },
+  } = useThree()
+  useEffect(() => {
+    // Calculate camera z so that the top and bottom are exactly at the edges of the fov
+    // Based on https://stackoverflow.com/a/13351534/780425
+    // Adding height for extra space to not clip horizontal lines exactly at 0/height in half.
+    const maxLineWidth = 4
+    const z = (height + maxLineWidth) / (2 * Math.tan((camera.fov / 360) * Math.PI))
+    camera.position.set(width / 2, height / 2, z)
+    camera.lookAt(width / 2, height / 2, 0)
+    camera.updateProjectionMatrix()
+  }, [width, height])
+  return null
+}
 
 /**
  All explicit child `dimensions` fields except `y` (x/width/height) will be respected, and not modified.
@@ -26,22 +44,17 @@ export default function ChartContext({ width = 400, children }) {
   }
 
   const height = y
+
   return (
     <Canvas
       style={{ width, height }}
-      onCreated={({ camera, gl }) => {
+      onCreated={({ gl }) => {
         gl.localClippingEnabled = true
-        // Calculate camera z so that the top and bottom are exactly at the edges of the fov
-        // Based on https://stackoverflow.com/a/13351534/780425
-        // Adding height for extra space to not clip horizontal lines exactly at 0/height in half.
-        const maxLineWidth = 4
-        const z = (height + maxLineWidth) / (2 * Math.tan((camera.fov / 360) * Math.PI))
-        camera.position.set(width / 2, height / 2, z)
-        return camera.lookAt(width / 2, height / 2, 0)
       }}
       dpr={window.devicePixelRatio}
       frameLoop="demand"
     >
+      <AdaptiveCamera />
       {Children.map(children, (child, i) => React.cloneElement(child, { dimensions: childrenDimensions[i] }))}
     </Canvas>
   )

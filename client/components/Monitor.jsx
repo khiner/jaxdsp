@@ -17,7 +17,6 @@ export default function Monitor({
   if (!trainTimeSeriesData && !traceTimeSeriesData && !traceFlameData) return null
 
   const { xDomain } = traceTimeSeriesData // time domain shared across all time-series
-  console.log(trainTimeSeriesData)
   return (
     <ChartContext width={width}>
       {hasData(trainTimeSeriesData) && (
