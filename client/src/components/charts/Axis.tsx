@@ -27,8 +27,18 @@ const createTicks = (side, xDomain, yDomain, { x, y, width, height }) => {
   return xScale.ticks().map(t => ({ position: xScale(t), text: formatMinutesSeconds(t) }))
 }
 
+interface Props {
+  dimensions
+  side
+  xDomain?: any
+  yDomain?: any
+  strokeWidth?: any
+  fontSize?: any
+  tickLength?: any
+}
+
 export default React.memo(
-  ({ xDomain, yDomain, dimensions, side = LEFT, strokeWidth = 2, fontSize = 12, tickLength = 10 }) => {
+  ({ xDomain, yDomain, dimensions, side = LEFT, strokeWidth = 2, fontSize = 12, tickLength = 10 }: Props) => {
     const ref = useRef()
     const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 100), [])
     useLayoutEffect(() => vertices.setGeometryRef(ref), [])

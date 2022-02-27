@@ -5,6 +5,7 @@ import ScatterSeries from './series/ScatterSeries'
 import Axis, { BOTTOM, LEFT } from './Axis'
 import colors from './colors'
 import Rectangle from './Rectangle'
+import Chart from './Chart'
 
 // `data` is a list of with `x` values assumed to be milliseconds since epoch.
 // Example:
@@ -14,8 +15,9 @@ import Rectangle from './Rectangle'
 //      data: [{ id: 'test', label: 'Test', data: [{ x: 1631772930783, y: 0.01 }]}]
 //    }/>
 // TODO show points for start/end of contiguous ranges
+
 export default React.memo(
-  ({ data, dimensions, axes = [LEFT, BOTTOM], xAxisHeight = 40, yAxisWidth = 60 }) => {
+  ({ data, dimensions, axes = [LEFT, BOTTOM], xAxisHeight = 40, yAxisWidth = 60 }: Chart) => {
     if (!data) return null
     const { data: allSeries, xDomain, yDomain } = data
     if (!allSeries?.length) return null

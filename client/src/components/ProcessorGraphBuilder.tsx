@@ -28,7 +28,7 @@ const ProcessorDefinition = ({ name, onDragStart }) => (
       border: `1px solid ${colors.gray9}`,
       borderRadius: 5,
       background: 'white',
-      textAlign: 'middle',
+      textAlign: 'center', // TODO not needed?
     }}
     draggable={!!onDragStart}
     onDragStart={onDragStart}

@@ -46,7 +46,7 @@ export const sdpFilterCodec = (kind, codec, realSdp) => {
   return sdp
 }
 
-export const negotiatePeerConnection = async (peerConnection, offerUrl) => {
+export const negotiatePeerConnection = async (peerConnection, offerUrl): Promise<void> => {
   const offer = await peerConnection.createOffer()
   // TODO somewhere in the chain from here to the server,
   // the stream is getting mixed to mono and split back into identical
@@ -57,7 +57,7 @@ export const negotiatePeerConnection = async (peerConnection, offerUrl) => {
   // I notice that the answer sdp doesn't even have the fmtp line...
   offer.sdp = offer.sdp.replace('a=fmtp:111', 'a=fmtp:111 stereo=1;sprop-stereo=1;')
   await peerConnection.setLocalDescription(offer)
-  await new Promise(resolve => {
+  await new Promise<void>(resolve => {
     if (peerConnection.iceGatheringState === 'complete') {
       resolve()
     } else {

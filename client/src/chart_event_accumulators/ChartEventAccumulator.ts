@@ -27,6 +27,10 @@ const expireSeriesData = (data, expirationDurationMillis) => {
 }
 
 export default class ChartEventAccumulator {
+  data
+  allSeenSeriesIds
+  summarize
+
   // If `summarize` is true, for each series, accumulate statistics for box plots into an additional `summaryData` field
   constructor(summarize = false) {
     this.data = { xDomain: [0, 0], yDomain: [0, 0], data: [] }

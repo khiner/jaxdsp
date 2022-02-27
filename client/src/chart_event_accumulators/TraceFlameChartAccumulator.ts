@@ -3,6 +3,8 @@ import ChartEventAccumulator from './ChartEventAccumulator'
 const cumulativeSeriesWidth = series => series?.data?.reduce((total, { x1, x2 }) => total + (x2 - x1), 0)
 
 export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
+  startEventsForLabel
+
   constructor(summarize = false) {
     super(summarize)
     this.startEventsForLabel = {} // chronological stack for each label

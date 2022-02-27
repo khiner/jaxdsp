@@ -52,7 +52,7 @@ export default function ChartContext({ width = 400, children }) {
         gl.localClippingEnabled = true
       }}
       dpr={window.devicePixelRatio}
-      frameLoop="demand"
+      frameloop="demand"
     >
       <AdaptiveCamera />
       {Children.map(children, (child, i) => React.cloneElement(child, { dimensions: childrenDimensions[i] }))}

@@ -1,10 +1,10 @@
 import React from 'react'
-import { Vector3 } from 'three'
+import { Vector3, Plane } from 'three'
 
 const ClipPlane = ({ axis, position, inverted = false }) => {
   const unit = inverted ? -1 : 1
   const normal = new Vector3(axis === 'x' ? unit : 0, axis === 'y' ? unit : 0, axis === 'z' ? unit : 0)
-  return <plane attachArray="clippingPlanes" args={[normal, -unit * position]} />
+  return <Plane attachArray="clippingPlanes" args={[normal, -unit * position]} />
 }
 
 // Clip planes defined in the following order: Top, Right, Bottom, Left

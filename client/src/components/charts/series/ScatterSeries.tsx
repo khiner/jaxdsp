@@ -3,11 +3,17 @@ import { Matrix4 } from 'three'
 import { scaleLinear } from 'd3-scale'
 import colors from '../colors'
 import ClipArea from '../ClipArea'
+import Series from './Series'
+import { InstancedMeshProps } from '@react-three/fiber'
 
 const { fill } = colors.series.scatter
 
-export default React.memo(({ series, dimensions, pointRadius = 2, renderOrder = 0 }) => {
-  const ref = useRef()
+interface Props extends Series {
+  pointRadius?: number
+}
+
+export default React.memo(({ series, dimensions, renderOrder = 0, pointRadius = 2 }: Props) => {
+  const ref = useRef<InstancedMeshProps>()
 
   useLayoutEffect(() => {
     const { data } = series
@@ -30,7 +36,7 @@ export default React.memo(({ series, dimensions, pointRadius = 2, renderOrder = 
     })
     mesh.count = data.length - 1
     mesh.instanceMatrix.needsUpdate = true
-  })
+  }, [ref])
 
   // Should be able to do something like this to avoid refs, but it lags behind for me:
   // <Instances limit={1_000}>

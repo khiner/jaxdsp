@@ -1,29 +1,23 @@
 const path = require('path')
-const pkg = require('./package.json')
 
 module.exports = {
-  entry: './index.js',
+  entry: './src/index.ts',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'jaxdsp-client.js',
-    library: pkg.name,
-    libraryTarget: 'umd',
+  },
+  devtool: 'source-map',
+  resolve: {
+    extensions: ['', '.webpack.js', '.web.js', '.ts', '.tsx', '.js'],
   },
   externals: {
-    react: 'react',
+    react: 'React',
+    'react-dom': 'ReactDOM',
   },
   module: {
     rules: [
-      {
-        test: /\.(js|jsx)$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-        },
-        resolve: {
-          extensions: ['.js', '.jsx'],
-        },
-      },
+      { test: /\.tsx?$/, loader: 'ts-loader' },
+      { test: /\.js$/, loader: 'source-map-loader' },
       {
         test: /\.css$/i,
         use: ['style-loader', 'css-loader'],
