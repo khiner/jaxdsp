@@ -31,13 +31,6 @@ See the [server instructions](server/README.md) for how to run locally.
 
 ## Client
 
-_**Note:** For local development of the client within the test `/app` (see below), the client is included as a
-local `file:../client` dependency, and included in the babel transpilation for the `/app` build (
-see `app/craco.config.js`)._
-
-_`build:dev` in the client just symlinks the `dist/jaxdsp-client.js` target to the root `index.ts` file._
-TODO: This is still the case, but needs to be changed now that Typescript.
-
 ```shell
 $ cd client
 $ npm ci

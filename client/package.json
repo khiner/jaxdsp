@@ -2,10 +2,10 @@
   "name": "jaxdsp-client",
   "version": "0.1.0",
   "description": "Interactive editor and monitor for JAXdsp",
-  "main": "dist/jaxdsp-client.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build:dev": "rm -rf dist && mkdir dist && ln -s index.js dist/jaxdsp-client.js",
-    "build:prod": "rm -rf dist && webpack --mode production",
+    "build": "watch 'etsc --external:react-dom --external:react' src",
+    "build:prod": "etsc --external:react-dom --external:react",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "prepare": "cd .. && husky install client/.husky"
@@ -29,24 +29,25 @@
     "d3-scale": "^4.0.1",
     "d3-time": "^3.0.0",
     "d3-time-format": "^4.0.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
     "source-map-loader": "^3.0.1",
     "three": "^0.138.0",
-    "ts-loader": "^9.2.6",
     "webrtc-adapter": "^8.1.1"
   },
   "devDependencies": {
     "@types/antd": "^1.0.0",
     "@types/react": "^17.0.39",
-    "css-loader": "^6.6.0",
+    "esbuild-node-tsc": "^1.8.3",
     "husky": "^7.0.4",
     "lint-staged": "^12.3.4",
     "prettier": "^2.4.0",
-    "style-loader": "^3.3.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "typescript": "^4.5.5",
-    "webpack": "^5.69.1",
-    "webpack-cli": "^4.9.2"
+    "watch": "^1.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "prettier": {
     "semi": false,

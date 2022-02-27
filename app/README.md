@@ -1,5 +1,14 @@
 # Example application using `jaxdsp-client`
 
+**Important:** First, run
+
+```console
+$ cd ../client
+$ npm link ../app/node_modules/react
+```
+
+See [this link](https://reactjs.org/warnings/invalid-hook-call-warning.html#duplicate-react) for details.
+
 ## Available Scripts
 
 In the project directory, you can run:
