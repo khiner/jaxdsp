@@ -1,6 +1,8 @@
-# JAXdsp client
+# Example application using `jaxdsp-client`
 
 ## Available Scripts
+
+In the project directory, you can run:
 
 ### `npm start`
 
