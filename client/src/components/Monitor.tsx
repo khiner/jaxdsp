@@ -28,7 +28,13 @@ export default function Monitor({
       {hasData(traceFlameData) && (
         <FlameChart data={traceFlameData} dimensions={{ height: flameChartHeight }} yAxisWidth={yAxisWidth} />
       )}
-      {xDomain && <Axis side={BOTTOM} xDomain={xDomain} dimensions={{ height: xAxisHeight }} />}
+      {xDomain && (
+        <Axis
+          side={BOTTOM}
+          xDomain={xDomain}
+          dimensions={{ x: yAxisWidth, width: width - yAxisWidth, height: xAxisHeight }}
+        />
+      )}
     </ChartContext>
   )
 }
