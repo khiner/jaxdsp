@@ -45,9 +45,9 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, y
   return (
     <>
       <>
-        {allSeries?.map(({ label }, i) => (
+        {allSeries?.map(({ id, label }, i) => (
           <Html
-            key={label}
+            key={id}
             position={[x, y + height - (i + 0.5) * seriesHeight + fontSize, 0]}
             style={{
               width: yAxisWidth,

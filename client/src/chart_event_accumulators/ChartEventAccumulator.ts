@@ -144,7 +144,6 @@ export default class ChartEventAccumulator {
   findOrAddSeries(id: number, label?: string): InnerSeries {
     if (!this.allSeenSeriesIds.includes(id)) this.allSeenSeriesIds.push(id)
     const color = getChartColor(this.allSeenSeriesIds.indexOf(id))
-
     const allSeries = this.allSeries()
     const foundSeries = allSeries.find(({ id: seriesId }) => seriesId === id)
     if (foundSeries) return foundSeries
