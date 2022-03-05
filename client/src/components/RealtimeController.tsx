@@ -6,6 +6,7 @@ import TraceTimeSeriesAccumulator from '../chart_event_accumulators/TraceTimeSer
 import { last } from '../util/array'
 import Monitor from './Monitor'
 import { ProcessorType } from './Processor'
+import type Heartbeat from '../Heartbeat'
 
 const trainTimeSeriesAccumulator = new TrainTimeSeriesAccumulator(true)
 const traceTimeSeriesAccumulator = new TraceTimeSeriesAccumulator()
@@ -39,8 +40,8 @@ export default function ({
     ws.onopen = () => {
       ws.send(JSON.stringify({ client_uid: clientUid }))
     }
-    ws.onmessage = event => {
-      const heartbeat = JSON.parse(event.data)
+    ws.onmessage = message => {
+      const heartbeat: Heartbeat = JSON.parse(message.data)
       const { train_events, trace_events } = heartbeat
 
       setTrainTimeSeriesData({ ...trainTimeSeriesAccumulator.accumulate(train_events) })

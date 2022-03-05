@@ -1,4 +1,5 @@
 import ChartEventAccumulator from './ChartEventAccumulator'
+import type { TraceEvent } from '../Heartbeat'
 
 const cumulativeSeriesWidth = series => series?.data?.reduce((total, { x1, x2 }) => total + (x2 - x1), 0)
 
@@ -14,7 +15,7 @@ export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
   // If a method with the same label is called more than once before closing (e.g. a recursive call),
   // a new series (lane) with a `${label}-${numActiveWithLabel}` key will be created.
   // Series are ordered by cumulative duration.
-  doAccumulate(events = []) {
+  doAccumulate(events: TraceEvent[] = []) {
     const now_ms = Date.now()
 
     events.forEach(event => {

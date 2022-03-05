@@ -9,6 +9,7 @@ import {
   SeriesSummaryData,
   SeriesSummaryDatum,
 } from '../components/charts/series/Series'
+import type { HeartbeatEvent } from '../Heartbeat'
 
 const DEFAULT_EXPIRATION_MILLIS = 5 * 1_000
 
@@ -36,7 +37,7 @@ const expireSeriesData = (data: SeriesData | SeriesSummaryData, expirationDurati
 
 export default class ChartEventAccumulator {
   data: Data
-  allSeenSeriesIds: number[]
+  allSeenSeriesIds: string[]
   summarize: boolean
 
   // If `summarize` is true, for each series, accumulate statistics for box plots into an additional `summaryData` field
@@ -54,19 +55,19 @@ export default class ChartEventAccumulator {
     this.data.data = allSeries
   }
 
-  accumulate(events = [], expirationMillis = DEFAULT_EXPIRATION_MILLIS) {
+  accumulate(events: HeartbeatEvent[] = [], expirationMillis = DEFAULT_EXPIRATION_MILLIS) {
     this.doAccumulate(events)
     this.expireData(expirationMillis)
     this.refreshDomains()
     return this.data
   }
 
-  doAccumulate(events = []) {
+  doAccumulate(events: HeartbeatEvent[] = []) {
     throw `Unimplemented abstract method \`doAccumulate\` called with ${events.length} events`
   }
 
   // Note: be sure to call `expireData` and `refreshDomain` after pushing all data!
-  push(seriesId: number, datum, label?: string) {
+  push(seriesId: string, datum, label?: string) {
     const series = this.findOrAddSeries(seriesId, label)
     if (getMinTimeMillis(last(series.data)) === getMinTimeMillis(datum)) series.data.pop()
     series.data.push(datum)
@@ -141,7 +142,7 @@ export default class ChartEventAccumulator {
     ]
   }
 
-  findOrAddSeries(id: number, label?: string): InnerSeries {
+  findOrAddSeries(id: string, label?: string): InnerSeries {
     if (!this.allSeenSeriesIds.includes(id)) this.allSeenSeriesIds.push(id)
     const color = getChartColor(this.allSeenSeriesIds.indexOf(id))
     const allSeries = this.allSeries()

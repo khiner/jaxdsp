@@ -39,7 +39,7 @@ export type SeriesSummaryData = SeriesSummaryDatum[]
 export type Domain = [number, number]
 
 export interface InnerSeries {
-  id: number
+  id: string
   label: string
   color: string
   data: SeriesData
