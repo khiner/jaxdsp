@@ -23,5 +23,3 @@ export const chartColors = [
 ]
 
 export const getChartColor = seriesIndex => chartColors[seriesIndex % chartColors.length]
-
-export const chart = colors

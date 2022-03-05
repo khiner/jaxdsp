@@ -1,8 +1,8 @@
 import { Color } from 'three'
 
-const mapValuesRecursive = (obj, func) =>
+const mapValuesRecursive = (object, f) =>
   Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => [k, v === Object(v) ? mapValuesRecursive(v, func) : func(v)])
+    Object.entries(object).map(([k, v]) => [k, v === Object(v) ? mapValuesRecursive(v, f) : f(v)])
   )
 
 const toThreeColors = colors => mapValuesRecursive(colors, color => new Color(color))

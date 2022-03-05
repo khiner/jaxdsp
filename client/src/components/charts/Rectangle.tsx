@@ -1,7 +1,15 @@
 import React from 'react'
 import { Line } from '@react-three/drei'
+import type { Dimensions } from './series/Series'
+import type { Color } from '@react-three/fiber'
 
-export default ({ dimensions, color, lineWidth = 1 }) => {
+interface Props {
+  dimensions: Dimensions
+  color: Color
+  lineWidth?: number
+}
+
+export default ({ dimensions, color, lineWidth = 1 }: Props) => {
   const { x, y, width, height } = dimensions
 
   return (

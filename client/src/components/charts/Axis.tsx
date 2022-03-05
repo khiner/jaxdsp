@@ -5,14 +5,17 @@ import { Html } from '@react-three/drei'
 import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
 import colors from './colors'
 import { timeFormat } from 'd3-time-format'
+import type { Dimensions, Domain } from './series/Series'
 
 const formatMinutesSeconds = timeFormat('%M:%S')
 
-export const LEFT = 'left'
-export const BOTTOM = 'bottom'
+export enum AxisSide {
+  left,
+  bottom,
+}
 
-const createTicks = (side, xDomain, yDomain, { x, y, width, height }) => {
-  if (side === LEFT) {
+const createTicks = (side, xDomain: Domain, yDomain: Domain, { x, y, width, height }: Dimensions) => {
+  if (side === AxisSide.left) {
     const yScale = scaleLinear()
       .domain(yDomain)
       .range([y, y + height])
@@ -28,22 +31,30 @@ const createTicks = (side, xDomain, yDomain, { x, y, width, height }) => {
 }
 
 interface Props {
-  dimensions
-  side
-  xDomain?: any
-  yDomain?: any
-  strokeWidth?: any
-  fontSize?: any
-  tickLength?: any
+  dimensions: Dimensions
+  side: AxisSide
+  xDomain?: Domain
+  yDomain?: Domain
+  strokeWidth?: number
+  fontSize?: number
+  tickLength?: number
 }
 
 export default React.memo(
-  ({ xDomain, yDomain, dimensions, side = LEFT, strokeWidth = 2, fontSize = 12, tickLength = 10 }: Props) => {
+  ({
+    xDomain,
+    yDomain,
+    dimensions,
+    side = AxisSide.left,
+    strokeWidth = 2,
+    fontSize = 12,
+    tickLength = 10,
+  }: Props) => {
     const ref = useRef()
     const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 100), [])
     useLayoutEffect(() => vertices.setGeometryRef(ref), [])
 
-    const isLeft = side === LEFT
+    const isLeft = side === AxisSide.left
     const { x, y, width, height } = dimensions
     const ticks = createTicks(side, xDomain, yDomain, dimensions)
 
@@ -76,7 +87,7 @@ export default React.memo(
         {ticks.map(({ position, text }) => (
           <Html
             key={`${position}`}
-            center={side === BOTTOM}
+            center={side === AxisSide.bottom}
             position={
               isLeft ? [x, position + (3 * fontSize) / 4, 0] : [position, y + height - (3 * fontSize) / 2, 0]
             }

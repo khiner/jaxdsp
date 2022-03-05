@@ -5,15 +5,8 @@ import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
 import ClipArea from './ClipArea'
 import { VertexColors } from 'three'
 import colors from './colors'
-import Chart from './Chart'
+import type { Chart } from './series/Series'
 
-// Example:
-//    <TraceChart data={
-//      xDomain: [1631772930783, 1631772941650],
-//      data: [
-//        { id: 'test', label: 'Test', data: [{ x1: 1631772930783, x2: 1631772941650  }]}
-//      ]
-//    }/>
 // Note that `duration_ms` could be different from x1 - x2, since it's
 // calculated using Python's more accurate `time.perf_counter`.
 export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, yAxisWidth = 60 }: Chart) => {

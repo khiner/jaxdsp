@@ -1,18 +1,18 @@
 // From https://stackoverflow.com/a/55297611/780425
 
-export const asc = array => array.sort((a, b) => a - b) // ascending
-export const sum = array => array.reduce((a, b) => a + b, 0)
-export const min = array => Math.min(...array)
-export const max = array => Math.max(...array)
-export const mean = array => sum(array) / array.length
+export const asc = (array: number[]) => array.sort((a, b) => a - b) // ascending
+export const sum = (array: number[]) => array.reduce((a, b) => a + b, 0)
+export const min = (array: number[]) => Math.min(...array)
+export const max = (array: number[]) => Math.max(...array)
+export const mean = (array: number[]) => sum(array) / array.length
 
-export const std = array => {
+export const std = (array: number[]) => {
   const mu = mean(array)
   const diffArray = array.map(a => (a - mu) ** 2)
   return Math.sqrt(sum(diffArray) / (array.length - 1))
 }
 
-export const percentile = (array, p) => {
+export const percentile = (array: number[], p: number) => {
   const sorted = asc(array)
   const position = (sorted.length - 1) * p
   const positionFloor = Math.floor(position)
@@ -22,7 +22,7 @@ export const percentile = (array, p) => {
     : sorted[positionFloor]
 }
 
-export const p25 = array => percentile(array, 0.25)
-export const p50 = array => percentile(array, 0.5)
-export const p75 = array => percentile(array, 0.75)
-export const median = array => p50(array)
+export const p25 = (array: number[]) => percentile(array, 0.25)
+export const p50 = (array: number[]) => percentile(array, 0.5)
+export const p75 = (array: number[]) => percentile(array, 0.75)
+export const median = (array: number[]) => p50(array)

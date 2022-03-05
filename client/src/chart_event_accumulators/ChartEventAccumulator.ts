@@ -1,22 +1,30 @@
 import { last } from '../util/array'
 import { getChartColor } from '../util/colors'
-import { min, max, p25, median, p75 } from '../util/stats'
+import { max, median, min, p25, p75 } from '../util/stats'
+import {
+  Data,
+  InnerSeries,
+  SeriesData,
+  SeriesDatum,
+  SeriesSummaryData,
+  SeriesSummaryDatum,
+} from '../components/charts/series/Series'
 
 const DEFAULT_EXPIRATION_MILLIS = 5 * 1_000
 
-const getMinTimeMillis = datum => {
+const getMinTimeMillis = (datum: SeriesDatum | SeriesSummaryDatum) => {
   if (!datum) return 0
-  const { x1, x } = datum
-  return x1 || x
+  if ('x' in datum) return datum.x1 || datum.x
+  return datum.x1
 }
 
-const getMaxTimeMillis = datum => {
+const getMaxTimeMillis = (datum: SeriesDatum | SeriesSummaryDatum) => {
   if (!datum) return 0
-  const { x2, x } = datum
-  return x2 || x
+  if ('x' in datum) return datum.x2 || datum.x
+  return datum.x2
 }
 
-const expireSeriesData = (data, expirationDurationMillis) => {
+const expireSeriesData = (data: SeriesData | SeriesSummaryData, expirationDurationMillis) => {
   if (!data) return
 
   const expirationMillis = Date.now() - expirationDurationMillis
@@ -27,9 +35,9 @@ const expireSeriesData = (data, expirationDurationMillis) => {
 }
 
 export default class ChartEventAccumulator {
-  data
-  allSeenSeriesIds
-  summarize
+  data: Data
+  allSeenSeriesIds: number[]
+  summarize: boolean
 
   // If `summarize` is true, for each series, accumulate statistics for box plots into an additional `summaryData` field
   constructor(summarize = false) {
@@ -38,7 +46,7 @@ export default class ChartEventAccumulator {
     this.summarize = summarize
   }
 
-  allSeries() {
+  allSeries(): InnerSeries[] {
     return this.data.data
   }
 
@@ -58,7 +66,7 @@ export default class ChartEventAccumulator {
   }
 
   // Note: be sure to call `expireData` and `refreshDomain` after pushing all data!
-  push(seriesId, datum, label = undefined) {
+  push(seriesId: number, datum, label?: string) {
     const series = this.findOrAddSeries(seriesId, label)
     if (getMinTimeMillis(last(series.data)) === getMinTimeMillis(datum)) series.data.pop()
     series.data.push(datum)
@@ -66,7 +74,7 @@ export default class ChartEventAccumulator {
     if (this.summarize) {
       if (series.summaryData === undefined) series.summaryData = []
       const lastSummaryDatum = last(series.summaryData)
-      let active
+      let active: SeriesSummaryDatum
       if (lastSummaryDatum?.values !== undefined) {
         active = lastSummaryDatum
       } else {
@@ -133,20 +141,21 @@ export default class ChartEventAccumulator {
     ]
   }
 
-  findOrAddSeries(id, label = undefined) {
+  findOrAddSeries(id: number, label?: string): InnerSeries {
     if (!this.allSeenSeriesIds.includes(id)) this.allSeenSeriesIds.push(id)
     const color = getChartColor(this.allSeenSeriesIds.indexOf(id))
 
     const allSeries = this.allSeries()
-    return (
-      allSeries.find(({ id: seriesId }) => seriesId === id) ||
-      (allSeries.push({
-        id,
-        label: label || id,
-        color,
-        data: [],
-      }) &&
-        last(allSeries))
-    )
+    const foundSeries = allSeries.find(({ id: seriesId }) => seriesId === id)
+    if (foundSeries) return foundSeries
+
+    const series: InnerSeries = {
+      id,
+      label: label || `${id}`,
+      color,
+      data: [],
+    }
+    allSeries.push(series)
+    return series
   }
 }

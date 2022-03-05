@@ -1,5 +1,6 @@
 import React from 'react'
 import { Vector3 } from 'three'
+import type { Dimensions } from './series/Series'
 
 const ClipPlane = ({ axis, position, inverted = false }) => {
   const unit = inverted ? -1 : 1
@@ -8,8 +9,12 @@ const ClipPlane = ({ axis, position, inverted = false }) => {
   return <plane attachArray="clippingPlanes" args={[normal, -unit * position]} />
 }
 
+interface Props {
+  dimensions: Dimensions
+}
+
 // Clip planes defined in the following order: Top, Right, Bottom, Left
-export default ({ dimensions }) => {
+export default ({ dimensions }: Props) => {
   const { x, y, width, height } = dimensions
   return (
     <>

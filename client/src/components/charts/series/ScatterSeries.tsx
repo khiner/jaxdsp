@@ -3,8 +3,8 @@ import { Matrix4 } from 'three'
 import { scaleLinear } from 'd3-scale'
 import colors from '../colors'
 import ClipArea from '../ClipArea'
-import Series from './Series'
-import { InstancedMeshProps } from '@react-three/fiber'
+import type Series from './Series'
+import type { InstancedMeshProps } from '@react-three/fiber'
 
 const { fill } = colors.series.scatter
 

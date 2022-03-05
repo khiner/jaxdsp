@@ -5,10 +5,19 @@ import TraceFlameChartAccumulator from '../chart_event_accumulators/TraceFlameCh
 import TraceTimeSeriesAccumulator from '../chart_event_accumulators/TraceTimeSeriesAccumulator'
 import { last } from '../util/array'
 import Monitor from './Monitor'
+import { ProcessorType } from './Processor'
 
 const trainTimeSeriesAccumulator = new TrainTimeSeriesAccumulator(true)
 const traceTimeSeriesAccumulator = new TraceTimeSeriesAccumulator()
 const traceFlameAccumulator = new TraceFlameChartAccumulator()
+
+interface Props {
+  clientUid: string
+  processorDefinitions: any[]
+  selectedProcessors: any[]
+  setSelectedProcessors: (ps: ProcessorType[]) => void
+  onError: (error: any) => void
+}
 
 export default function ({
   clientUid,
@@ -16,7 +25,7 @@ export default function ({
   selectedProcessors,
   setSelectedProcessors,
   onError,
-}) {
+}: Props) {
   const [estimatedParams, setEstimatedParams] = useState(null)
   const [trainTimeSeriesData, setTrainTimeSeriesData] = useState({})
   const [traceTimeSeriesData, setTraceTimeSeriesData] = useState({})

@@ -5,11 +5,12 @@ import adapter from 'webrtc-adapter' // eslint-disable-line no-unused-vars
 import Slider from './Slider'
 
 import { negotiatePeerConnection } from '../util/WebRtc'
-import { clone, deepEquals } from '../util/object'
+import { deepCopy, deepEquals } from '../util/object'
 import { snakeCaseToSentence } from '../util/string'
 
 import 'antd/dist/antd.css'
 import RealtimeController from './RealtimeController'
+import { ProcessorType } from './Processor'
 
 const { Title } = Typography
 
@@ -40,7 +41,11 @@ const post = async (path, clientUid, postBody = undefined) =>
     ...(postBody ? { body: JSON.stringify(postBody) } : {}),
   })
 
-export default function JaxDspClient({ testSample }) {
+interface Props {
+  audioSample: string
+}
+
+export default function JaxDspClient({ audioSample }: Props) {
   const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.testSample.label)
   const [isStreamingAudio, setIsStreamingAudio] = useState(false)
   const [isEstimatingParams, setIsEstimatingParams] = useState(false)
@@ -51,7 +56,7 @@ export default function JaxDspClient({ testSample }) {
   const [optimizer, setOptimizer] = useState(null)
   const [audioStreamErrorMessage, setAudioStreamErrorMessage] = useState(null)
   const [clientUid, setClientUid] = useState(null)
-  const [selectedProcessors, setSelectedProcessors] = useState([])
+  const [selectedProcessors, setSelectedProcessors] = useState<ProcessorType[]>([])
 
   const audioRef = useRef(null)
 
@@ -169,7 +174,7 @@ export default function JaxDspClient({ testSample }) {
     }
 
     const startStreamingTestSample = async () => {
-      const sampleAudio = new Audio(testSample)
+      const sampleAudio = new Audio(audioSample)
       const audioContext = new AudioContext()
       const sampleSource = audioContext.createMediaElementSource(sampleAudio)
       const sampleDestination = audioContext.createMediaStreamDestination()
@@ -242,7 +247,7 @@ export default function JaxDspClient({ testSample }) {
                         <Slider
                           key={key}
                           name={snakeCaseToSentence(key)}
-                          value={value}
+                          value={value as number}
                           minValue={0.0}
                           maxValue={1.0}
                           onChange={newValue => {
@@ -313,7 +318,7 @@ export default function JaxDspClient({ testSample }) {
                               maxValue={max_value}
                               logScale={log_scale}
                               onChange={newValue => {
-                                const newOptimizer = clone(editingOptimizer)
+                                const newOptimizer = deepCopy(editingOptimizer)
                                 newOptimizer.params[name] = newValue
                                 setEditingOptimizer(newOptimizer)
                               }}
@@ -351,7 +356,7 @@ export default function JaxDspClient({ testSample }) {
           <div style={{ color: '#B33A3A', fontSize: '12px' }}>{audioStreamErrorMessage}.</div>
         )}
       </div>
-      <audio controls autoPlay ref={audioRef} hidden></audio>
+      <audio controls autoPlay ref={audioRef} hidden />
     </div>
   )
 }

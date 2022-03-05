@@ -2,7 +2,7 @@ import React from 'react'
 import TimeSeriesChart from './charts/TimeSeriesChart'
 import FlameChart from './charts/TraceChart'
 import ChartContext from './charts/ChartContext'
-import Axis, { BOTTOM, LEFT } from './charts/Axis'
+import Axis, { AxisSide } from './charts/Axis'
 
 const [chartWidth, flameChartHeight, xAxisHeight, yAxisWidth] = [600, 100, 40, 100]
 
@@ -20,17 +20,17 @@ export default function Monitor({
   return (
     <ChartContext width={width}>
       {hasData(trainTimeSeriesData) && (
-        <TimeSeriesChart data={trainTimeSeriesData} axes={[LEFT]} yAxisWidth={yAxisWidth} />
+        <TimeSeriesChart data={trainTimeSeriesData} axes={[AxisSide.left]} yAxisWidth={yAxisWidth} />
       )}
       {hasData(traceTimeSeriesData) && (
-        <TimeSeriesChart data={traceTimeSeriesData} axes={[LEFT]} yAxisWidth={yAxisWidth} />
+        <TimeSeriesChart data={traceTimeSeriesData} axes={[AxisSide.left]} yAxisWidth={yAxisWidth} />
       )}
       {hasData(traceFlameData) && (
         <FlameChart data={traceFlameData} dimensions={{ height: flameChartHeight }} yAxisWidth={yAxisWidth} />
       )}
       {xDomain && (
         <Axis
-          side={BOTTOM}
+          side={AxisSide.bottom}
           xDomain={xDomain}
           dimensions={{ x: yAxisWidth, width: width - yAxisWidth, height: xAxisHeight }}
         />

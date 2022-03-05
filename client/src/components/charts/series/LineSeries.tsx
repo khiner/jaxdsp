@@ -1,7 +1,7 @@
 import React from 'react'
 import { scaleLinear } from 'd3-scale'
 import { Line } from '@react-three/drei'
-import Series from './Series'
+import type Series from './Series'
 
 export default React.memo(({ series, dimensions, strokeWidth = 2, renderOrder = 0 }: Series) => {
   const { data, color: seriesColor } = series

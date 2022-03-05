@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
-import { clone } from '../util/object'
+import { deepCopy } from '../util/object'
 import Processor from './Processor'
 import colors from '../util/colors'
 
@@ -19,7 +19,12 @@ function Connection({ beginX, beginY, endX, endY }) {
   return <path d={`M ${beginX} ${beginY} C ${midX} ${beginY} ${midX} ${endY} ${endX} ${endY}`} />
 }
 
-const ProcessorDefinition = ({ name, onDragStart }) => (
+interface Props {
+  name: string
+  onDragStart: () => void
+}
+
+const ProcessorDefinition = ({ name, onDragStart }: Props) => (
   <div
     key={name}
     style={{
@@ -109,7 +114,7 @@ function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estim
     updateDraggingToIndices(undefined)
   }
 
-  const processors = clone(selectedProcessors.map(selectedProcessor => wrapInArray(selectedProcessor)))
+  const processors = deepCopy(selectedProcessors.map(selectedProcessor => wrapInArray(selectedProcessor)))
   if (draggingFrom && (draggingToSerialIndex !== undefined || draggingToParallelIndex !== undefined)) {
     const { processorDefinitionIndex, processorGraphIndices } = draggingFrom
     let processorPreview
@@ -120,7 +125,7 @@ function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estim
       if (processors[fromSerialIndex].length === 0) processors.splice(fromSerialIndex, 1)
     } else {
       // Creating a new processor by dragging its label
-      processorPreview = clone(processorDefinitions[processorDefinitionIndex])
+      processorPreview = deepCopy(processorDefinitions[processorDefinitionIndex])
     }
 
     processorPreview.isPreview = true
@@ -347,12 +352,12 @@ function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estim
                       processor={processor}
                       estimatedParams={estimatedParams?.[serialIndex]?.[parallelIndex]}
                       onChange={(paramName, newValue) => {
-                        const newSelectedProcessors = clone(selectedProcessors)
+                        const newSelectedProcessors = deepCopy(selectedProcessors)
                         newSelectedProcessors[serialIndex][parallelIndex].params[paramName] = newValue
                         onChange(newSelectedProcessors)
                       }}
                       onClose={() => {
-                        const newSelectedProcessors = clone(selectedProcessors)
+                        const newSelectedProcessors = deepCopy(selectedProcessors)
                         newSelectedProcessors[serialIndex].splice(parallelIndex, 1)
                         if (newSelectedProcessors[serialIndex].length === 0) {
                           newSelectedProcessors.splice(serialIndex, 1)

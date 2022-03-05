@@ -2,10 +2,10 @@ import React from 'react'
 import LineSeries from './series/LineSeries'
 import BoxSeries from './series/BoxSeries'
 import ScatterSeries from './series/ScatterSeries'
-import Axis, { BOTTOM, LEFT } from './Axis'
+import Axis, { AxisSide } from './Axis'
 import colors from './colors'
 import Rectangle from './Rectangle'
-import Chart from './Chart'
+import type { Chart } from './series/Series'
 
 // `data` is a list of with `x` values assumed to be milliseconds since epoch.
 // Example:
@@ -17,14 +17,20 @@ import Chart from './Chart'
 // TODO show points for start/end of contiguous ranges
 
 export default React.memo(
-  ({ data, dimensions, axes = [LEFT, BOTTOM], xAxisHeight = 40, yAxisWidth = 60 }: Chart) => {
+  ({
+    data,
+    dimensions,
+    axes = [AxisSide.left, AxisSide.bottom],
+    xAxisHeight = 40,
+    yAxisWidth = 60,
+  }: Chart) => {
     if (!data) return null
     const { data: allSeries, xDomain, yDomain } = data
     if (!allSeries?.length) return null
 
     const { x, y, width, height } = dimensions
-    const hasLeftAxis = axes.includes(LEFT)
-    const hasBottomAxis = axes.includes(BOTTOM)
+    const hasLeftAxis = axes.includes(AxisSide.left)
+    const hasBottomAxis = axes.includes(AxisSide.bottom)
 
     if (!hasLeftAxis) yAxisWidth = 0
     if (!hasBottomAxis) xAxisHeight = 0
@@ -50,14 +56,14 @@ export default React.memo(
         <Rectangle dimensions={seriesDimensions} color={colors.border} />
         {hasLeftAxis && (
           <Axis
-            side={LEFT}
+            side={AxisSide.left}
             yDomain={yDomain}
             dimensions={{ x, y: y + xAxisHeight, width: yAxisWidth, height: height - xAxisHeight }}
           />
         )}
         {hasBottomAxis && (
           <Axis
-            side={BOTTOM}
+            side={AxisSide.bottom}
             xDomain={xDomain}
             dimensions={{ x: x + yAxisWidth, y, width, height: xAxisHeight }}
           />

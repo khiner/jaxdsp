@@ -1,7 +1,16 @@
 import React from 'react'
 import { Slider as AntSlider, InputNumber } from 'antd'
 
-export default function Slider({ name, value, minValue, maxValue, logScale = false, onChange }) {
+interface Props {
+  name: string
+  value: number
+  minValue: number
+  maxValue: number
+  onChange?: (number) => void
+  logScale?: boolean
+}
+
+export default function Slider({ name, value, minValue, maxValue, logScale = false, onChange }: Props) {
   // `position` vars correspond to slider position. (e.g. 0-1)
   // `value` vars correspond to scaled parameter values (e.g. frequency in Hz)
   const minPosition = 0.0

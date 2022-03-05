@@ -1,1 +1,1 @@
-export const last = array => array?.[array?.length - 1]
+export const last = (array?: any[]) => array?.[array?.length - 1]

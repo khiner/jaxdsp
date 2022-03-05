@@ -1,5 +1,6 @@
-import React, { Children, useEffect } from 'react'
+import React, { Children, ReactChildren, ReactElement, useEffect } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
+import type { Dimensions } from './series/Series'
 
 const DEFAULT_CHART_HEIGHT = 200
 
@@ -21,6 +22,11 @@ function AdaptiveCamera() {
   return null
 }
 
+interface Props {
+  width?: number
+  children?: ReactElement[]
+}
+
 /**
  All explicit child `dimensions` fields except `y` (x/width/height) will be respected, and not modified.
  Child `y` positions will be calculated assuming children are provided in top-to-bottom order, and should be
@@ -29,10 +35,10 @@ function AdaptiveCamera() {
    - Children receive a `width` of `ChartContext::width` (fill the `ChartContext` parent).
    - Children will be provided a default `x` of `0`, and a default `height` of `200px`.
 */
-export default function ChartContext({ width = 400, children }) {
+export default function ChartContext({ width = 400, children }: Props) {
   // Learned the hard way that `Children.map`, unlike `Array.map`, removes `undefined` values.
   children = Children.map(children, child => (React.isValidElement(child) ? child : undefined))
-  const childrenDimensions = Children.map(children, child => {
+  const childrenDimensions: Dimensions[] = Children.map(children, child => {
     const { x, width: chartWidth, height: chartHeight } = child.props.dimensions || {}
     return { x: x || 0, width: chartWidth || width, height: chartHeight || DEFAULT_CHART_HEIGHT }
   })

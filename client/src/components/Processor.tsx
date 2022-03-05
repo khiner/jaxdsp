@@ -1,9 +1,25 @@
-import React from 'react'
+import React, { CSSProperties } from 'react'
 import { Button } from 'antd'
 import { CloseOutlined } from '@ant-design/icons'
 
 import Slider from './Slider'
 import { snakeCaseToSentence } from '../util/string'
+
+export interface ProcessorType {
+  name: string
+  param_definitions: any[]
+  params: Record<string, any>
+}
+
+interface Props {
+  processor: ProcessorType
+  estimatedParams: any[]
+  onChange: (processorName: string, value: any) => void
+  onClose: () => void
+  onDragStart: () => void
+  className?: string
+  style?: CSSProperties
+}
 
 export default function Processor({
   processor,
@@ -13,7 +29,7 @@ export default function Processor({
   onDragStart,
   className,
   style,
-}) {
+}: Props) {
   return (
     <div draggable={!!onDragStart} onDragStart={onDragStart} className={className} style={style}>
       <div>
