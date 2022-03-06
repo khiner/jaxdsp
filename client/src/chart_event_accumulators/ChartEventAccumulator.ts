@@ -109,7 +109,7 @@ export default class ChartEventAccumulator {
       expireSeriesData(data, expirationDurationMillis)
       expireSeriesData(summaryData, expirationDurationMillis)
     })
-    this.setAllSeries(allSeries.filter(({ data, permanent }) => permanent || data.length > 0))
+    this.setAllSeries(allSeries.filter(({ data }) => data.length > 0))
   }
 
   private refreshDomains() {

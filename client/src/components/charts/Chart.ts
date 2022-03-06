@@ -38,7 +38,6 @@ export interface InnerSeries {
   color: string
   data: SeriesData
   summaryData?: SeriesSummaryData
-  permanent?: boolean
 }
 
 export interface Series {
