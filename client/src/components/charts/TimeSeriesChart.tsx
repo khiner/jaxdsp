@@ -18,6 +18,7 @@ export default React.memo(
     axes = [AxisSide.left, AxisSide.bottom],
     xAxisHeight = 40,
     yAxisWidth = 60,
+    paddingTop = 12,
     grid = true,
   }: Chart) => {
     if (!data) return null
@@ -35,7 +36,7 @@ export default React.memo(
       x: x + yAxisWidth,
       y: y + xAxisHeight,
       width: width - yAxisWidth,
-      height: height - xAxisHeight - DEFAULT_TITLE_HEIGHT,
+      height: height - xAxisHeight - DEFAULT_TITLE_HEIGHT - paddingTop,
     }
 
     return (

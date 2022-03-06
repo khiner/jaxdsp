@@ -9,7 +9,7 @@ import type Chart from './Chart'
 import Title, { DEFAULT_TITLE_HEIGHT } from './Title'
 
 export default React.memo(
-  ({ title, data, dimensions, renderOrder = 0, fontSize = 12, yAxisWidth = 60 }: Chart) => {
+  ({ title, data, dimensions, renderOrder = 0, fontSize = 12, yAxisWidth = 60, paddingTop = 12 }: Chart) => {
     const ref = useRef()
     const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 1_000), [])
     const [hoveringDatumId, setHoveringDatumId] = useState(undefined)
@@ -17,7 +17,7 @@ export default React.memo(
     const { data: allSeries, xDomain } = data
     const numSeries = allSeries?.length
     const { x, y, width, height } = dimensions
-    const allSeriesHeight = height - DEFAULT_TITLE_HEIGHT
+    const allSeriesHeight = height - DEFAULT_TITLE_HEIGHT - paddingTop
     const seriesHeight = allSeriesHeight / numSeries
     useLayoutEffect(() => vertices.setGeometryRef(ref), [])
     useLayoutEffect(() => {

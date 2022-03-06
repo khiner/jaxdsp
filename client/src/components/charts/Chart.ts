@@ -64,6 +64,7 @@ export default interface Chart {
   xAxisHeight?: number
   yAxisHeight?: number
   yAxisWidth?: number
+  paddingTop?: number
   fontSize?: number
   renderOrder?: number
   grid?: boolean
