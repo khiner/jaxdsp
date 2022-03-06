@@ -9,7 +9,6 @@ import type { Series } from '../Chart'
 const SQUARES_PER_DATUM = 6 // rect + 4 border lines + 1 mid line
 const { fill, whiskerStroke, minMaxStroke } = colors.series.box
 
-// Each datum in `series.summaryData` should have the numeric properties: `x1, x2, min, p25, median, p75, max`
 export default React.memo(({ series, dimensions, strokeWidth = 2, renderOrder = 0 }: Series) => {
   const ref = useRef()
   const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * 1_000), [])

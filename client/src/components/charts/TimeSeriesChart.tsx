@@ -6,15 +6,7 @@ import colors from './colors'
 import Rectangle from './Rectangle'
 import type Chart from './Chart'
 
-// `data` is a list of with `x` values assumed to be milliseconds since epoch.
-// Example:
-//    <TimeSeriesChart data={{
-//      xDomain: [1631772930783, 1631772930783],
-//      yDomain: [0.01, 0.01],
-//      data: [{ id: 'test', label: 'Test', data: [{ x: 1631772930783, y: 0.01 }]}]
-//    }/>
 // TODO show points for start/end of contiguous ranges
-
 export default React.memo(
   ({
     data,

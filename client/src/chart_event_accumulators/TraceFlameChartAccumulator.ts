@@ -4,11 +4,10 @@ import type { TraceEvent } from '../Heartbeat'
 const cumulativeSeriesWidth = series => series?.data?.reduce((total, { x1, x2 }) => total + (x2 - x1), 0)
 
 export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
-  startEventsForLabel
+  startEventsForLabel: Record<string, TraceEvent[]> = {}
 
   constructor(summarize = false) {
     super(summarize)
-    this.startEventsForLabel = {} // chronological stack for each label
   }
 
   // Each series is a "lane" corresponding to a function.
@@ -16,11 +15,10 @@ export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
   // a new series (lane) with a `${label}-${numActiveWithLabel}` key will be created.
   // Series are ordered by cumulative duration.
   doAccumulate(events: TraceEvent[] = []) {
-    const now_ms = Date.now()
+    const nowMillis = Date.now()
 
     events.forEach(event => {
       const { label, duration_ms } = event
-      // `x1` and `x2` may get overridden.
       let { start_time_ms: x1, end_time_ms: x2 } = event
       let laneIndex = 0
 
@@ -36,8 +34,9 @@ export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
           if (startEvents.length === 0) delete this.startEventsForLabel[label]
         } else {
           // No corresponding start event for this end event. Something went wrong.
-          // This should never happen, but not gonna freak out with an exception if it does.
-          // Instead, trust the `duration_ms` value to generate the start time.
+          // This should never happen, but if it does, just use `duration_ms` to derive the start time.
+          // Note that `duration_ms` could be different from x1 - x2, since it's calculated using Python's
+          // more accurate `time.perf_counter`.
           x1 = x2 - duration_ms
           laneIndex = 0
         }
@@ -45,8 +44,9 @@ export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
       if (x1 === undefined) throw 'Flame chart series datum must have a start time'
 
       const seriesId = `${label}-${laneIndex}`
-      this.push(seriesId, { x1, x2: x2 || now_ms }, label)
+      this.push(seriesId, { x1, x2: x2 || nowMillis }, label)
     })
+
     this.allSeries().sort((sA, s) => cumulativeSeriesWidth(sA) - cumulativeSeriesWidth(s))
   }
 }

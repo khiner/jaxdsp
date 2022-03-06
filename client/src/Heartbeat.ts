@@ -1,4 +1,4 @@
-// These types map directly to the JSON in the server response.
+// These types map directly to the server heartbeat JSON object.
 
 export interface Param {
   name: string

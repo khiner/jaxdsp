@@ -15,17 +15,11 @@ export default toThreeColors({
     stroke: '#333',
   },
   series: {
-    line: {
-      stroke: '#1890ff',
-    },
     box: {
       fill: '#777',
       medianStroke: '#111',
       minMaxStroke: '#111',
       whiskerStroke: '#222',
-    },
-    scatter: {
-      fill: '#0050b3',
     },
   },
 })

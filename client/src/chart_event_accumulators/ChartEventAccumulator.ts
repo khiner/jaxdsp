@@ -13,17 +13,11 @@ import type { HeartbeatEvent } from '../Heartbeat'
 
 const DEFAULT_EXPIRATION_MILLIS = 5 * 1_000
 
-const getMinTimeMillis = (datum: SeriesDatum | SeriesSummaryDatum) => {
-  if (!datum) return 0
-  if ('x' in datum) return datum.x1 || datum.x
-  return datum.x1
-}
+const getMinTimeMillis = (datum: SeriesDatum | SeriesSummaryDatum) =>
+  !datum ? 0 : 'x' in datum ? datum.x1 || datum.x : datum.x1
 
-const getMaxTimeMillis = (datum: SeriesDatum | SeriesSummaryDatum) => {
-  if (!datum) return 0
-  if ('x' in datum) return datum.x2 || datum.x
-  return datum.x2
-}
+const getMaxTimeMillis = (datum: SeriesDatum | SeriesSummaryDatum) =>
+  !datum ? 0 : 'x' in datum ? datum.x2 || datum.x : datum.x2
 
 const expireSeriesData = (data: SeriesData | SeriesSummaryData, expirationDurationMillis) => {
   if (!data) return
@@ -73,13 +67,11 @@ export default class ChartEventAccumulator {
     series.data.push(datum)
 
     if (this.summarize) {
-      if (series.summaryData === undefined) series.summaryData = []
-      const lastSummaryDatum = last(series.summaryData)
-      let active: SeriesSummaryDatum
-      if (lastSummaryDatum?.values !== undefined) {
-        active = lastSummaryDatum
-      } else {
-        active = {
+      if (!series.summaryData) series.summaryData = []
+
+      const { summaryData } = series
+      if (!last(summaryData)?.values?.length) {
+        summaryData.push({
           values: [], // when full, this will be deleted
           x1: getMinTimeMillis(datum),
           x2: getMaxTimeMillis(datum),
@@ -89,10 +81,10 @@ export default class ChartEventAccumulator {
           median: 0.0,
           p75: 0.0,
           max: 0.0,
-        }
-        series.summaryData.push(active)
+        })
       }
 
+      const active = last(summaryData)
       const { values } = active
       values.push(datum.y)
       active.x2 = getMaxTimeMillis(datum)
@@ -103,10 +95,7 @@ export default class ChartEventAccumulator {
       active.max = max(values)
       active.count = values.length
 
-      if (values.length === 10) {
-        active.numValues = values.length
-        delete active.values
-      }
+      if (values.length === 10) delete active.values
     }
   }
 
@@ -120,7 +109,7 @@ export default class ChartEventAccumulator {
   }
 
   refreshDomains() {
-    // Single series domains
+    // Single-series domains
     const allSeries = this.allSeries()
     allSeries.forEach(series => {
       const { data } = series
@@ -131,6 +120,7 @@ export default class ChartEventAccumulator {
       const ys = data.map(({ y }) => y)
       series.yDomain = [min(ys), max(ys)]
     })
+
     // Cross-series domains
     this.data.xDomain = [
       min(allSeries.map(({ xDomain }) => xDomain[0])),
@@ -146,16 +136,10 @@ export default class ChartEventAccumulator {
     if (!this.allSeenSeriesIds.includes(id)) this.allSeenSeriesIds.push(id)
     const color = getChartColor(this.allSeenSeriesIds.indexOf(id))
     const allSeries = this.allSeries()
-    const foundSeries = allSeries.find(({ id: seriesId }) => seriesId === id)
-    if (foundSeries) return foundSeries
+    const matchingSeries = allSeries.find(({ id: seriesId }) => seriesId === id)
+    if (matchingSeries) return matchingSeries
 
-    const series: InnerSeries = {
-      id,
-      label: label || `${id}`,
-      color,
-      data: [],
-    }
-    allSeries.push(series)
-    return series
+    allSeries.push({ id, label: label || `${id}`, color, data: [] })
+    return last(allSeries)
   }
 }

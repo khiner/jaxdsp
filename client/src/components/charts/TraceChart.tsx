@@ -7,8 +7,6 @@ import { VertexColors } from 'three'
 import colors from './colors'
 import type Chart from './Chart'
 
-// Note that `duration_ms` could be different from x1 - x2, since it's
-// calculated using Python's more accurate `time.perf_counter`.
 export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, yAxisWidth = 60 }: Chart) => {
   const ref = useRef()
   const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 1_000), [])

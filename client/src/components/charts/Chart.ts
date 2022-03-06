@@ -24,7 +24,6 @@ export interface SeriesSummaryDatum {
   p75: number
   max: number
   values?: number[]
-  numValues?: number
 }
 
 export type SeriesSummaryData = SeriesSummaryDatum[]
