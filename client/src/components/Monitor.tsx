@@ -22,9 +22,11 @@ export default function Monitor({
   traceFlameData,
   width = chartWidth,
 }: Props) {
-  if (!trainTimeSeriesData && !traceTimeSeriesData && !traceFlameData) return null
+  // Same time domain is shared across all time-series.
+  const xDomain = trainTimeSeriesData?.xDomain || traceTimeSeriesData?.xDomain || traceFlameData?.xDomain
+  if (!xDomain) return null
 
-  const { xDomain } = trainTimeSeriesData || traceTimeSeriesData || traceFlameData // time domain shared across all time-series
+  console.log(xDomain)
   return (
     <ChartContext width={width}>
       {hasData(trainTimeSeriesData) && (

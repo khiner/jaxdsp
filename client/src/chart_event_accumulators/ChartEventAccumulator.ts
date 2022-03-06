@@ -52,7 +52,7 @@ export default class ChartEventAccumulator {
   }
 
   reset() {
-    this.data = { xDomain: [0, 0], yDomain: [0, 0], allSeries: [] }
+    this.data = { allSeries: [] }
     this.allSeenSeriesIds = [] // Used to maintain color associations for series IDs that are removed and come back
   }
 
@@ -112,6 +112,8 @@ export default class ChartEventAccumulator {
   }
 
   private refreshDomains() {
+    if (this.allSeries.length === 0) return
+
     this.data.xDomain = [
       min(this.allSeries.map(({ data }) => min(data.map(getMinTimeMillis)))),
       max(this.allSeries.map(({ data }) => max(data.map(getMaxTimeMillis)))),

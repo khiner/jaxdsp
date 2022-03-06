@@ -50,9 +50,9 @@ export interface SeriesProps {
 }
 
 export interface Data {
-  xDomain: Domain
-  yDomain: Domain
   allSeries: Series[]
+  xDomain?: Domain
+  yDomain?: Domain
 }
 
 export default interface Chart {
