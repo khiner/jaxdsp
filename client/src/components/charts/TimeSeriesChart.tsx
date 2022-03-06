@@ -6,10 +6,13 @@ import colors from './ChartColors'
 import Rectangle from './Rectangle'
 import type Chart from './Chart'
 import GridLines from './GridLines'
+import { Html } from '@react-three/drei'
+import Title, { DEFAULT_TITLE_HEIGHT } from './Title'
 
 // TODO show points for start/end of contiguous ranges
 export default React.memo(
   ({
+    title,
     data,
     dimensions,
     axes = [AxisSide.left, AxisSide.bottom],
@@ -32,11 +35,21 @@ export default React.memo(
       x: x + yAxisWidth,
       y: y + xAxisHeight,
       width: width - yAxisWidth,
-      height: height - xAxisHeight,
+      height: height - xAxisHeight - DEFAULT_TITLE_HEIGHT,
     }
 
     return (
       <>
+        {!!title && (
+          <Title
+            title={title}
+            dimensions={{
+              x: seriesDimensions.x,
+              y: y + seriesDimensions.height,
+              width: seriesDimensions.width,
+            }}
+          />
+        )}
         {grid && (
           <GridLines dimensions={seriesDimensions} xDomain={xDomain} yDomain={yDomain} renderOrder={-2} />
         )}
@@ -54,7 +67,7 @@ export default React.memo(
           <Axis
             side={AxisSide.left}
             yDomain={yDomain}
-            dimensions={{ x, y: y + xAxisHeight, width: yAxisWidth, height: height - xAxisHeight }}
+            dimensions={{ x, y: y + xAxisHeight, width: yAxisWidth, height: seriesDimensions.height }}
           />
         )}
         {hasBottomAxis && (

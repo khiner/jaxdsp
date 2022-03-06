@@ -28,13 +28,28 @@ export default function Monitor({
   return (
     <ChartContext width={width}>
       {hasData(trainTimeSeriesData) && (
-        <TimeSeriesChart data={trainTimeSeriesData} axes={[AxisSide.left]} yAxisWidth={yAxisWidth} />
+        <TimeSeriesChart
+          title="Train"
+          data={trainTimeSeriesData}
+          axes={[AxisSide.left]}
+          yAxisWidth={yAxisWidth}
+        />
       )}
       {hasData(traceTimeSeriesData) && (
-        <TimeSeriesChart data={traceTimeSeriesData} axes={[AxisSide.left]} yAxisWidth={yAxisWidth} />
+        <TimeSeriesChart
+          title="Trace"
+          data={traceTimeSeriesData}
+          axes={[AxisSide.left]}
+          yAxisWidth={yAxisWidth}
+        />
       )}
       {hasData(traceFlameData) && (
-        <FlameChart data={traceFlameData} dimensions={{ height: flameChartHeight }} yAxisWidth={yAxisWidth} />
+        <FlameChart
+          title="Methods"
+          data={traceFlameData}
+          dimensions={{ height: flameChartHeight }}
+          yAxisWidth={yAxisWidth}
+        />
       )}
       {xDomain && (
         <Axis
