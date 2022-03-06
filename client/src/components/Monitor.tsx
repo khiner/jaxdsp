@@ -3,20 +3,28 @@ import TimeSeriesChart from './charts/TimeSeriesChart'
 import FlameChart from './charts/TraceChart'
 import ChartContext from './charts/ChartContext'
 import Axis, { AxisSide } from './charts/Axis'
+import { Data } from './charts/Chart'
 
 const [chartWidth, flameChartHeight, xAxisHeight, yAxisWidth] = [600, 100, 40, 100]
 
-const hasData = data => data?.data?.length > 0
+const hasData = (data?: Data) => data?.data?.length > 0
+
+interface Props {
+  trainTimeSeriesData?: Data
+  traceTimeSeriesData?: Data
+  traceFlameData?: Data
+  width?: number
+}
 
 export default function Monitor({
-  width = chartWidth,
   trainTimeSeriesData,
   traceTimeSeriesData,
   traceFlameData,
-}) {
+  width = chartWidth,
+}: Props) {
   if (!trainTimeSeriesData && !traceTimeSeriesData && !traceFlameData) return null
 
-  const { xDomain } = traceTimeSeriesData // time domain shared across all time-series
+  const { xDomain } = trainTimeSeriesData || traceTimeSeriesData || traceFlameData // time domain shared across all time-series
   return (
     <ChartContext width={width}>
       {hasData(trainTimeSeriesData) && (

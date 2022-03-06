@@ -7,6 +7,7 @@ import { last } from '../util/array'
 import Monitor from './Monitor'
 import { ProcessorType } from './Processor'
 import type Heartbeat from '../Heartbeat'
+import { Data } from './charts/Chart'
 
 const trainTimeSeriesAccumulator = new TrainTimeSeriesAccumulator(true)
 const traceTimeSeriesAccumulator = new TraceTimeSeriesAccumulator()
@@ -27,10 +28,10 @@ export default function ({
   setSelectedProcessors,
   onError,
 }: Props) {
-  const [estimatedParams, setEstimatedParams] = useState(null)
-  const [trainTimeSeriesData, setTrainTimeSeriesData] = useState({})
-  const [traceTimeSeriesData, setTraceTimeSeriesData] = useState({})
-  const [traceFlameData, setTraceFlameData] = useState({})
+  const [estimatedParams, setEstimatedParams] = useState(undefined)
+  const [trainTimeSeriesData, setTrainTimeSeriesData] = useState<Data | undefined>()
+  const [traceTimeSeriesData, setTraceTimeSeriesData] = useState<Data | undefined>()
+  const [traceFlameData, setTraceFlameData] = useState<Data | undefined>()
 
   useEffect(() => {
     if (clientUid === null) return
@@ -60,7 +61,13 @@ export default function ({
     ws.onerror = () => {
       onError('WebSocket connection error')
     }
-    return () => ws.close()
+
+    return () => {
+      trainTimeSeriesAccumulator.reset()
+      traceTimeSeriesAccumulator.reset()
+      traceFlameAccumulator.reset()
+      ws.close()
+    }
   }, [clientUid])
 
   return (

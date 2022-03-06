@@ -36,32 +36,32 @@ export default class ChartEventAccumulator {
 
   // If `summarize` is true, for each series, accumulate statistics for box plots into an additional `summaryData` field
   constructor(summarize = false) {
-    this.data = { xDomain: [0, 0], yDomain: [0, 0], data: [] }
-    this.allSeenSeriesIds = [] // Used to maintain color associations for series IDs that are removed and come back
     this.summarize = summarize
+    this.reset()
   }
 
   allSeries(): InnerSeries[] {
     return this.data.data
   }
 
-  setAllSeries(allSeries) {
-    this.data.data = allSeries
-  }
-
-  accumulate(events: HeartbeatEvent[] = [], expirationMillis = DEFAULT_EXPIRATION_MILLIS) {
+  accumulate(events: HeartbeatEvent[] = [], expirationMillis = DEFAULT_EXPIRATION_MILLIS): Data {
     this.doAccumulate(events)
     this.expireData(expirationMillis)
     this.refreshDomains()
     return this.data
   }
 
-  doAccumulate(events: HeartbeatEvent[] = []) {
+  reset() {
+    this.data = { xDomain: [0, 0], yDomain: [0, 0], data: [] }
+    this.allSeenSeriesIds = [] // Used to maintain color associations for series IDs that are removed and come back
+  }
+
+  protected doAccumulate(events: HeartbeatEvent[] = []) {
     throw `Unimplemented abstract method \`doAccumulate\` called with ${events.length} events`
   }
 
   // Note: be sure to call `expireData` and `refreshDomain` after pushing all data!
-  push(seriesId: string, datum: SeriesDatum, label?: string) {
+  protected push(seriesId: string, datum: SeriesDatum, label?: string) {
     const series = this.findOrAddSeries(seriesId, label)
     if (getMinTimeMillis(last(series.data)) === getMinTimeMillis(datum)) series.data.pop()
     series.data.push(datum)
@@ -99,7 +99,11 @@ export default class ChartEventAccumulator {
     }
   }
 
-  expireData(expirationDurationMillis) {
+  private setAllSeries(allSeries) {
+    this.data.data = allSeries
+  }
+
+  private expireData(expirationDurationMillis) {
     const allSeries = this.allSeries()
     allSeries.forEach(({ data, summaryData }) => {
       expireSeriesData(data, expirationDurationMillis)
@@ -108,7 +112,7 @@ export default class ChartEventAccumulator {
     this.setAllSeries(allSeries.filter(({ data, permanent }) => permanent || data.length > 0))
   }
 
-  refreshDomains() {
+  private refreshDomains() {
     // Single-series domains
     const allSeries = this.allSeries()
     allSeries.forEach(series => {
@@ -132,7 +136,7 @@ export default class ChartEventAccumulator {
     ]
   }
 
-  findOrAddSeries(id: string, label?: string): InnerSeries {
+  private findOrAddSeries(id: string, label?: string): InnerSeries {
     if (!this.allSeenSeriesIds.includes(id)) this.allSeenSeriesIds.push(id)
     const color = getChartColor(this.allSeenSeriesIds.indexOf(id))
     const allSeries = this.allSeries()

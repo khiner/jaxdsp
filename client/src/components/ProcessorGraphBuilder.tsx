@@ -19,12 +19,12 @@ function Connection({ beginX, beginY, endX, endY }) {
   return <path d={`M ${beginX} ${beginY} C ${midX} ${beginY} ${midX} ${endY} ${endX} ${endY}`} />
 }
 
-interface Props {
+interface ProcessorDefinitionProps {
   name: string
   onDragStart: () => void
 }
 
-const ProcessorDefinition = ({ name, onDragStart }: Props) => (
+const ProcessorDefinition = ({ name, onDragStart }: ProcessorDefinitionProps) => (
   <div
     key={name}
     style={{
@@ -42,13 +42,16 @@ const ProcessorDefinition = ({ name, onDragStart }: Props) => (
   </div>
 )
 
-// I miss typescript...
-const ORIENTATION = {
-  horizontal: 0,
-  vertical: 1,
+const enum ORIENTATION {
+  horizontal,
+  vertical,
 }
 
-const ProcessorPlaceholder = ({ orientation }) => (
+interface ProcessorPlaceholderProps {
+  orientation: ORIENTATION
+}
+
+const ProcessorPlaceholder = ({ orientation }: ProcessorPlaceholderProps) => (
   <div
     className="processor placeholder"
     style={{
@@ -88,7 +91,19 @@ const getRelativeRect = (rect, relativeToRect) => {
   }
 }
 
-function ProcessorGraphBuilder({ processorDefinitions, selectedProcessors, estimatedParams, onChange }) {
+interface Props {
+  processorDefinitions: any[]
+  selectedProcessors: any[]
+  estimatedParams: any[]
+  onChange: (any) => void
+}
+
+function ProcessorGraphBuilder({
+  processorDefinitions,
+  selectedProcessors,
+  estimatedParams,
+  onChange,
+}: Props) {
   const [draggingFrom, setDraggingFrom] = useState(undefined)
   // E.g. `draggingToIndices := [2,3]` means the 4th (0-indexed) parallel processor in the 3rd serial processor
   const [draggingToIndices, setDraggingToIndices] = useState(undefined)
