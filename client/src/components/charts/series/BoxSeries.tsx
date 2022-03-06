@@ -4,13 +4,13 @@ import { scaleLinear } from 'd3-scale'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../Vertices'
 import colors from '../ChartColors'
 import ClipArea from '../ClipArea'
-import type { SeriesChart } from '../Chart'
+import type { SeriesProps } from '../Chart'
 
 const SQUARES_PER_DATUM = 6 // rect + 4 border lines + 1 mid line
 const { fill, whiskerStroke, minMaxStroke } = colors.series.box
 
 export default React.memo(
-  ({ series, dimensions, xDomain, yDomain, strokeWidth = 2, renderOrder = 0 }: SeriesChart) => {
+  ({ series, dimensions, xDomain, yDomain, strokeWidth = 2, renderOrder = 0 }: SeriesProps) => {
     const ref = useRef()
     const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * SQUARES_PER_DATUM * 1_000), [])
     useLayoutEffect(() => vertices.setGeometryRef(ref), [])

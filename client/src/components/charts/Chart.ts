@@ -30,9 +30,7 @@ export interface SeriesSummaryDatum {
 
 export type SeriesSummaryData = SeriesSummaryDatum[]
 
-export type Domain = [number, number]
-
-export interface InnerSeries {
+export interface Series {
   id: string
   label: string
   color: string
@@ -40,22 +38,21 @@ export interface InnerSeries {
   summaryData?: SeriesSummaryData
 }
 
-export interface Series {
-  series: InnerSeries
-  dimensions: Dimensions
-  renderOrder?: number
-  strokeWidth?: number
-}
+export type Domain = [number, number]
 
-export interface SeriesChart extends Series {
+export interface SeriesProps {
+  series: Series
+  dimensions: Dimensions
   xDomain: Domain
   yDomain: Domain
+  renderOrder?: number
+  strokeWidth?: number
 }
 
 export interface Data {
   xDomain: Domain
   yDomain: Domain
-  data: InnerSeries[]
+  allSeries: Series[]
 }
 
 export default interface Chart {

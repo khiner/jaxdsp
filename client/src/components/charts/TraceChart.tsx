@@ -14,7 +14,7 @@ export default React.memo(
     const vertices = useMemo(() => new Vertices(POSITIONS_PER_RECTANGLE * 1_000), [])
     const [hoveringDatumId, setHoveringDatumId] = useState(undefined)
 
-    const { data: allSeries, xDomain } = data
+    const { allSeries: allSeries, xDomain } = data
     const numSeries = allSeries?.length
     const { x, y, width, height } = dimensions
     const allSeriesHeight = height - DEFAULT_TITLE_HEIGHT - paddingTop

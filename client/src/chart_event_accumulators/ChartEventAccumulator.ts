@@ -3,7 +3,7 @@ import { getChartColor } from '../util/colors'
 import { max, median, min, p25, p75 } from '../util/stats'
 import {
   Data,
-  InnerSeries,
+  Series,
   SeriesData,
   SeriesDatum,
   SeriesSummaryData,
@@ -40,8 +40,8 @@ export default class ChartEventAccumulator {
     this.reset()
   }
 
-  allSeries(): InnerSeries[] {
-    return this.data.data
+  allSeries(): Series[] {
+    return this.data.allSeries
   }
 
   accumulate(events: HeartbeatEvent[] = [], expirationMillis = DEFAULT_EXPIRATION_MILLIS): Data {
@@ -52,7 +52,7 @@ export default class ChartEventAccumulator {
   }
 
   reset() {
-    this.data = { xDomain: [0, 0], yDomain: [0, 0], data: [] }
+    this.data = { xDomain: [0, 0], yDomain: [0, 0], allSeries: [] }
     this.allSeenSeriesIds = [] // Used to maintain color associations for series IDs that are removed and come back
   }
 
@@ -100,7 +100,7 @@ export default class ChartEventAccumulator {
   }
 
   private setAllSeries(allSeries) {
-    this.data.data = allSeries
+    this.data.allSeries = allSeries
   }
 
   private expireData(expirationDurationMillis) {
@@ -124,7 +124,7 @@ export default class ChartEventAccumulator {
     ]
   }
 
-  private findOrAddSeries(id: string, label?: string): InnerSeries {
+  private findOrAddSeries(id: string, label?: string): Series {
     if (!this.allSeenSeriesIds.includes(id)) this.allSeenSeriesIds.push(id)
     const color = getChartColor(this.allSeenSeriesIds.indexOf(id))
     const allSeries = this.allSeries()

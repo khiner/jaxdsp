@@ -1,10 +1,10 @@
 import React from 'react'
 import { scaleLinear } from 'd3-scale'
 import { Line } from '@react-three/drei'
-import type { SeriesChart } from '../Chart'
+import type { SeriesProps } from '../Chart'
 
 export default React.memo(
-  ({ series, dimensions, xDomain, yDomain, strokeWidth = 2, renderOrder = 0 }: SeriesChart) => {
+  ({ series, dimensions, xDomain, yDomain, strokeWidth = 2, renderOrder = 0 }: SeriesProps) => {
     const { data, color: seriesColor } = series
     if (!data?.length) return null
 

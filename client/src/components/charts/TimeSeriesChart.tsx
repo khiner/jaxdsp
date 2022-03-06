@@ -23,7 +23,7 @@ export default React.memo(
     legend = true,
   }: Chart) => {
     if (!data) return null
-    const { data: allSeries, xDomain, yDomain } = data
+    const { allSeries: allSeries, xDomain, yDomain } = data
     if (!allSeries?.length) return null
 
     const { x, y, width, height } = dimensions

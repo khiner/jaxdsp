@@ -1,11 +1,11 @@
 import React from 'react'
 import { Html } from '@react-three/drei'
-import { Dimensions, InnerSeries } from './Chart'
+import { Dimensions, Series } from './Chart'
 import colors from './ChartColors'
 
 interface Props {
   parentDimensions: Dimensions
-  allSeries: InnerSeries[]
+  allSeries: Series[]
 }
 
 export default function Legend({ parentDimensions, allSeries }: Props) {

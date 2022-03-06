@@ -3,9 +3,9 @@ import { Matrix4 } from 'three'
 import { scaleLinear } from 'd3-scale'
 import ClipArea from '../ClipArea'
 import type { InstancedMeshProps } from '@react-three/fiber'
-import type { SeriesChart } from '../Chart'
+import type { SeriesProps } from '../Chart'
 
-interface Props extends SeriesChart {
+interface Props extends SeriesProps {
   pointRadius?: number
 }
 

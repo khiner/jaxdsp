@@ -7,7 +7,7 @@ import { Data } from './charts/Chart'
 
 const [chartWidth, flameChartHeight, xAxisHeight, yAxisWidth] = [600, 100, 40, 100]
 
-const hasData = (data?: Data) => data?.data?.length > 0
+const hasData = (data?: Data) => data?.allSeries?.length > 0
 
 interface Props {
   trainTimeSeriesData?: Data
