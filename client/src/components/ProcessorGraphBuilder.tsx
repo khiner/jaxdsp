@@ -94,7 +94,7 @@ const getRelativeRect = (rect, relativeToRect) => {
 interface Props {
   processorDefinitions: ProcessorType[]
   selectedProcessors: ProcessorType[]
-  onChange: (value: number) => void
+  onChange: (ps: ProcessorType[]) => void
   estimatedParams?: Record<string, number>[][] // [serialIndex][parallelIndex]
 }
 

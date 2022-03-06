@@ -6,7 +6,6 @@ import colors from './ChartColors'
 import Rectangle from './Rectangle'
 import type Chart from './Chart'
 import GridLines from './GridLines'
-import { Html } from '@react-three/drei'
 import Title, { DEFAULT_TITLE_HEIGHT } from './Title'
 
 // TODO show points for start/end of contiguous ranges

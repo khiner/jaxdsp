@@ -5,9 +5,9 @@ import TraceFlameChartAccumulator from '../chart_event_accumulators/TraceFlameCh
 import TraceTimeSeriesAccumulator from '../chart_event_accumulators/TraceTimeSeriesAccumulator'
 import { last } from '../util/array'
 import Monitor from './Monitor'
-import { ProcessorType } from './Processor'
+import type { ProcessorType } from './Processor'
 import type Heartbeat from '../Heartbeat'
-import { Data } from './charts/Chart'
+import type { Data } from './charts/Chart'
 
 const trainTimeSeriesAccumulator = new TrainTimeSeriesAccumulator(true)
 const traceTimeSeriesAccumulator = new TraceTimeSeriesAccumulator()
