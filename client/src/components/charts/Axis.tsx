@@ -14,8 +14,20 @@ export enum AxisSide {
   bottom,
 }
 
-const createTicks = (side, xDomain: Domain, yDomain: Domain, { x, y, width, height }: Dimensions) => {
+export interface Tick {
+  position: number
+  text: string
+}
+
+export const createTicks = (
+  side,
+  { x, y, width, height }: Dimensions,
+  yDomain?: Domain,
+  xDomain?: Domain
+): Tick[] => {
   if (side === AxisSide.left) {
+    if (!yDomain) throw '`yDomain` required for `createTicks` with left side'
+
     const yScale = scaleLinear()
       .domain(yDomain)
       .range([y, y + height])
@@ -23,6 +35,8 @@ const createTicks = (side, xDomain: Domain, yDomain: Domain, { x, y, width, heig
     const tickFormat = yScale.tickFormat(10)
     return yScale.ticks().map(t => ({ position: yScale(t), text: tickFormat(t) }))
   }
+
+  if (!xDomain) throw '`xDomain` required for `createTicks` with bottom side'
 
   const xScale = scaleLinear()
     .domain(xDomain)
@@ -42,9 +56,9 @@ interface Props {
 
 export default React.memo(
   ({
+    dimensions,
     xDomain,
     yDomain,
-    dimensions,
     side = AxisSide.left,
     strokeWidth = 2,
     fontSize = 12,
@@ -56,7 +70,7 @@ export default React.memo(
 
     const isLeft = side === AxisSide.left
     const { x, y, width, height } = dimensions
-    const ticks = createTicks(side, xDomain, yDomain, dimensions)
+    const ticks = createTicks(side, dimensions, yDomain, xDomain)
 
     useLayoutEffect(() => {
       if (ticks.length === 0) return

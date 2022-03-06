@@ -14,6 +14,9 @@ export default toThreeColors({
     text: '#333',
     stroke: '#333',
   },
+  grid: {
+    stroke: '#888',
+  },
   series: {
     box: {
       fill: '#777',

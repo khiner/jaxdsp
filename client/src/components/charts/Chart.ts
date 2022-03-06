@@ -58,11 +58,12 @@ export interface Data {
 
 export default interface Chart {
   data: Data
-  dimensions?: Dimensions // This is actually required by the chart component, but it can be missing as a child of ChartContext.
+  dimensions?: Dimensions // This is required by the chart component, but it can be missing as a child of ChartContext.
   axes?: AxisSide[]
   xAxisHeight?: number
   yAxisHeight?: number
   yAxisWidth?: number
   fontSize?: number
   renderOrder?: number
+  grid?: boolean
 }

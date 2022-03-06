@@ -5,6 +5,7 @@ import Axis, { AxisSide } from './Axis'
 import colors from './ChartColors'
 import Rectangle from './Rectangle'
 import type Chart from './Chart'
+import GridLines from './GridLines'
 
 // TODO show points for start/end of contiguous ranges
 export default React.memo(
@@ -14,6 +15,7 @@ export default React.memo(
     axes = [AxisSide.left, AxisSide.bottom],
     xAxisHeight = 40,
     yAxisWidth = 60,
+    grid = true,
   }: Chart) => {
     if (!data) return null
     const { data: allSeries, xDomain, yDomain } = data
@@ -35,6 +37,9 @@ export default React.memo(
 
     return (
       <>
+        {grid && (
+          <GridLines dimensions={seriesDimensions} xDomain={xDomain} yDomain={yDomain} renderOrder={-2} />
+        )}
         {allSeries.map(series => (
           <LineSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={-1} />
         ))}
