@@ -19,8 +19,6 @@ export default function Legend({ parentDimensions, allSeries }: Props) {
         color: colors.text,
         position: 'absolute',
         right: 0,
-        display: 'flex',
-        flexDirection: 'column',
         border: '1px solid #4449',
         borderRadius: 4,
         backgroundColor: '#eee9',
@@ -30,10 +28,13 @@ export default function Legend({ parentDimensions, allSeries }: Props) {
       }}
     >
       {allSeries.map(({ id, color, label }) => (
-        <span key={id} style={{ display: 'flex', flexDirection: 'row', textAlign: 'center' }}>
-          <span style={{ width: 10, height: 10, backgroundColor: color, margin: 4 }} />
+        <div
+          key={id}
+          style={{ display: 'flex', flexDirection: 'row', textAlign: 'center', alignItems: 'center' }}
+        >
+          <span style={{ width: 10, height: 4, backgroundColor: color, margin: 4 }} />
           <span>{label}</span>
-        </span>
+        </div>
       ))}
     </Html>
   )
