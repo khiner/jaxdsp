@@ -49,7 +49,7 @@ export default function JaxDspClient({ audioSample }: Props) {
   const [audioInputSourceLabel, setAudioInputSourceLabel] = useState(AUDIO_INPUT_SOURCES.testSample.label)
   const [isStreamingAudio, setIsStreamingAudio] = useState(false)
   const [isEstimatingParams, setIsEstimatingParams] = useState(false)
-  const [processorDefinitions, setProcessorDefinitions] = useState(null)
+  const [processorDefinitions, setProcessorDefinitions] = useState<ProcessorType[]>(null)
   const [optimizers, setOptimizers] = useState(null)
   const [lossOptions, setLossOptions] = useState(null)
   const [editingOptimizer, setEditingOptimizer] = useState(null)

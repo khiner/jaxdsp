@@ -1,3 +1,5 @@
+import { AxisSide } from './Axis'
+
 export interface Dimensions {
   x?: number
   y?: number
@@ -57,7 +59,7 @@ export interface Data {
 export default interface Chart {
   data: Data
   dimensions?: Dimensions // This is actually required by the chart component, but it can be missing as a child of ChartContext.
-  axes?: any[]
+  axes?: AxisSide[]
   xAxisHeight?: number
   yAxisHeight?: number
   yAxisWidth?: number

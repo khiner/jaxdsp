@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
 import { deepCopy } from '../util/object'
-import Processor from './Processor'
+import Processor, { ProcessorType } from './Processor'
 import colors from '../util/colors'
 
 const wrapInArray = itemOrArray => (Array.isArray(itemOrArray) ? itemOrArray : [itemOrArray])
@@ -92,10 +92,10 @@ const getRelativeRect = (rect, relativeToRect) => {
 }
 
 interface Props {
-  processorDefinitions: any[]
-  selectedProcessors: any[]
-  estimatedParams: any[]
-  onChange: (any) => void
+  processorDefinitions: ProcessorType[]
+  selectedProcessors: ProcessorType[]
+  onChange: (value: number) => void
+  estimatedParams?: Record<string, number>[][] // [serialIndex][parallelIndex]
 }
 
 function ProcessorGraphBuilder({

@@ -5,16 +5,25 @@ import { CloseOutlined } from '@ant-design/icons'
 import Slider from './Slider'
 import { snakeCaseToSentence } from '../util/string'
 
+export interface Param {
+  name: string
+  default_value: number
+  min_value: number
+  max_value: number
+  log_scale?: boolean
+}
+
 export interface ProcessorType {
   name: string
-  param_definitions: any[]
-  params: Record<string, any>
+  param_definitions: Param[]
+  params: Record<string, number>
+  presets: Record<string, Record<string, number>>
 }
 
 interface Props {
   processor: ProcessorType
-  estimatedParams: any[]
-  onChange: (processorName: string, value: any) => void
+  estimatedParams: Record<string, number>
+  onChange: (processorName: string, value: number) => void
   onClose: () => void
   onDragStart: () => void
   className?: string

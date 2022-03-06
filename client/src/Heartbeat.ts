@@ -1,12 +1,6 @@
 // These types map directly to the server heartbeat JSON object.
 
-export interface Param {
-  name: string
-  default_value: number
-  min_value: number
-  max_value: number
-  log_scale?: boolean
-}
+import { Param } from './components/Processor'
 
 export interface TraceEvent {
   function_name: string

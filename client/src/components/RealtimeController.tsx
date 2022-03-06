@@ -15,10 +15,10 @@ const traceFlameAccumulator = new TraceFlameChartAccumulator()
 
 interface Props {
   clientUid: string
-  processorDefinitions: any[]
-  selectedProcessors: any[]
+  processorDefinitions: ProcessorType[]
+  selectedProcessors: ProcessorType[]
   setSelectedProcessors: (ps: ProcessorType[]) => void
-  onError: (error: any) => void
+  onError: (message: string) => void
 }
 
 export default function ({
