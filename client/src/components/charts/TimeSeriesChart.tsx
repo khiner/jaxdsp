@@ -1,7 +1,6 @@
 import React from 'react'
 import LineSeries from './series/LineSeries'
 import BoxSeries from './series/BoxSeries'
-import ScatterSeries from './series/ScatterSeries'
 import Axis, { AxisSide } from './Axis'
 import colors from './colors'
 import Rectangle from './Rectangle'
@@ -50,9 +49,9 @@ export default React.memo(
         {allSeries.map(series => (
           <BoxSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={1} />
         ))}
-        {allSeries.map(series => (
-          <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={2} />
-        ))}
+        {/*{allSeries.map(series => (*/}
+        {/*  <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={2} />*/}
+        {/*))}*/}
         <Rectangle dimensions={seriesDimensions} color={colors.border} />
         {hasLeftAxis && (
           <Axis
