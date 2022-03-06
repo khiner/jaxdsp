@@ -113,26 +113,14 @@ export default class ChartEventAccumulator {
   }
 
   private refreshDomains() {
-    // Single-series domains
     const allSeries = this.allSeries()
-    allSeries.forEach(series => {
-      const { data } = series
-      series.xDomain = [
-        min(data.map(datum => getMinTimeMillis(datum))),
-        max(data.map(datum => getMaxTimeMillis(datum))),
-      ]
-      const ys = data.map(({ y }) => y)
-      series.yDomain = [min(ys), max(ys)]
-    })
-
-    // Cross-series domains
     this.data.xDomain = [
-      min(allSeries.map(({ xDomain }) => xDomain[0])),
-      max(allSeries.map(({ xDomain }) => xDomain[1])),
+      min(allSeries.map(({ data }) => min(data.map(getMinTimeMillis)))),
+      max(allSeries.map(({ data }) => max(data.map(getMaxTimeMillis)))),
     ]
     this.data.yDomain = [
-      min(allSeries.map(({ yDomain }) => yDomain[0])),
-      max(allSeries.map(({ yDomain }) => yDomain[1])),
+      min(allSeries.map(({ data }) => min(data.map(({ y }) => y)))),
+      max(allSeries.map(({ data }) => max(data.map(({ y }) => y)))),
     ]
   }
 

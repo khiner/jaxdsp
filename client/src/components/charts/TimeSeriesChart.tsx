@@ -54,14 +54,25 @@ export default React.memo(
           <GridLines dimensions={seriesDimensions} xDomain={xDomain} yDomain={yDomain} renderOrder={-2} />
         )}
         {allSeries.map(series => (
-          <LineSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={-1} />
+          <LineSeries
+            key={series.id}
+            series={series}
+            dimensions={seriesDimensions}
+            xDomain={xDomain}
+            yDomain={yDomain}
+            renderOrder={-1}
+          />
         ))}
         {allSeries.map(series => (
-          <BoxSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={1} />
+          <BoxSeries
+            key={series.id}
+            series={series}
+            dimensions={seriesDimensions}
+            xDomain={xDomain}
+            yDomain={yDomain}
+            renderOrder={1}
+          />
         ))}
-        {/*{allSeries.map(series => (*/}
-        {/*  <ScatterSeries key={series.id} series={series} dimensions={seriesDimensions} renderOrder={2} />*/}
-        {/*))}*/}
         <Rectangle dimensions={seriesDimensions} color={colors.border} />
         {hasLeftAxis && (
           <Axis

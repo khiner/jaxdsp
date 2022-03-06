@@ -38,8 +38,6 @@ export interface InnerSeries {
   color: string
   data: SeriesData
   summaryData?: SeriesSummaryData
-  xDomain?: Domain
-  yDomain?: Domain
   permanent?: boolean
 }
 
@@ -48,6 +46,11 @@ export interface Series {
   dimensions: Dimensions
   renderOrder?: number
   strokeWidth?: number
+}
+
+export interface SeriesChart extends Series {
+  xDomain: Domain
+  yDomain: Domain
 }
 
 export interface Data {
