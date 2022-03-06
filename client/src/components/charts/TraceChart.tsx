@@ -4,7 +4,7 @@ import { scaleLinear } from 'd3-scale'
 import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
 import ClipArea from './ClipArea'
 import { VertexColors } from 'three'
-import colors from './colors'
+import colors from './ChartColors'
 import type Chart from './Chart'
 
 export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, yAxisWidth = 60 }: Chart) => {

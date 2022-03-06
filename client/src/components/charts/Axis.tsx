@@ -3,7 +3,7 @@ import { VertexColors } from 'three'
 import { scaleLinear } from 'd3-scale'
 import { Html } from '@react-three/drei'
 import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
-import colors from './colors'
+import colors from './ChartColors'
 import { timeFormat } from 'd3-time-format'
 import type { Dimensions, Domain } from './Chart'
 

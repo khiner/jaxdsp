@@ -1,6 +1,4 @@
 // From https://ant.design/docs/spec/colors
-import colors from '../components/charts/colors'
-
 export default {
   blue6: '#1890ff',
   magenta6: '#eb2f96',

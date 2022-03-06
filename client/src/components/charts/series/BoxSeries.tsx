@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useMemo, useRef } from 'react'
 import { VertexColors } from 'three'
 import { scaleLinear } from 'd3-scale'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../Vertices'
-import colors from '../colors'
+import colors from '../ChartColors'
 import ClipArea from '../ClipArea'
 import type { Series } from '../Chart'
 

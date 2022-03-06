@@ -2,7 +2,7 @@ import React from 'react'
 import LineSeries from './series/LineSeries'
 import BoxSeries from './series/BoxSeries'
 import Axis, { AxisSide } from './Axis'
-import colors from './colors'
+import colors from './ChartColors'
 import Rectangle from './Rectangle'
 import type Chart from './Chart'
 

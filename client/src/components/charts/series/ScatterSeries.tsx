@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef } from 'react'
 import { Matrix4 } from 'three'
 import { scaleLinear } from 'd3-scale'
-import colors from '../colors'
+import colors from '../ChartColors'
 import ClipArea from '../ClipArea'
 import type { InstancedMeshProps } from '@react-three/fiber'
 import type { Series } from '../Chart'
