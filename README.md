@@ -6,7 +6,7 @@ Fast, differentiable audio processors on the CPU or GPU, controlled from the bro
 In the meantime, the `docs` directory has several Jupyter notebooks with plenty of examples.
 The `Differentiable Audio Processors` notebook shows many real DSP examples, along with loss/parameter time-series.**
 _(All files under `docs/scratch` are working notes, and can be ignored.)_
-g
+
 The goal of this project is to parameterize audio graphs, in real-time, to produce an audio stream resembling incoming audio.
 
 Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets, and React.
@@ -26,7 +26,7 @@ $ docker run -p 8080:8080 -p 8765:8765 --platform linux/amd64 --init jaxdsp_serv
 
 ### Local server
 
-See the [server instructions](server/README.md) for how to run locally.
+See the [server README](server/README.md) for instructions on running locally.
 
 
 ## Client
