@@ -7,6 +7,7 @@ import Rectangle from './Rectangle'
 import type Chart from './Chart'
 import GridLines from './GridLines'
 import Title, { DEFAULT_TITLE_HEIGHT } from './Title'
+import Legend from './Legend'
 
 // TODO show points for start/end of contiguous ranges
 export default React.memo(
@@ -19,6 +20,7 @@ export default React.memo(
     yAxisWidth = 60,
     paddingTop = 12,
     grid = true,
+    legend = true,
   }: Chart) => {
     if (!data) return null
     const { data: allSeries, xDomain, yDomain } = data
@@ -88,6 +90,7 @@ export default React.memo(
             dimensions={{ x: x + yAxisWidth, y, width, height: xAxisHeight }}
           />
         )}
+        {legend && <Legend parentDimensions={seriesDimensions} allSeries={allSeries} />}
       </>
     )
   }

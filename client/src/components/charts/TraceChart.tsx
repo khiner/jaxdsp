@@ -59,7 +59,7 @@ export default React.memo(
               position={[x, y + allSeriesHeight - (i + 0.5) * seriesHeight + fontSize, 0]}
               style={{
                 width: yAxisWidth,
-                color: colors.axis.text,
+                color: colors.text,
                 fontSize,
                 fontWeight: 'bold',
                 textAlign: 'right',

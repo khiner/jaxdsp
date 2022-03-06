@@ -18,7 +18,7 @@ export default function Title({ title, dimensions }: Props) {
       position={[x, y + height, 0]}
       style={{
         fontSize: 14,
-        color: colors.axis.text,
+        color: colors.text,
         width,
         height,
         textAlign: 'center',

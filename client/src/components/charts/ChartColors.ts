@@ -10,8 +10,8 @@ const toThreeColors = colors => mapValuesRecursive(colors, color => new Color(co
 export default toThreeColors({
   background: 'white',
   border: 'black',
+  text: '#333',
   axis: {
-    text: '#333',
     stroke: '#333',
   },
   grid: {

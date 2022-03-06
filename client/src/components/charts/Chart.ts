@@ -70,4 +70,5 @@ export default interface Chart {
   fontSize?: number
   renderOrder?: number
   grid?: boolean
+  legend?: boolean
 }

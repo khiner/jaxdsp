@@ -107,7 +107,7 @@ export default React.memo(
             }
             style={{
               fontSize,
-              color: colors.axis.text,
+              color: colors.text,
               textAlign: isLeft ? 'right' : undefined,
               width: isLeft ? width - tickLength : undefined,
               paddingRight: isLeft ? '1em' : undefined,
