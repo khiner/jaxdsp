@@ -40,7 +40,7 @@ export default class ChartEventAccumulator {
     this.reset()
   }
 
-  allSeries(): Series[] {
+  get allSeries(): Series[] {
     return this.data.allSeries
   }
 
@@ -60,7 +60,7 @@ export default class ChartEventAccumulator {
     throw `Unimplemented abstract method \`doAccumulate\` called with ${events.length} events`
   }
 
-  // Note: be sure to call `expireData` and `refreshDomain` after pushing all data!
+  // **Be sure to call `expireData` and `refreshDomain` after a `push`!**
   protected push(seriesId: string, datum: SeriesDatum, label?: string) {
     const series = this.findOrAddSeries(seriesId, label)
     if (getMinTimeMillis(last(series.data)) === getMinTimeMillis(datum)) series.data.pop()
@@ -99,39 +99,36 @@ export default class ChartEventAccumulator {
     }
   }
 
-  private setAllSeries(allSeries) {
+  private set allSeries(allSeries) {
     this.data.allSeries = allSeries
   }
 
   private expireData(expirationDurationMillis) {
-    const allSeries = this.allSeries()
-    allSeries.forEach(({ data, summaryData }) => {
+    this.allSeries.forEach(({ data, summaryData }) => {
       expireSeriesData(data, expirationDurationMillis)
       expireSeriesData(summaryData, expirationDurationMillis)
     })
-    this.setAllSeries(allSeries.filter(({ data }) => data.length > 0))
+    this.allSeries = this.allSeries.filter(({ data }) => data.length > 0)
   }
 
   private refreshDomains() {
-    const allSeries = this.allSeries()
     this.data.xDomain = [
-      min(allSeries.map(({ data }) => min(data.map(getMinTimeMillis)))),
-      max(allSeries.map(({ data }) => max(data.map(getMaxTimeMillis)))),
+      min(this.allSeries.map(({ data }) => min(data.map(getMinTimeMillis)))),
+      max(this.allSeries.map(({ data }) => max(data.map(getMaxTimeMillis)))),
     ]
     this.data.yDomain = [
-      min(allSeries.map(({ data }) => min(data.map(({ y }) => y)))),
-      max(allSeries.map(({ data }) => max(data.map(({ y }) => y)))),
+      min(this.allSeries.map(({ data }) => min(data.map(({ y }) => y)))),
+      max(this.allSeries.map(({ data }) => max(data.map(({ y }) => y)))),
     ]
   }
 
   private findOrAddSeries(id: string, label?: string): Series {
     if (!this.allSeenSeriesIds.includes(id)) this.allSeenSeriesIds.push(id)
     const color = getChartColor(this.allSeenSeriesIds.indexOf(id))
-    const allSeries = this.allSeries()
-    const matchingSeries = allSeries.find(({ id: seriesId }) => seriesId === id)
+    const matchingSeries = this.allSeries.find(({ id: seriesId }) => seriesId === id)
     if (matchingSeries) return matchingSeries
 
-    allSeries.push({ id, label: label || `${id}`, color, data: [] })
-    return last(allSeries)
+    this.allSeries.push({ id, label: label || `${id}`, color, data: [] })
+    return last(this.allSeries)
   }
 }

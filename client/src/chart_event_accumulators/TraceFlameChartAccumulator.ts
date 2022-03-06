@@ -47,6 +47,6 @@ export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
       this.push(seriesId, { x1, x2: x2 || nowMillis }, label)
     })
 
-    this.allSeries().sort((sA, s) => cumulativeSeriesWidth(sA) - cumulativeSeriesWidth(s))
+    this.allSeries.sort((sA, s) => cumulativeSeriesWidth(sA) - cumulativeSeriesWidth(s))
   }
 }
