@@ -5,7 +5,7 @@ import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
 import ClipArea from './ClipArea'
 import { VertexColors } from 'three'
 import colors from './colors'
-import type { Chart } from './series/Series'
+import type Chart from './Chart'
 
 // Note that `duration_ms` could be different from x1 - x2, since it's
 // calculated using Python's more accurate `time.perf_counter`.
@@ -21,8 +21,9 @@ export default React.memo(({ data, dimensions, renderOrder = 0, fontSize = 12, y
   useLayoutEffect(() => vertices.setGeometryRef(ref), [])
   useLayoutEffect(() => {
     vertices.draw(v => {
-      allSeries?.forEach(({ data, color }, i) =>
-        data.forEach(({ id, x1, x2 }) => {
+      allSeries?.forEach(({ id: seriesId, data, color }, i) =>
+        data.forEach(({ x1, x2 }) => {
+          const id = `${seriesId}-${x1}`
           const xScale = scaleLinear()
             .domain(xDomain)
             .range([x + yAxisWidth, x + width])

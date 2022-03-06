@@ -5,7 +5,7 @@ import ScatterSeries from './series/ScatterSeries'
 import Axis, { AxisSide } from './Axis'
 import colors from './colors'
 import Rectangle from './Rectangle'
-import type { Chart } from './series/Series'
+import type Chart from './Chart'
 
 // `data` is a list of with `x` values assumed to be milliseconds since epoch.
 // Example:

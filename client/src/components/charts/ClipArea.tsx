@@ -1,6 +1,6 @@
 import React from 'react'
 import { Vector3 } from 'three'
-import type { Dimensions } from './series/Series'
+import type { Dimensions } from './Chart'
 
 const ClipPlane = ({ axis, position, inverted = false }) => {
   const unit = inverted ? -1 : 1

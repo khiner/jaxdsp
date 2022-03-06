@@ -4,7 +4,7 @@ import { scaleLinear } from 'd3-scale'
 import Vertices, { POSITIONS_PER_RECTANGLE } from '../Vertices'
 import colors from '../colors'
 import ClipArea from '../ClipArea'
-import type Series from './Series'
+import type { Series } from '../Chart'
 
 const SQUARES_PER_DATUM = 6 // rect + 4 border lines + 1 mid line
 const { fill, whiskerStroke, minMaxStroke } = colors.series.box

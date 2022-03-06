@@ -5,7 +5,7 @@ import { Html } from '@react-three/drei'
 import Vertices, { POSITIONS_PER_RECTANGLE } from './Vertices'
 import colors from './colors'
 import { timeFormat } from 'd3-time-format'
-import type { Dimensions, Domain } from './series/Series'
+import type { Dimensions, Domain } from './Chart'
 
 const formatMinutesSeconds = timeFormat('%M:%S')
 

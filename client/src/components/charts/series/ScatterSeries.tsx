@@ -3,8 +3,8 @@ import { Matrix4 } from 'three'
 import { scaleLinear } from 'd3-scale'
 import colors from '../colors'
 import ClipArea from '../ClipArea'
-import type Series from './Series'
 import type { InstancedMeshProps } from '@react-three/fiber'
+import type { Series } from '../Chart'
 
 const { fill } = colors.series.scatter
 
@@ -16,11 +16,10 @@ export default React.memo(({ series, dimensions, renderOrder = 0, pointRadius = 
   const ref = useRef<InstancedMeshProps>()
 
   useLayoutEffect(() => {
-    const { data } = series
+    const { data, xDomain, yDomain } = series
     if (!data?.length) return
 
     const { x, y, width, height } = dimensions
-    const { xDomain, yDomain } = series
     const xScale = scaleLinear()
       .domain(xDomain)
       .range([x, x + width])

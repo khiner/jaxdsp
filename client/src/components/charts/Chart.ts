@@ -5,16 +5,9 @@ export interface Dimensions {
   height?: number
 }
 
-export default interface Series {
-  series
-  dimensions: Dimensions
-  renderOrder?: number
-  strokeWidth?: number
-}
-
 export interface SeriesDatum {
-  x: number
-  y: number
+  x?: number
+  y?: number
   x1?: number
   x2?: number
 }
@@ -49,14 +42,21 @@ export interface InnerSeries {
   permanent?: boolean
 }
 
+export interface Series {
+  series: InnerSeries
+  dimensions: Dimensions
+  renderOrder?: number
+  strokeWidth?: number
+}
+
 export interface Data {
   xDomain: Domain
   yDomain: Domain
   data: InnerSeries[]
 }
 
-export interface Chart {
-  data
+export default interface Chart {
+  data: Data
   dimensions?: Dimensions // This is actually required by the chart component, but it can be missing as a child of ChartContext.
   axes?: any[]
   xAxisHeight?: number

@@ -1,6 +1,6 @@
 import React, { Children, ReactChildren, ReactElement, useEffect } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import type { Dimensions } from './series/Series'
+import type { Dimensions } from './Chart'
 
 const DEFAULT_CHART_HEIGHT = 200
 

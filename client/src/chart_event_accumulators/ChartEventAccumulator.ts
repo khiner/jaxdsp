@@ -8,7 +8,7 @@ import {
   SeriesDatum,
   SeriesSummaryData,
   SeriesSummaryDatum,
-} from '../components/charts/series/Series'
+} from '../components/charts/Chart'
 import type { HeartbeatEvent } from '../Heartbeat'
 
 const DEFAULT_EXPIRATION_MILLIS = 5 * 1_000
@@ -67,7 +67,7 @@ export default class ChartEventAccumulator {
   }
 
   // Note: be sure to call `expireData` and `refreshDomain` after pushing all data!
-  push(seriesId: string, datum, label?: string) {
+  push(seriesId: string, datum: SeriesDatum, label?: string) {
     const series = this.findOrAddSeries(seriesId, label)
     if (getMinTimeMillis(last(series.data)) === getMinTimeMillis(datum)) series.data.pop()
     series.data.push(datum)

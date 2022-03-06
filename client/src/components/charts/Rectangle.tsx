@@ -1,6 +1,6 @@
 import React from 'react'
 import { Line } from '@react-three/drei'
-import type { Dimensions } from './series/Series'
+import type { Dimensions } from './Chart'
 import type { Color } from '@react-three/fiber'
 
 interface Props {

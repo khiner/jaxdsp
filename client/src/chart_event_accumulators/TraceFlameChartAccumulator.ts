@@ -45,7 +45,7 @@ export default class TraceFlameChartAccumulator extends ChartEventAccumulator {
       if (x1 === undefined) throw 'Flame chart series datum must have a start time'
 
       const seriesId = `${label}-${laneIndex}`
-      this.push(seriesId, { id: `${seriesId}-${x1}`, x1, x2: x2 || now_ms, duration_ms }, label)
+      this.push(seriesId, { x1, x2: x2 || now_ms }, label)
     })
     this.allSeries().sort((sA, s) => cumulativeSeriesWidth(sA) - cumulativeSeriesWidth(s))
   }
