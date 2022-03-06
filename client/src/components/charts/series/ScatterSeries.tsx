@@ -6,8 +6,6 @@ import ClipArea from '../ClipArea'
 import type { InstancedMeshProps } from '@react-three/fiber'
 import type { Series } from '../Chart'
 
-const { fill } = colors.series.scatter
-
 interface Props extends Series {
   pointRadius?: number
 }
@@ -35,7 +33,7 @@ export default React.memo(({ series, dimensions, renderOrder = 0, pointRadius = 
     })
     mesh.count = data.length - 1
     mesh.instanceMatrix.needsUpdate = true
-  }, [ref])
+  })
 
   // Should be able to do something like this to avoid refs, but it lags behind for me:
   // <Instances limit={1_000}>
@@ -48,7 +46,7 @@ export default React.memo(({ series, dimensions, renderOrder = 0, pointRadius = 
   return (
     <instancedMesh ref={ref} args={[null, null, 1_000]} renderOrder={renderOrder}>
       <circleBufferGeometry args={[pointRadius]} />
-      <meshBasicMaterial color={fill} transparent={true} opacity={0.8}>
+      <meshBasicMaterial color={series.color} transparent={true} opacity={0.8}>
         <ClipArea dimensions={dimensions} />
       </meshBasicMaterial>
     </instancedMesh>
