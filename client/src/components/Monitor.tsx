@@ -26,7 +26,6 @@ export default function Monitor({
   const xDomain = trainTimeSeriesData?.xDomain || traceTimeSeriesData?.xDomain || traceFlameData?.xDomain
   if (!xDomain) return null
 
-  console.log(xDomain)
   return (
     <ChartContext width={width}>
       {hasData(trainTimeSeriesData) && (
