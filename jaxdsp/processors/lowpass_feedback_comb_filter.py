@@ -1,6 +1,5 @@
 import jax.numpy as jnp
 from jax import jit, lax
-from jax.ops import index_update
 
 from jaxdsp.param import Param
 
@@ -26,11 +25,7 @@ def tick(carry, x):
         out * (1 - params["damp"]) + state["filter_store"] * params["damp"]
     )
 
-    state["buffer"] = index_update(
-        state["buffer"],
-        state["buffer_index"],
-        x + state["filter_store"] * params["feedback"],
-    )
+    state["buffer"] = state["buffer"].at[state["buffer_index"]].set(x + state["filter_store"] * params["feedback"])
     state["buffer_index"] += 1
     state["buffer_index"] %= state["buffer"].size
     return carry, out

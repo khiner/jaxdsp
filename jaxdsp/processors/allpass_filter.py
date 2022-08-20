@@ -1,6 +1,5 @@
 import jax.numpy as jnp
 from jax import jit, lax
-from jax.ops import index_update
 
 from jaxdsp.param import Param
 
@@ -21,9 +20,7 @@ def init_state(buffer_size=20):
 def tick(carry, x):
     params, state = carry
     buffer_out = state["buffer"][state["buffer_index"]]
-    state["buffer"] = index_update(
-        state["buffer"], state["buffer_index"], x + buffer_out * params["feedback"]
-    )
+    state["buffer"] = state["buffer"].at[state["buffer_index"]].set(x + buffer_out * params["feedback"])
     state["buffer_index"] += 1
     state["buffer_index"] %= state["buffer"].size
     out = -x + buffer_out

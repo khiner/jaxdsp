@@ -13,7 +13,6 @@ import math
 
 import jax.numpy as jnp
 from jax import jit, lax
-from jax.ops import index, index_update
 
 from jaxdsp.param import Param
 from jaxdsp.processors.constants import DEFAULT_SAMPLE_RATE
@@ -47,9 +46,7 @@ def tick(carry, x):
     write_sample = state["write_sample"]
     read_sample = state["read_sample"]
 
-    state["delay_line"] = index_update(
-        state["delay_line"], index[write_sample].astype("int32"), x
-    )
+    state["delay_line"] = state["delay_line"].at[write_sample.astype("int32")].set(x)
 
     read_sample_floor = read_sample.astype("int32")
     interp = read_sample - read_sample_floor
