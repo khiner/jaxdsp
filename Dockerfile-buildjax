@@ -7,7 +7,6 @@ FROM nvidia/cuda:11.4.2-cudnn8-runtime-ubuntu20.04
 ENV PIP_NO_CACHE_DIR=1
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections # Avoid hanging on any install prompts
 RUN apt update -y && apt upgrade -y
-RUN apt install -y python3-pip git # git needed for a package dependency specified with a git URL (`jax_spectral`)
 RUN pip install --upgrade pip
 
 # aiortc requirements: https://github.com/aiortc/aiortc#linux

@@ -28,7 +28,6 @@ $ docker run -p 8080:8080 -p 8765:8765 --platform linux/amd64 --init jaxdsp_serv
 
 See the [server README](server/README.md) for instructions on running locally.
 
-
 ## Client
 
 ```shell

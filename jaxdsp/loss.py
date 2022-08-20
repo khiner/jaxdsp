@@ -1,15 +1,13 @@
 import jax.numpy as jnp
-import jax_spectral
-
+import jax.scipy.signal as signal
 
 # Port of https://github.com/magenta/ddsp/blob/master/ddsp/spectral_ops.py#L33,
-# but using https://github.com/cifkao/jax-spectral instead of tf.signal.stft
-# Note: keep an eye out for jax to implement this in
-# [jax.scipy.signal](https://jax.readthedocs.io/en/latest/jax.scipy.html#module-jax.scipy.signal)
+# using [jax.scipy.signal.stft](https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.signal.stft.html#jax.scipy.signal.stft)
+# instead of tf.signal.stft.
 def stft(audio, sample_rate=16000, frame_size=2048, overlap=0.75, pad_end=True):
     assert frame_size * overlap % 2.0 == 0.0
 
-    return jax_spectral.spectral.stft(
+    return signal.stft(
         audio,
         # sample_rate, # TODO need this
         nperseg=int(frame_size),
