@@ -1,10 +1,12 @@
 import jax.numpy as jnp
 import jax.scipy.signal as signal
 
+DEFAULT_STFT_WINDOW = 'hann'
+
 # Port of https://github.com/magenta/ddsp/blob/master/ddsp/spectral_ops.py#L33,
 # using [jax.scipy.signal.stft](https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.signal.stft.html#jax.scipy.signal.stft)
 # instead of tf.signal.stft.
-def stft(audio, sample_rate=16000, frame_size=2048, overlap=0.75, pad_end=True):
+def stft(audio, sample_rate=16000, frame_size=2048, overlap=0.75, window=DEFAULT_STFT_WINDOW):
     assert frame_size * overlap % 2.0 == 0.0
 
     return signal.stft(
@@ -12,14 +14,15 @@ def stft(audio, sample_rate=16000, frame_size=2048, overlap=0.75, pad_end=True):
         # sample_rate, # TODO need this
         nperseg=int(frame_size),
         noverlap=int(overlap),
+        window=window,
         # nfft=int(frame_size),
-        padded=pad_end,
+        padded=True,
     )
 
 
 # Port of https://github.com/magenta/ddsp/blob/master/ddsp/spectral_ops.py#L76
-def magnitute_spectrogram(audio, size=2048, overlap=0.75, pad_end=True):
-    return jnp.abs(stft(audio, frame_size=size, overlap=overlap, pad_end=pad_end)[2])
+def magnitute_spectrogram(audio, size=2048, overlap=0.75, window=DEFAULT_STFT_WINDOW):
+    return jnp.abs(stft(audio, frame_size=size, overlap=overlap, window=window)[2])
 
 
 def safe_log(X, eps=1e-5):
@@ -107,6 +110,7 @@ class LossOptions:
         # Also, removing 2048 size since it's just so darn slow.
         # fft_sizes=(2048, 1024, 512, 256, 128, 64),
         fft_sizes=(1024, 512, 256),
+        stft_window=DEFAULT_STFT_WINDOW,
     ):
         """Args:
         weights: Dict of loss labels to relative weighting of that loss.
@@ -131,6 +135,7 @@ class LossOptions:
             for label, weight in self.weights_options.items()
             if weight and weight > 0 and label in frequency_loss_labels
         ]
+        self.stft_window = stft_window
 
     def serialize(self):
         return {
@@ -144,6 +149,7 @@ class LossOptions:
                 "frequency": self.frequency_distance_type,
             },
             "fft_sizes": list(self.fft_sizes),
+            "stft_window": self.stft_window,
         }
 
 
@@ -159,8 +165,8 @@ def loss_fn(X, Y, opts):
                 X = jnp.expand_dims(X, 0)
             if len(Y.shape) == 1:
                 Y = jnp.expand_dims(Y, 0)
-            X_mag = magnitute_spectrogram(X, size=fft_size)
-            Y_mag = magnitute_spectrogram(Y, size=fft_size)
+            X_mag = magnitute_spectrogram(X, size=fft_size, window=opts.stft_window)
+            Y_mag = magnitute_spectrogram(Y, size=fft_size, window=opts.stft_window)
             loss += sum(
                 weight
                 * loss_fn_for_label[label](X_mag, Y_mag, opts.frequency_distance_type)
