@@ -41,7 +41,7 @@ def distance(X, Y, kind="L1"):
     elif kind == "L2":
         return jnp.mean((Y - X) ** 2)
     elif kind == "COSINE":
-        return (Y @ X.T) / (norm(Y) * norm(X))
+        return 1 - (Y @ X.T) / (norm(Y) * norm(X))
     else:
         raise ValueError(f"Distance type ({kind}), must be 'L1, 'L2', or 'COSINE'")
 
