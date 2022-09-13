@@ -1,3 +1,6 @@
+# A unity-gain single-pole lowpass filter, as used in the feedback path of
+# Freeverb's comb filter: https://ccrma.stanford.edu/~jos/pasp/Lowpass_Feedback_Comb_Filter.html
+
 import jax.numpy as jnp
 from jax import jit, lax
 

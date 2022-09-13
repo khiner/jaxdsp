@@ -6,7 +6,7 @@ from jaxdsp.processors import (
     freeverb,
     iir_filter,
     biquad_lowpass,
-    lowpass_feedback_comb_filter,
+    lowpass_filter,
     sine_wave,
 )
 
@@ -18,7 +18,7 @@ all_processors = [
     freeverb,
     iir_filter,
     biquad_lowpass,
-    lowpass_feedback_comb_filter,
+    lowpass_filter,
     sine_wave,
 ]
 processor_by_name = {processor.NAME: processor for processor in all_processors}
