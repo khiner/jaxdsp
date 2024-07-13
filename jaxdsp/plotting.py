@@ -8,30 +8,22 @@ from jaxdsp.params import params_to_float
 from jaxdsp.training import TrainChartEventAccumulator
 
 
-def plot_filter(fig, X, Y, Y_estimated, Y_reference, title):
+def plot_signal_transform(fig, X, Y, Y_estimated, Y_reference):
     column_titles = (
-        ["Target", "Reference Implementation", "Estimated"]
-        if Y_reference is not None
-        else ["Target", "Estimated"]
+        ["Input", "Target"]
+        + (["Reference Implementation"] if Y_reference is not None else [])
+        + ["Estimated"]
     )
-    row_titles = ["Input", "Output"]
-    Ys = [Y, Y_reference, Y_estimated] if Y_reference is not None else [Y, Y_estimated]
-    axes = fig.subplots(2, len(column_titles), sharex=True)
-    fig.suptitle(title, size=16)
-    for ax, column_title in zip(axes[0], column_titles):
-        ax.set_title(column_title)
-    for ax, row_title in zip(axes[:, 0], row_titles):
+    axes = fig.subplots(len(column_titles), 1, sharex=True)
+    fig.suptitle("Signal Transform", size=16)
+    for ax, row_title in zip(axes, column_titles):
         ax.set_ylabel(row_title, size="large")
-    for i, ax_column in enumerate(axes.T):
-        in_plot = ax_column[0]
-        # in_plot.stem(X, basefmt=' ')
-        in_plot.plot(X)
-        in_plot.set_ylim([X.min() - 0.1, X.max() + 0.1])
 
-        out_plot = ax_column[1]
-        # out_plot.stem(Ys[i], basefmt=' ')
-        out_plot.plot(Ys[i].T)
-        out_plot.set_ylim([Ys[i].min() - 0.1, Ys[i].max() + 0.1])
+    Ys = [X, Y] + ([Y_reference] if Y_reference is not None else []) + [Y_estimated]
+    for i, plot in enumerate(axes):
+        # plot.stem(Ys[i], basefmt=' ')
+        plot.plot(Ys[i].T)
+        plot.set_ylim([Ys[i].min() - 0.1, Ys[i].max() + 0.1])
 
 
 def plot_processor(fig, params_target, params_history):
@@ -45,13 +37,13 @@ def plot_processor(fig, params_target, params_history):
     if len(single_params) > 0:
         param_groups.append(single_params)
     # Each list param gets its own param group (column).
-    for (key, params) in [
+    for key, params in [
         (key, params)
         for (key, params) in params_target.items()
         if isinstance(params, Iterable)
     ]:
         param_groups.append(
-            [(key, "${}_{}$".format(key, i), param) for i, param in enumerate(params)]
+            [(key, f"${key}_{i}$", param) for i, param in enumerate(params)]
         )
     num_rows, num_cols = max([len(param_group) for param_group in param_groups]), len(
         param_groups
@@ -80,11 +72,11 @@ def plot_processor(fig, params_target, params_history):
                 plot.legend()
             if param_i == len(param_group) - 1:
                 plot.set_xlabel("Batch")
-            plot.autoscale()
+            plot.autoscale(tight=True)
 
 
-def plot_processors(
-    fig, params_targets, params_histories, processor_names, is_row=True
+def plot_processor_params(
+    fig, params_targets, params_histories, processor_names, is_row=True, is_main=True
 ):
     subfigs = fig.subfigures(
         1 if is_row else len(processor_names),
@@ -95,13 +87,16 @@ def plot_processors(
     if len(processor_names) == 1:
         subfigs = [subfigs]
 
+    if is_main:
+        fig.suptitle("Processor Graph Params", fontsize=16)
+
     for subfig, processor_name, params_target, params_history in zip(
         subfigs, processor_names, params_targets, params_histories
     ):
         if isinstance(processor_name, list):
             # Nested processors are processed in parallel, so display in nested column
-            plot_processors(
-                subfig, params_target, params_history, processor_name, not is_row
+            plot_processor_params(
+                subfig, params_target, params_history, processor_name, not is_row, False
             )
         else:
             plot_processor(subfig, params_target, params_history)
@@ -118,30 +113,31 @@ def plot_train(
     plot_loss_history=True,
     plot_params_history=True,
 ):
-    num_rows = 1
-    if plot_loss_history:
-        num_rows += 1
-    if plot_params_history:
-        num_rows += 1
-
+    num_rows = 1 + int(plot_loss_history) + int(plot_params_history)
     fig = plt.figure(constrained_layout=True, figsize=(16, num_rows * 4))
-    height_ratios = None
-    if plot_loss_history:
-        height_ratios = [0.75, 0.5, 1] if num_rows == 3 else [0.25, 1]
-    subfigs = fig.subfigures(num_rows, 1, wspace=0.07, height_ratios=height_ratios)
-    subfig_i = 0
+    subfigs = fig.subfigures(num_rows, 1, wspace=0.07)
 
-    plot_filter(subfigs[subfig_i], X, Y, Y_estimated, Y_reference, title)
-    subfig_i += 1
+    fig.suptitle(title, size=16)
 
     accumulator = TrainChartEventAccumulator()
     for event in trainer.step_events:
         accumulator.accumulate(event)
 
+    subfig_i = 0
+
+    if plot_params_history:
+        plot_processor_params(
+            subfigs[subfig_i],
+            params_to_float(params),
+            accumulator.get_params_series()["data"],
+            trainer.processor_names,
+        )
+        subfig_i += 1
+
     if plot_loss_history:
         plot = subfigs[subfig_i].subplots(1, 1)
         loss_series = accumulator.get_loss_series()
-        plot.plot(loss_series["data"])
+        plot.plot(loss_series["data"], linewidth=2)
         plot.set_xlabel("Batch")
         plot.set_ylabel(loss_series["label"])
         plot.set_title("Loss over time", size=16)
@@ -149,14 +145,8 @@ def plot_train(
         plot.autoscale(tight=True)
         subfig_i += 1
 
-    if plot_params_history:
-        plot_processors(
-            subfigs[subfig_i],
-            params_to_float(params),
-            accumulator.get_params_series()["data"],
-            trainer.processor_names,
-        )
-        subfig_i += 1
+    plot_signal_transform(subfigs[subfig_i], X, Y, Y_estimated, Y_reference)
+    subfig_i += 1
 
 
 # TODO fix and keep one example around, since this is neat
@@ -194,10 +184,8 @@ def plot_optimization(
     for param_i, (label, param_target) in enumerate(params_target.items()):
         estimated_params_plot = axes[param_i]
         estimated_params_plot.plot(x, params_estimated[label], linewidth=3)
-        estimated_params_plot.set_title("Estimated {}".format(label), size=18)
-        estimated_params_plot.set_ylabel(
-            "Estimated after {} steps".format(steps), size=11
-        )
+        estimated_params_plot.set_title(f"Estimated {label}", size=18)
+        estimated_params_plot.set_ylabel(f"Estimated after {steps} steps", size=11)
         estimated_params_plot.axhline(
             param_target, linestyle="--", c="r", label="Target index"
         )
@@ -209,8 +197,8 @@ def plot_optimization(
     optimized_loss_plot = axes[-1]
     optimized_loss_plot.plot(x, losses, linewidth=3)
     optimized_loss_plot.set_title("Optimized loss", size=18)
-    optimized_loss_plot.set_xlabel("Initial guess for {} value".format(label), size=16)
-    optimized_loss_plot.set_ylabel("MSE loss after {} steps".format(steps), size=11)
+    optimized_loss_plot.set_xlabel(f"Initial guess for {label} value", size=16)
+    optimized_loss_plot.set_ylabel(f"MSE loss after {steps} steps", size=11)
     for axis in axes:
         axis.grid(True)
     plt.tight_layout()
