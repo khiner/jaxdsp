@@ -77,16 +77,18 @@ export const negotiatePeerConnection = async (peerConnection, offerUrl): Promise
     peerConnection.localDescription.sdp
   )
 
-  // Currently 20ms at 44kHz results in 960-sample packets (per-channel).
-  // This limits the max power-of-2 fft size to 512, which limits the lowest resolved frequency to 44100 / 512 = 87Hz
-  // It would be nice (maybe even crucial?) to increase the packet size from 20ms to 40ms, to allow for >= 1024 sample fft sizes.
-  // However, changing the sdp directly here doesn't seem to change anything.
-  // Also, [media track constraints](https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints)
-  // don't offer anything related to packet size.
-  // My workaround is to just process P > 1 packets at a time on the server side,
-  // introducing P - 1 packets of processing delay. (See `server.py::AudioTransformTrack::__init__` for more details.)
-  // peerConnection.localDescription.sdp = peerConnection.localDescription.sdp.replace(/minptime=\d+/, 'minptime=40')
-  // peerConnection.localDescription.sdp += 'a=ptime:40\n';
+  /**
+   * Currently 20ms at 44kHz results in 960-sample packets (per-channel).
+  This limits the max power-of-2 fft size to 512, which limits the lowest resolved frequency to 44100 / 512 = 87Hz
+  It would be nice (maybe even crucial?) to increase the packet size from 20ms to 40ms, to allow for >= 1024 sample fft sizes.
+  However, changing the sdp directly here doesn't seem to change anything.
+  Also, [media track constraints](https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints)
+  don't offer anything related to packet size.
+  My workaround is to just process P > 1 packets at a time on the server side,
+  introducing P - 1 packets of processing delay. (See `server.py::AudioTransformTrack::__init__` for more details.)
+  peerConnection.localDescription.sdp = peerConnection.localDescription.sdp.replace(/minptime=\d+/, 'minptime=40')
+  peerConnection.localDescription.sdp += 'a=ptime:40\n';
+  */
   const response = await fetch(offerUrl, {
     body: JSON.stringify({
       sdp: peerConnection.localDescription.sdp,

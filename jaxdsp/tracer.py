@@ -5,13 +5,6 @@ from collections import deque
 from inspect import iscoroutinefunction
 from contextlib import contextmanager
 
-# This chart_event_accumulators is intended to publish its in-memory data on stream where a client can consume it,
-# so values are only stored in memory here to allow:
-# * Publishing to the stream in buffers
-# * Resiliency to back-pressure from downstream
-# Client is responsible for longer-term storage as needed.
-MAX_IN_MEMORY_SERIES_LENGTH = 100
-
 
 class TraceEvent:
     def __init__(
@@ -32,7 +25,9 @@ class TraceEvent:
         return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
-trace_events = deque(maxlen=MAX_IN_MEMORY_SERIES_LENGTH)
+# All trace events are added to a qlobal queue.
+# Client is responsible for any longer-term storage.
+trace_events = deque(maxlen=100)
 
 
 # Milliseconds since epoch
@@ -43,15 +38,16 @@ def time_ms():
 # TODO think about the need for [block_when_ready](https://jax.readthedocs.io/en/latest/async_dispatch.html)
 #  for measuring `jit`ed jax fns.
 
+
 # Technique for optional named decorator parameters is from:
 #   https://stackoverflow.com/a/60832711/780425
 # Using `@contextmanager` to allow decorating either async or non-async functions is from:
 #   https://gist.github.com/anatoly-kussul/f2d7444443399e51e2f83a76f112364d/ff1f94b1bd07741ce209cc61832f920adb49aedf
 def trace(f_py=None, label=None):
     """
-    A trace event (see above) will be appended upon completion of each call to the decorated function.
+    Append a `TraceEvent` after completion of every decorated function call.
     If no value is provided to the (keyword-only, non-positional) `label` parameter, the `label` property of the event
-    will the be set to the name of the decorated function.
+    is set to the name of the decorated function.
 
     See `/tests/jaxdsp/chart_event_accumulators/test_tracer.py` for examples.
     """
@@ -94,7 +90,10 @@ def trace(f_py=None, label=None):
     return decorator(f_py) if callable(f_py) else decorator
 
 
-def find_events(label=None, function_name=None):
+# TODO move these into static methods on a new `TraceEvents` class. (E.g. `TraceEvents.find(label, function_name)`)
+
+
+def find_events(label=None, function_name=None) -> list[TraceEvent]:
     return [
         event
         for event in trace_events
@@ -103,11 +102,11 @@ def find_events(label=None, function_name=None):
     ]
 
 
-def get_events():
+def get_events() -> list[TraceEvent]:
     return list(trace_events)
 
 
-def get_events_serialized():
+def get_events_serialized() -> list[dict]:
     return [trace_event.serialize() for trace_event in trace_events]
 
 
