@@ -3,6 +3,7 @@ from collections.abc import Iterable
 import numpy as np
 from matplotlib import pyplot as plt
 
+import jax.numpy as jnp
 from jaxdsp import training
 from jaxdsp.params import params_to_float
 from jaxdsp.training import TrainChartEventAccumulator
@@ -24,6 +25,7 @@ def plot_signal_transform(fig, X, Y, Y_estimated, Y_reference):
         # plot.stem(Ys[i], basefmt=' ')
         plot.plot(Ys[i].T)
         plot.set_ylim([Ys[i].min() - 0.1, Ys[i].max() + 0.1])
+        plot.autoscale(tight=True)
 
 
 def plot_processor(fig, params_target, params_history):
@@ -42,12 +44,8 @@ def plot_processor(fig, params_target, params_history):
         for (key, params) in params_target.items()
         if isinstance(params, Iterable)
     ]:
-        param_groups.append(
-            [(key, f"${key}_{i}$", param) for i, param in enumerate(params)]
-        )
-    num_rows, num_cols = max([len(param_group) for param_group in param_groups]), len(
-        param_groups
-    )
+        param_groups.append([(key, f"${key}_{i}$", p) for i, p in enumerate(params)])
+    num_rows, num_cols = max([len(pg) for pg in param_groups]), len(param_groups)
     axes = fig.subplots(num_rows, num_cols, sharex=True)
     if num_rows == 1 and num_cols == 1:
         axes = np.expand_dims(axes, axis=0)
@@ -102,6 +100,20 @@ def plot_processor_params(
             plot_processor(subfig, params_target, params_history)
 
 
+def get_num_rows(params):
+    num_rows = 0
+    if isinstance(params, dict):
+        if len(params) > 0 and all(isinstance(v, Iterable) for v in params.values()):
+            num_rows += max(len(v) for v in params.values())
+        else:
+            num_rows += sum(get_num_rows(v) for v in params.values())
+    elif isinstance(params, Iterable):
+        num_rows += max(get_num_rows(v) for v in params)
+    else:
+        num_rows += 1
+    return num_rows
+
+
 def plot_train(
     trainer,
     params,
@@ -113,9 +125,16 @@ def plot_train(
     plot_loss_history=True,
     plot_params_history=True,
 ):
-    num_rows = 1 + int(plot_loss_history) + int(plot_params_history)
-    fig = plt.figure(constrained_layout=True, figsize=(16, num_rows * 4))
-    subfigs = fig.subfigures(num_rows, 1, wspace=0.07)
+    num_param_rows = 0 if not plot_params_history else get_num_rows(params)
+    num_rows = int(plot_params_history) + int(plot_loss_history) + 1
+    height_ratios = (
+        [num_param_rows]
+        + [1] * int(plot_loss_history)
+        + [2 if Y_reference is None else 3]
+    )
+
+    fig = plt.figure(constrained_layout=True, figsize=(16, 2 * sum(height_ratios)))
+    subfigs = fig.subfigures(num_rows, 1, wspace=0.07, height_ratios=height_ratios)
 
     fig.suptitle(title, size=16)
 

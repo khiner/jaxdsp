@@ -3,7 +3,7 @@ from jax import jit, lax
 
 from jaxdsp.param import Param
 from jaxdsp.processors import allpass_filter as allpass
-from jaxdsp.processors import lowpass_feedback_comb_filter as comb
+from jaxdsp.processors import lowpass_filter as comb
 
 NAME = "Freeverb"
 PARAMS = [

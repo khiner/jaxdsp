@@ -13,6 +13,9 @@ Built with [JAX](https://github.com/google/jax), WebRTC, WebSockets, and React.
 [`react-three-fiber`](https://github.com/pmndrs/react-three-fiber) provides the WebGL backbone for
 performant real-time clientside monitoring of the system.
 
+![](plots/effect_losses/stereo_freeverb.png)
+![](plots/effect_losses/iir_to_clip.png)
+
 ## Server
 
 ### Docker server
